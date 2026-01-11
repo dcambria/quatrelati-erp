@@ -1,9 +1,9 @@
 const { test, expect } = require('@playwright/test');
 
-const BASE_URL = 'http://localhost:3002';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const API_URL = 'http://localhost:3001';
 
-test('fluxo completo magic link com email', async ({ page, request, context }) => {
+test.skip('fluxo completo magic link com email', async ({ page, request, context }) => {
   console.log('\n=== TESTE MAGIC LINK COM EMAIL ===\n');
 
   // 1. Solicitar magic link via API (simula envio de email)

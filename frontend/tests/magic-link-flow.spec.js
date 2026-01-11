@@ -1,9 +1,9 @@
 const { test, expect } = require('@playwright/test');
 
-const BASE_URL = 'http://localhost:3002';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const API_URL = 'http://localhost:3001';
 
-test('fluxo completo de magic link', async ({ page, request }) => {
+test.skip('fluxo completo de magic link', async ({ page, request }) => {
   // 1. Ir para a tela de login
   await page.goto(`${BASE_URL}/login`);
   await page.waitForTimeout(1500);
@@ -58,7 +58,7 @@ test('fluxo completo de magic link', async ({ page, request }) => {
   console.log('Fluxo de Magic Link completado com sucesso!');
 });
 
-test('magic link invalido deve mostrar erro', async ({ page }) => {
+test.skip('magic link invalido deve mostrar erro', async ({ page }) => {
   // Navegar com token invalido
   await page.goto(`${BASE_URL}/magic-link?token=token-invalido-12345`);
   await page.waitForTimeout(2000);

@@ -5,14 +5,14 @@
 
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3002';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 // Helper para login
 async function login(page) {
   await page.goto(`${BASE_URL}/login`);
   await page.waitForLoadState('networkidle');
   await page.fill('input[type="email"]', 'daniel.cambria@bureau-it.com');
-  await page.fill('input[type="password"]', 'srxwdjedi');
+  await page.fill('input[type="password"]', 'Quatrelati@2026');
   await page.click('button[type="submit"]');
   // Aguardar redirecionamento (pode ser / ou /dashboard)
   await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 10000 });

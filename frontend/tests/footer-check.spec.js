@@ -1,14 +1,14 @@
 const { test, expect } = require('@playwright/test');
 
-const BASE_URL = 'http://localhost:3002';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const API_URL = 'http://localhost:3001';
 
 test('capturar footer bureau logo', async ({ page }) => {
   // Login via API primeiro
   const loginResponse = await page.request.post(`${API_URL}/api/auth/login`, {
     data: {
-      email: 'admin@quatrelati.com',
-      senha: 'admin123'
+      email: 'daniel.cambria@bureau-it.com',
+      senha: 'Quatrelati@2026'
     }
   });
 

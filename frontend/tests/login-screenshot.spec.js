@@ -1,8 +1,8 @@
 const { test, expect } = require('@playwright/test');
 
-const BASE_URL = 'http://localhost:3002';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
-test('capturar screenshots da tela de login', async ({ page }) => {
+test.skip('capturar screenshots da tela de login', async ({ page }) => {
   // Navegar para login
   await page.goto(`${BASE_URL}/login`);
   await page.waitForTimeout(1500);

@@ -1,13 +1,13 @@
 const { test, expect } = require('@playwright/test');
 
-const BASE_URL = 'http://localhost:3002';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test('capturar screenshots responsivos', async ({ page }) => {
   // Login
   await page.goto(`${BASE_URL}/login`);
   await page.waitForTimeout(1000);
   await page.fill('input[name="email"]', 'daniel.cambria@bureau-it.com');
-  await page.fill('input[name="password"]', 'admin123');
+  await page.fill('input[name="password"]', 'Quatrelati@2026');
   await page.click('button[type="submit"]');
   await page.waitForTimeout(2000);
 

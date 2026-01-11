@@ -1,7 +1,8 @@
 // =====================================================
 // Rotas de Pedidos
-// v1.5.0 - PDF lista: vendedor no header, totais gerais,
-//          blocos de resumo melhorados, footer aprimorado
+// v1.6.0 - PDF otimizado: economia de tinta, layout limpo,
+//          destaque amarelo p/ entregues, datas atrasadas
+//          em vermelho, totais alinhados às colunas
 // =====================================================
 
 const express = require('express');

@@ -893,6 +893,9 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
 
         currentY = drawTableHeader(currentY);
 
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+
         result.rows.forEach((pedido) => {
             // Verificar se precisa nova página
             if (currentY + rowHeight > pageHeight - 50) {
@@ -900,9 +903,15 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
                 currentY = drawTableHeader(40);
             }
 
+            // Verificar se está atrasado (data entrega < hoje E não entregue)
+            const dataEntregaObj = pedido.data_entrega ? new Date(pedido.data_entrega) : null;
+            const estaAtrasado = dataEntregaObj && !pedido.entregue && dataEntregaObj < hoje;
+
             // Fundo amarelo para ENTREGUES (destaque economizando tinta)
             if (pedido.entregue) {
                 doc.rect(startX, currentY, tableWidth, rowHeight).fill('#FEF9C3');
+                // Bordas consistentes para linhas com fundo
+                doc.moveTo(startX, currentY).lineTo(startX + tableWidth, currentY).strokeColor('#E5E7EB').lineWidth(0.5).stroke();
             }
 
             // Linha inferior sutil
@@ -933,7 +942,10 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
             let xPos = startX;
             valores.forEach((valor, i) => {
                 // Cores
-                if (i === 9) {
+                if (i === 8 && estaAtrasado) {
+                    // Data de entrega em VERMELHO se atrasado
+                    doc.fillColor('#DC2626');
+                } else if (i === 9) {
                     // Status: verde para entregue, âmbar para pendente
                     doc.fillColor(pedido.entregue ? '#166534' : '#92400E');
                 } else if (i === 0) {
@@ -946,8 +958,8 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
                     doc.fillColor('#4B5563');
                 }
 
-                // Fonte: negrito para pedido, cliente, total e status
-                if (i === 0 || i === 2 || i === 7 || i === 9) {
+                // Fonte: negrito para pedido, cliente, total, status e data atrasada
+                if (i === 0 || i === 2 || i === 7 || i === 9 || (i === 8 && estaAtrasado)) {
                     doc.font('Helvetica-Bold').fontSize(8);
                 } else {
                     doc.font('Helvetica').fontSize(8);

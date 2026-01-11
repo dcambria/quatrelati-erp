@@ -987,20 +987,31 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
         // Linha separadora antes dos totais
         doc.moveTo(startX, currentY).lineTo(startX + tableWidth, currentY).strokeColor('#374151').lineWidth(1).stroke();
 
-        // Barra de totais
+        // Barra de totais - valores alinhados às colunas
         currentY += 4;
         doc.rect(startX, currentY, tableWidth, 24).fill('#1F2937');
 
+        // Calcular posições das colunas acumuladas
+        // colWidths = [55, 55, 185, 50, 60, 35, 55, 80, 55, 55]
+        const col0 = startX; // Pedido
+        const col4 = startX + 55 + 55 + 185 + 50; // Peso = 345
+        const col5 = col4 + 60; // Cx = 405
+        const col7 = col5 + 35 + 55; // Total = 495
+
         doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(9);
-        doc.text('TOTAIS GERAIS:', startX + 10, currentY + 7, { lineBreak: false });
 
-        doc.font('Helvetica').fontSize(8);
-        doc.text(`${pedidosGeral} pedidos`, startX + 110, currentY + 8, { lineBreak: false });
-        doc.text(`${pesoGeral.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg`, startX + 200, currentY + 8, { lineBreak: false });
-        doc.text(`${caixasGeral.toLocaleString('pt-BR')} cx`, startX + 290, currentY + 8, { lineBreak: false });
+        // Pedidos - coluna Pedido
+        doc.text(`${pedidosGeral}`, col0 + 4, currentY + 7);
 
-        doc.font('Helvetica-Bold').fontSize(11);
-        doc.text(totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), startX + tableWidth - 130, currentY + 6, { width: 120, align: 'right', lineBreak: false });
+        // Peso - coluna Peso (largura expandida)
+        doc.text(`${pesoGeral.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg`, col4, currentY + 7, { width: 60, align: 'right' });
+
+        // Caixas - coluna Cx (largura expandida)
+        doc.text(`${caixasGeral.toLocaleString('pt-BR')}`, col5, currentY + 7, { width: 35, align: 'right' });
+
+        // Total - coluna Total (largura expandida para caber o valor)
+        doc.fontSize(10);
+        doc.text(totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), col7, currentY + 6, { width: 80, align: 'right' });
 
         currentY += 28;
 

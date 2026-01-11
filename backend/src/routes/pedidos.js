@@ -1,7 +1,7 @@
 // =====================================================
 // Rotas de Pedidos
-// v1.3.1 - PDF lista: colunas na ordem do sistema,
-//          sem produtos, layout limpo e profissional
+// v1.4.0 - PDF lista: layout clean economizando tinta,
+//          entregues com fundo amarelo destacado
 // =====================================================
 
 const express = require('express');
@@ -800,22 +800,21 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
         const footerY = pageHeight - 25;
         const dataGeracao = format(new Date(), 'dd/MM/yyyy HH:mm');
 
-        // ===== CABEÇALHO =====
-        doc.rect(0, 0, pageWidth, 80).fill('#124EA6');
-
+        // ===== CABEÇALHO CLEAN (sem banner colorido) =====
         if (logoBuffer) {
             try {
-                doc.image(logoBuffer, margin, 15, { height: 50 });
+                doc.image(logoBuffer, margin, 20, { height: 40 });
             } catch (e) {
-                doc.fillColor('#FFFFFF').fontSize(18).font('Helvetica-Bold');
-                doc.text('QUATRELATI', margin, 28, { lineBreak: false });
+                doc.fillColor('#124EA6').fontSize(16).font('Helvetica-Bold');
+                doc.text('QUATRELATI', margin, 30, { lineBreak: false });
             }
         } else {
-            doc.fillColor('#FFFFFF').fontSize(18).font('Helvetica-Bold');
-            doc.text('QUATRELATI', margin, 28, { lineBreak: false });
+            doc.fillColor('#124EA6').fontSize(16).font('Helvetica-Bold');
+            doc.text('QUATRELATI', margin, 30, { lineBreak: false });
         }
 
-        doc.fillColor('#FFFFFF').fontSize(16).font('Helvetica-Bold');
+        // Título e período à direita
+        doc.fillColor('#1F2937').fontSize(14).font('Helvetica-Bold');
         doc.text('Relatório de Pedidos', pageWidth - 250, 20, { width: 210, align: 'right', lineBreak: false });
 
         let periodoTexto = 'Todos os pedidos';
@@ -826,82 +825,58 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
         } else if (ano) {
             periodoTexto = `Ano ${ano}`;
         }
-        doc.fillColor('#E8F1FC').fontSize(11).font('Helvetica');
-        doc.text(periodoTexto, pageWidth - 250, 42, { width: 210, align: 'right', lineBreak: false });
-        doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, pageWidth - 250, 56, { width: 210, align: 'right', lineBreak: false });
+        doc.fillColor('#6B7280').fontSize(10).font('Helvetica');
+        doc.text(periodoTexto, pageWidth - 250, 38, { width: 210, align: 'right', lineBreak: false });
+        doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, pageWidth - 250, 52, { width: 210, align: 'right', lineBreak: false });
 
-        // ===== CARDS DE RESUMO (NO INÍCIO) =====
-        let currentY = 95;
-        const cardWidth = 360;
-        const cardHeight = 55;
-        const cardGap = 25;
-        const cardsStartX = (pageWidth - (cardWidth * 2 + cardGap)) / 2;
+        // Linha separadora
+        doc.moveTo(margin, 70).lineTo(pageWidth - margin, 70).strokeColor('#E5E7EB').stroke();
 
-        // Card A ENTREGAR (amarelo)
-        doc.rect(cardsStartX, currentY, cardWidth, cardHeight).fill('#FFFBEB');
-        doc.rect(cardsStartX, currentY, 4, cardHeight).fill('#F59E0B');
+        // ===== RESUMO EM LINHA (economiza tinta) =====
+        let currentY = 80;
 
-        doc.fillColor('#92400E').font('Helvetica-Bold').fontSize(10);
-        doc.text('A ENTREGAR', cardsStartX + 12, currentY + 8, { lineBreak: false });
+        // Resumo A ENTREGAR
+        doc.fillColor('#92400E').font('Helvetica-Bold').fontSize(9);
+        doc.text('A ENTREGAR:', margin, currentY, { continued: true, lineBreak: false });
+        doc.fillColor('#374151').font('Helvetica').fontSize(9);
+        doc.text(`  ${totais.pedidos_pendentes} pedidos  |  ${parseFloat(totais.peso_pendente).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg  |  ${parseInt(totais.unidades_pendente).toLocaleString('pt-BR')} cx  |  `, { continued: true, lineBreak: false });
+        doc.font('Helvetica-Bold');
+        doc.text(parseFloat(totais.valor_pendente).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), { continued: false, lineBreak: false });
 
-        const pendY = currentY + 25;
-        doc.fillColor('#78350F').font('Helvetica').fontSize(7);
-        doc.text('PESO', cardsStartX + 12, pendY, { lineBreak: false });
-        doc.text('CAIXAS', cardsStartX + 85, pendY, { lineBreak: false });
-        doc.text('TOTAL', cardsStartX + 155, pendY, { lineBreak: false });
-        doc.text('PEDIDOS', cardsStartX + 290, pendY, { lineBreak: false });
+        // Resumo ENTREGUE
+        doc.fillColor('#166534').font('Helvetica-Bold').fontSize(9);
+        doc.text('ENTREGUE:', pageWidth / 2 + 20, currentY, { continued: true, lineBreak: false });
+        doc.fillColor('#374151').font('Helvetica').fontSize(9);
+        doc.text(`  ${totais.pedidos_entregues} pedidos  |  ${parseFloat(totais.peso_entregue).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg  |  ${parseInt(totais.unidades_entregue).toLocaleString('pt-BR')} cx  |  `, { continued: true, lineBreak: false });
+        doc.font('Helvetica-Bold');
+        doc.text(parseFloat(totais.valor_entregue).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), { continued: false, lineBreak: false });
 
-        doc.font('Helvetica-Bold').fontSize(9);
-        doc.text(parseFloat(totais.peso_pendente).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' kg', cardsStartX + 12, pendY + 10, { lineBreak: false });
-        doc.text(parseInt(totais.unidades_pendente).toLocaleString('pt-BR'), cardsStartX + 85, pendY + 10, { lineBreak: false });
-        doc.text(parseFloat(totais.valor_pendente).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), cardsStartX + 155, pendY + 10, { lineBreak: false });
-        doc.text(String(totais.pedidos_pendentes), cardsStartX + 290, pendY + 10, { lineBreak: false });
-
-        // Card ENTREGUE (verde)
-        const entregueX = cardsStartX + cardWidth + cardGap;
-        doc.rect(entregueX, currentY, cardWidth, cardHeight).fill('#F0FDF4');
-        doc.rect(entregueX, currentY, 4, cardHeight).fill('#22C55E');
-
-        doc.fillColor('#166534').font('Helvetica-Bold').fontSize(10);
-        doc.text('ENTREGUE', entregueX + 12, currentY + 8, { lineBreak: false });
-
-        doc.fillColor('#14532D').font('Helvetica').fontSize(7);
-        doc.text('PESO', entregueX + 12, pendY, { lineBreak: false });
-        doc.text('CAIXAS', entregueX + 85, pendY, { lineBreak: false });
-        doc.text('TOTAL', entregueX + 155, pendY, { lineBreak: false });
-        doc.text('PEDIDOS', entregueX + 290, pendY, { lineBreak: false });
-
-        doc.font('Helvetica-Bold').fontSize(9);
-        doc.text(parseFloat(totais.peso_entregue).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' kg', entregueX + 12, pendY + 10, { lineBreak: false });
-        doc.text(parseInt(totais.unidades_entregue).toLocaleString('pt-BR'), entregueX + 85, pendY + 10, { lineBreak: false });
-        doc.text(parseFloat(totais.valor_entregue).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), entregueX + 155, pendY + 10, { lineBreak: false });
-        doc.text(String(totais.pedidos_entregues), entregueX + 290, pendY + 10, { lineBreak: false });
-
-        currentY += cardHeight + 15;
+        currentY += 20;
 
         // ===== TABELA - mesma ordem da página de pedidos =====
         // Colunas: Pedido | Data | Cliente | N.F. | Peso | Cx | R$ Unit. | Total | Entrega | Status
         const headers = ['Pedido', 'Data', 'Cliente', 'N.F.', 'Peso', 'Cx', 'R$ Unit.', 'Total', 'Entrega', 'Status'];
-        const colWidths = [55, 55, 180, 50, 60, 35, 55, 80, 55, 60];
-        const colAligns = ['left', 'left', 'left', 'left', 'right', 'right', 'right', 'right', 'center', 'center'];
+        const colWidths = [55, 55, 185, 50, 60, 35, 55, 80, 55, 55];
+        const colAligns = ['left', 'center', 'left', 'center', 'right', 'right', 'right', 'right', 'center', 'center'];
         const tableWidth = colWidths.reduce((a, b) => a + b, 0);
         const startX = (pageWidth - tableWidth) / 2;
-        const rowHeight = 22;
+        const rowHeight = 20;
 
-        // Função para desenhar cabeçalho da tabela
+        // Função para desenhar cabeçalho da tabela (clean - sem fundo grande)
         const drawTableHeader = (y) => {
-            doc.rect(startX, y, tableWidth, 24).fill('#124EA6');
-            doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8);
+            // Apenas linha inferior para o header
+            doc.fillColor('#374151').font('Helvetica-Bold').fontSize(8);
             let xPos = startX;
             headers.forEach((header, i) => {
-                doc.text(header, xPos + 6, y + 8, { width: colWidths[i] - 12, align: colAligns[i], lineBreak: false });
+                doc.text(header, xPos + 4, y + 4, { width: colWidths[i] - 8, align: colAligns[i], lineBreak: false });
                 xPos += colWidths[i];
             });
-            return y + 24;
+            // Linha abaixo do header
+            doc.moveTo(startX, y + 18).lineTo(startX + tableWidth, y + 18).strokeColor('#374151').lineWidth(1).stroke();
+            return y + 22;
         };
 
         currentY = drawTableHeader(currentY);
-        let rowIndex = 0;
 
         result.rows.forEach((pedido) => {
             // Verificar se precisa nova página
@@ -910,14 +885,13 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
                 currentY = drawTableHeader(40);
             }
 
-            // Fundo alternado
-            const bgColor = rowIndex % 2 === 0 ? '#FFFFFF' : '#F8FAFC';
-            doc.rect(startX, currentY, tableWidth, rowHeight).fill(bgColor);
-            doc.rect(startX, currentY, tableWidth, rowHeight).stroke('#E5E7EB');
+            // Fundo amarelo para ENTREGUES (destaque economizando tinta)
+            if (pedido.entregue) {
+                doc.rect(startX, currentY, tableWidth, rowHeight).fill('#FEF9C3');
+            }
 
-            // Borda esquerda colorida por status
-            const statusColor = pedido.entregue ? '#22C55E' : '#F59E0B';
-            doc.rect(startX, currentY, 3, rowHeight).fill(statusColor);
+            // Linha inferior sutil
+            doc.moveTo(startX, currentY + rowHeight).lineTo(startX + tableWidth, currentY + rowHeight).strokeColor('#E5E7EB').lineWidth(0.5).stroke();
 
             const dataPedido = pedido.data_pedido
                 ? format(new Date(pedido.data_pedido), 'dd/MM/yy')
@@ -930,7 +904,7 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
             const valores = [
                 `#${pedido.numero_pedido || ''}`,
                 dataPedido,
-                (pedido.cliente_nome || '').substring(0, 30),
+                (pedido.cliente_nome || '').substring(0, 32),
                 pedido.nf || '-',
                 parseFloat(pedido.peso_kg || 0).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' kg',
                 String(pedido.quantidade_caixas || 0),
@@ -943,32 +917,36 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
             // Desenhar linha
             let xPos = startX;
             valores.forEach((valor, i) => {
-                // Cor especial para status
+                // Cores
                 if (i === 9) {
-                    doc.fillColor(pedido.entregue ? '#16A34A' : '#D97706');
+                    // Status: verde para entregue, âmbar para pendente
+                    doc.fillColor(pedido.entregue ? '#166534' : '#92400E');
                 } else if (i === 0) {
-                    doc.fillColor('#124EA6'); // Número do pedido em azul
+                    // Número do pedido em azul
+                    doc.fillColor('#1D4ED8');
+                } else if (i === 7) {
+                    // Total em destaque
+                    doc.fillColor('#1F2937');
                 } else {
-                    doc.fillColor('#374151');
+                    doc.fillColor('#4B5563');
                 }
 
-                // Fonte: negrito para pedido, cliente e total
-                if (i === 0 || i === 2 || i === 7) {
+                // Fonte: negrito para pedido, cliente, total e status
+                if (i === 0 || i === 2 || i === 7 || i === 9) {
                     doc.font('Helvetica-Bold').fontSize(8);
                 } else {
                     doc.font('Helvetica').fontSize(8);
                 }
 
-                doc.text(String(valor), xPos + 6, currentY + 7, { width: colWidths[i] - 12, align: colAligns[i], lineBreak: false });
+                doc.text(String(valor), xPos + 4, currentY + 6, { width: colWidths[i] - 8, align: colAligns[i], lineBreak: false });
                 xPos += colWidths[i];
             });
 
             currentY += rowHeight;
-            rowIndex++;
         });
 
-        // Linha de fechamento
-        doc.moveTo(startX, currentY).lineTo(startX + tableWidth, currentY).stroke('#E5E7EB');
+        // Linha de fechamento mais forte
+        doc.moveTo(startX, currentY).lineTo(startX + tableWidth, currentY).strokeColor('#9CA3AF').lineWidth(1).stroke();
 
         // ===== FUNÇÃO PARA DESENHAR LOGO BUREAU =====
         const drawBureauLogo = (x, y, scale = 0.12) => {

@@ -1,7 +1,7 @@
 // =====================================================
 // Rotas de Pedidos
-// v1.4.0 - PDF lista: layout clean economizando tinta,
-//          entregues com fundo amarelo destacado
+// v1.5.0 - PDF lista: vendedor no header, totais gerais,
+//          blocos de resumo melhorados, footer aprimorado
 // =====================================================
 
 const express = require('express');
@@ -707,6 +707,13 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
             ? `WHERE ${whereConditions.join(' AND ')}`
             : '';
 
+        // Buscar nome do vendedor se filtrado
+        let nomeVendedor = null;
+        if (vendedor_id) {
+            const vendedorResult = await req.db.query('SELECT nome FROM usuarios WHERE id = $1', [vendedor_id]);
+            nomeVendedor = vendedorResult.rows[0]?.nome;
+        }
+
         // Query com dados do vendedor
         const result = await req.db.query(`
             SELECT
@@ -797,25 +804,25 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
         const pageWidth = doc.page.width;
         const pageHeight = doc.page.height;
         const margin = 40;
-        const footerY = pageHeight - 25;
+        const footerY = pageHeight - 35;
         const dataGeracao = format(new Date(), 'dd/MM/yyyy HH:mm');
 
-        // ===== CABEÇALHO CLEAN (sem banner colorido) =====
+        // ===== CABEÇALHO =====
         if (logoBuffer) {
             try {
-                doc.image(logoBuffer, margin, 20, { height: 40 });
+                doc.image(logoBuffer, margin, 18, { height: 38 });
             } catch (e) {
                 doc.fillColor('#124EA6').fontSize(16).font('Helvetica-Bold');
-                doc.text('QUATRELATI', margin, 30, { lineBreak: false });
+                doc.text('QUATRELATI', margin, 28, { lineBreak: false });
             }
         } else {
             doc.fillColor('#124EA6').fontSize(16).font('Helvetica-Bold');
-            doc.text('QUATRELATI', margin, 30, { lineBreak: false });
+            doc.text('QUATRELATI', margin, 28, { lineBreak: false });
         }
 
         // Título e período à direita
         doc.fillColor('#1F2937').fontSize(14).font('Helvetica-Bold');
-        doc.text('Relatório de Pedidos', pageWidth - 250, 20, { width: 210, align: 'right', lineBreak: false });
+        doc.text('Relatório de Pedidos', pageWidth - 250, 18, { width: 210, align: 'right', lineBreak: false });
 
         let periodoTexto = 'Todos os pedidos';
         if (mes && ano) {
@@ -826,32 +833,40 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
             periodoTexto = `Ano ${ano}`;
         }
         doc.fillColor('#6B7280').fontSize(10).font('Helvetica');
-        doc.text(periodoTexto, pageWidth - 250, 38, { width: 210, align: 'right', lineBreak: false });
-        doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, pageWidth - 250, 52, { width: 210, align: 'right', lineBreak: false });
+        doc.text(periodoTexto, pageWidth - 250, 36, { width: 210, align: 'right', lineBreak: false });
+
+        // Indicar se é lista geral ou de vendedor
+        const tipoLista = nomeVendedor ? `Vendedor: ${nomeVendedor}` : 'Lista Geral';
+        doc.fillColor('#4B5563').fontSize(9).font('Helvetica-Bold');
+        doc.text(tipoLista, pageWidth - 250, 50, { width: 210, align: 'right', lineBreak: false });
 
         // Linha separadora
-        doc.moveTo(margin, 70).lineTo(pageWidth - margin, 70).strokeColor('#E5E7EB').stroke();
+        doc.moveTo(margin, 68).lineTo(pageWidth - margin, 68).strokeColor('#D1D5DB').lineWidth(0.5).stroke();
 
-        // ===== RESUMO EM LINHA (economiza tinta) =====
-        let currentY = 80;
+        // ===== BLOCOS DE RESUMO (melhorado) =====
+        let currentY = 78;
+        const blockWidth = (pageWidth - margin * 2 - 20) / 2;
 
-        // Resumo A ENTREGAR
+        // Bloco A ENTREGAR
+        doc.rect(margin, currentY, blockWidth, 32).fillAndStroke('#FFFBEB', '#F59E0B');
         doc.fillColor('#92400E').font('Helvetica-Bold').fontSize(9);
-        doc.text('A ENTREGAR:', margin, currentY, { continued: true, lineBreak: false });
-        doc.fillColor('#374151').font('Helvetica').fontSize(9);
-        doc.text(`  ${totais.pedidos_pendentes} pedidos  |  ${parseFloat(totais.peso_pendente).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg  |  ${parseInt(totais.unidades_pendente).toLocaleString('pt-BR')} cx  |  `, { continued: true, lineBreak: false });
-        doc.font('Helvetica-Bold');
-        doc.text(parseFloat(totais.valor_pendente).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), { continued: false, lineBreak: false });
+        doc.text('A ENTREGAR', margin + 10, currentY + 6, { lineBreak: false });
+        doc.fillColor('#78350F').font('Helvetica').fontSize(8);
+        doc.text(`${totais.pedidos_pendentes} pedidos  |  ${parseFloat(totais.peso_pendente).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg  |  ${parseInt(totais.unidades_pendente).toLocaleString('pt-BR')} cx`, margin + 10, currentY + 18, { lineBreak: false });
+        doc.font('Helvetica-Bold').fontSize(10);
+        doc.text(parseFloat(totais.valor_pendente).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), margin + blockWidth - 100, currentY + 12, { width: 90, align: 'right', lineBreak: false });
 
-        // Resumo ENTREGUE
+        // Bloco ENTREGUE
+        const entregueX = margin + blockWidth + 20;
+        doc.rect(entregueX, currentY, blockWidth, 32).fillAndStroke('#F0FDF4', '#22C55E');
         doc.fillColor('#166534').font('Helvetica-Bold').fontSize(9);
-        doc.text('ENTREGUE:', pageWidth / 2 + 20, currentY, { continued: true, lineBreak: false });
-        doc.fillColor('#374151').font('Helvetica').fontSize(9);
-        doc.text(`  ${totais.pedidos_entregues} pedidos  |  ${parseFloat(totais.peso_entregue).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg  |  ${parseInt(totais.unidades_entregue).toLocaleString('pt-BR')} cx  |  `, { continued: true, lineBreak: false });
-        doc.font('Helvetica-Bold');
-        doc.text(parseFloat(totais.valor_entregue).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), { continued: false, lineBreak: false });
+        doc.text('ENTREGUE', entregueX + 10, currentY + 6, { lineBreak: false });
+        doc.fillColor('#14532D').font('Helvetica').fontSize(8);
+        doc.text(`${totais.pedidos_entregues} pedidos  |  ${parseFloat(totais.peso_entregue).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg  |  ${parseInt(totais.unidades_entregue).toLocaleString('pt-BR')} cx`, entregueX + 10, currentY + 18, { lineBreak: false });
+        doc.font('Helvetica-Bold').fontSize(10);
+        doc.text(parseFloat(totais.valor_entregue).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), entregueX + blockWidth - 100, currentY + 12, { width: 90, align: 'right', lineBreak: false });
 
-        currentY += 20;
+        currentY += 45;
 
         // ===== TABELA - mesma ordem da página de pedidos =====
         // Colunas: Pedido | Data | Cliente | N.F. | Peso | Cx | R$ Unit. | Total | Entrega | Status
@@ -945,8 +960,37 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
             currentY += rowHeight;
         });
 
-        // Linha de fechamento mais forte
-        doc.moveTo(startX, currentY).lineTo(startX + tableWidth, currentY).strokeColor('#9CA3AF').lineWidth(1).stroke();
+        // ===== TOTAIS GERAIS =====
+        const totalGeral = parseFloat(totais.valor_pendente) + parseFloat(totais.valor_entregue);
+        const pesoGeral = parseFloat(totais.peso_pendente) + parseFloat(totais.peso_entregue);
+        const caixasGeral = parseInt(totais.unidades_pendente) + parseInt(totais.unidades_entregue);
+        const pedidosGeral = parseInt(totais.pedidos_pendentes) + parseInt(totais.pedidos_entregues);
+
+        // Verificar se precisa nova página para totais
+        if (currentY + 30 > pageHeight - 60) {
+            doc.addPage();
+            currentY = 40;
+        }
+
+        // Linha separadora antes dos totais
+        doc.moveTo(startX, currentY).lineTo(startX + tableWidth, currentY).strokeColor('#374151').lineWidth(1).stroke();
+
+        // Barra de totais
+        currentY += 4;
+        doc.rect(startX, currentY, tableWidth, 24).fill('#1F2937');
+
+        doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(9);
+        doc.text('TOTAIS GERAIS:', startX + 10, currentY + 7, { lineBreak: false });
+
+        doc.font('Helvetica').fontSize(8);
+        doc.text(`${pedidosGeral} pedidos`, startX + 110, currentY + 8, { lineBreak: false });
+        doc.text(`${pesoGeral.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg`, startX + 200, currentY + 8, { lineBreak: false });
+        doc.text(`${caixasGeral.toLocaleString('pt-BR')} cx`, startX + 290, currentY + 8, { lineBreak: false });
+
+        doc.font('Helvetica-Bold').fontSize(11);
+        doc.text(totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), startX + tableWidth - 130, currentY + 6, { width: 120, align: 'right', lineBreak: false });
+
+        currentY += 28;
 
         // ===== FUNÇÃO PARA DESENHAR LOGO BUREAU =====
         const drawBureauLogo = (x, y, scale = 0.12) => {
@@ -981,21 +1025,24 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
         for (let i = 0; i < totalPages; i++) {
             doc.switchToPage(i);
 
-            // Rodapé esquerdo com logo Bureau
-            doc.fillColor('#9CA3AF').font('Helvetica').fontSize(7);
-            doc.text('Desenvolvido por', margin, footerY, { continued: false, lineBreak: false });
-            drawBureauLogo(margin + 65, footerY - 4, 0.14);
+            // Linha separadora do footer
+            doc.moveTo(margin, footerY - 8).lineTo(pageWidth - margin, footerY - 8).strokeColor('#E5E7EB').lineWidth(0.5).stroke();
 
-            // Paginação centralizada (calcular posição manualmente)
-            doc.fontSize(8);
+            // Rodapé esquerdo com logo Bureau (maior)
+            doc.fillColor('#9CA3AF').font('Helvetica').fontSize(7);
+            doc.text('Desenvolvido por', margin, footerY + 2, { continued: false, lineBreak: false });
+            drawBureauLogo(margin + 68, footerY - 3, 0.18);
+
+            // Paginação centralizada
+            doc.fillColor('#6B7280').fontSize(8);
             const paginacaoTexto = `Página ${i + 1} de ${totalPages}`;
             const paginacaoWidth = doc.widthOfString(paginacaoTexto);
-            doc.text(paginacaoTexto, (pageWidth - paginacaoWidth) / 2, footerY, { continued: false, lineBreak: false });
+            doc.text(paginacaoTexto, (pageWidth - paginacaoWidth) / 2, footerY + 2, { continued: false, lineBreak: false });
 
             // Data/hora direita
             const dataTexto = `Quatrelati - ${dataGeracao}`;
             const dataWidth = doc.widthOfString(dataTexto);
-            doc.text(dataTexto, pageWidth - margin - dataWidth, footerY, { continued: false, lineBreak: false });
+            doc.text(dataTexto, pageWidth - margin - dataWidth, footerY + 2, { continued: false, lineBreak: false });
         }
 
         doc.end();

@@ -810,19 +810,19 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
         // ===== CABEÇALHO =====
         if (logoBuffer) {
             try {
-                doc.image(logoBuffer, margin, 18, { height: 38 });
+                doc.image(logoBuffer, margin, 12, { height: 50 });
             } catch (e) {
-                doc.fillColor('#124EA6').fontSize(16).font('Helvetica-Bold');
-                doc.text('QUATRELATI', margin, 28, { lineBreak: false });
+                doc.fillColor('#124EA6').fontSize(18).font('Helvetica-Bold');
+                doc.text('QUATRELATI', margin, 25, { lineBreak: false });
             }
         } else {
-            doc.fillColor('#124EA6').fontSize(16).font('Helvetica-Bold');
-            doc.text('QUATRELATI', margin, 28, { lineBreak: false });
+            doc.fillColor('#124EA6').fontSize(18).font('Helvetica-Bold');
+            doc.text('QUATRELATI', margin, 25, { lineBreak: false });
         }
 
         // Título e período à direita
         doc.fillColor('#1F2937').fontSize(14).font('Helvetica-Bold');
-        doc.text('Relatório de Pedidos', pageWidth - 250, 18, { width: 210, align: 'right', lineBreak: false });
+        doc.text('Relatório de Pedidos', pageWidth - margin - 210, 15, { width: 210, align: 'right', lineBreak: false });
 
         let periodoTexto = 'Todos os pedidos';
         if (mes && ano) {
@@ -833,18 +833,18 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
             periodoTexto = `Ano ${ano}`;
         }
         doc.fillColor('#6B7280').fontSize(10).font('Helvetica');
-        doc.text(periodoTexto, pageWidth - 250, 36, { width: 210, align: 'right', lineBreak: false });
+        doc.text(periodoTexto, pageWidth - margin - 210, 33, { width: 210, align: 'right', lineBreak: false });
 
         // Indicar se é lista geral ou de vendedor
         const tipoLista = nomeVendedor ? `Vendedor: ${nomeVendedor}` : 'Lista Geral';
         doc.fillColor('#4B5563').fontSize(9).font('Helvetica-Bold');
-        doc.text(tipoLista, pageWidth - 250, 50, { width: 210, align: 'right', lineBreak: false });
+        doc.text(tipoLista, pageWidth - margin - 210, 47, { width: 210, align: 'right', lineBreak: false });
 
         // Linha separadora
-        doc.moveTo(margin, 68).lineTo(pageWidth - margin, 68).strokeColor('#D1D5DB').lineWidth(0.5).stroke();
+        doc.moveTo(margin, 72).lineTo(pageWidth - margin, 72).strokeColor('#D1D5DB').lineWidth(0.5).stroke();
 
         // ===== BLOCOS DE RESUMO (melhorado) =====
-        let currentY = 78;
+        let currentY = 82;
         const blockWidth = (pageWidth - margin * 2 - 20) / 2;
 
         // Bloco A ENTREGAR
@@ -866,16 +866,18 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
         doc.font('Helvetica-Bold').fontSize(10);
         doc.text(parseFloat(totais.valor_entregue).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), entregueX + blockWidth - 100, currentY + 12, { width: 90, align: 'right', lineBreak: false });
 
-        currentY += 45;
+        currentY += 50;
 
         // ===== TABELA - mesma ordem da página de pedidos =====
         // Colunas: Pedido | Data | Cliente | N.F. | Peso | Cx | R$ Unit. | Total | Entrega | Status
+        // Tabela alinhada às margens do documento
         const headers = ['Pedido', 'Data', 'Cliente', 'N.F.', 'Peso', 'Cx', 'R$ Unit.', 'Total', 'Entrega', 'Status'];
-        const colWidths = [55, 55, 185, 50, 60, 35, 55, 80, 55, 55];
+        const tableWidth = pageWidth - margin * 2; // Usar toda a largura disponível
+        // Distribuir larguras proporcionalmente: total = 762 (A4 landscape - 2*40)
+        const colWidths = [58, 58, 200, 55, 68, 42, 62, 90, 62, 67];
         const colAligns = ['left', 'center', 'left', 'center', 'right', 'right', 'right', 'right', 'center', 'center'];
-        const tableWidth = colWidths.reduce((a, b) => a + b, 0);
-        const startX = (pageWidth - tableWidth) / 2;
-        const rowHeight = 20;
+        const startX = margin;
+        const rowHeight = 22;
 
         // Função para desenhar cabeçalho da tabela (clean - sem fundo grande)
         const drawTableHeader = (y) => {
@@ -992,26 +994,26 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
         doc.rect(startX, currentY, tableWidth, 24).fill('#1F2937');
 
         // Calcular posições das colunas acumuladas
-        // colWidths = [55, 55, 185, 50, 60, 35, 55, 80, 55, 55]
+        // colWidths = [58, 58, 200, 55, 68, 42, 62, 90, 62, 67]
         const col0 = startX; // Pedido
-        const col4 = startX + 55 + 55 + 185 + 50; // Peso = 345
-        const col5 = col4 + 60; // Cx = 405
-        const col7 = col5 + 35 + 55; // Total = 495
+        const col4 = startX + 58 + 58 + 200 + 55; // Peso = 371
+        const col5 = col4 + 68; // Cx = 439
+        const col7 = col5 + 42 + 62; // Total = 543
 
         doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(9);
 
         // Pedidos - coluna Pedido
         doc.text(`${pedidosGeral}`, col0 + 4, currentY + 7);
 
-        // Peso - coluna Peso (largura expandida)
-        doc.text(`${pesoGeral.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg`, col4, currentY + 7, { width: 60, align: 'right' });
+        // Peso - coluna Peso
+        doc.text(`${pesoGeral.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg`, col4, currentY + 7, { width: 68, align: 'right' });
 
-        // Caixas - coluna Cx (largura expandida)
-        doc.text(`${caixasGeral.toLocaleString('pt-BR')}`, col5, currentY + 7, { width: 35, align: 'right' });
+        // Caixas - coluna Cx
+        doc.text(`${caixasGeral.toLocaleString('pt-BR')}`, col5, currentY + 7, { width: 42, align: 'right' });
 
-        // Total - coluna Total (largura expandida para caber o valor)
+        // Total - coluna Total
         doc.fontSize(10);
-        doc.text(totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), col7, currentY + 6, { width: 80, align: 'right' });
+        doc.text(totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), col7, currentY + 6, { width: 90, align: 'right' });
 
         currentY += 28;
 

@@ -210,8 +210,11 @@ docker-compose up -d
 
 ## Licença
 
-Proprietário - Laticínio Quatrelati / Grupo Três Marias
+**Software Proprietário** - Bureau de Tecnologia Ltda.
+
+Este software é propriedade exclusiva do Bureau de Tecnologia Ltda. Todos os direitos reservados.
+É expressamente proibida a cópia, distribuição, modificação ou uso não autorizado deste software.
 
 ---
 
-**Quatrelati** - Fabricando Manteiga para Indústria e Food Service desde 1984
+Desenvolvido por [Bureau de Tecnologia](https://bureau-it.com)

@@ -1,0 +1,431 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =====================================================
+   Sistema de Gestão de Pedidos - Laticínio Quatrelati
+   Design System: Tema Light (Blue) / Dark
+   ===================================================== */
+
+@layer base {
+  :root {
+    /* Quatrelati Gold */
+    --quatrelati-gold-50: #FDF9E8;
+    --quatrelati-gold-100: #FCF3C7;
+    --quatrelati-gold-200: #F9E68A;
+    --quatrelati-gold-300: #F5D54E;
+    --quatrelati-gold-400: #E8C026;
+    --quatrelati-gold-500: #D4A017;
+    --quatrelati-gold-600: #B8860B;
+    --quatrelati-gold-700: #8B6914;
+    --quatrelati-gold-800: #654E0F;
+    --quatrelati-gold-900: #3D2F09;
+
+    /* Quatrelati Blue */
+    --quatrelati-blue-50: #EFF6FF;
+    --quatrelati-blue-100: #DBEAFE;
+    --quatrelati-blue-200: #BFDBFE;
+    --quatrelati-blue-300: #93C5FD;
+    --quatrelati-blue-400: #60A5FA;
+    --quatrelati-blue-500: #3B82F6;
+    --quatrelati-blue-600: #2563EB;
+    --quatrelati-blue-700: #1D4ED8;
+
+    /* Quatrelati Green */
+    --quatrelati-green-400: #4ADE80;
+    --quatrelati-green-500: #22C55E;
+    --quatrelati-green-600: #16A34A;
+
+    /* Cream - Cores de Leite/Manteiga */
+    --cream-50: #FFFEF7;
+    --cream-100: #FDF6E3;
+    --cream-200: #F5EBCD;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Light Mode - Fundo azul claro com mais contraste */
+  body {
+    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 text-gray-900;
+    min-height: 100vh;
+  }
+
+  /* Dark Mode */
+  .dark body {
+    @apply bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-gray-100;
+  }
+}
+
+@layer components {
+  /* =====================================================
+     Glass Card - Light/Dark Mode
+     ===================================================== */
+  .glass-card {
+    @apply relative overflow-hidden
+           bg-white dark:bg-gray-900/80
+           backdrop-blur-2xl backdrop-saturate-150
+           border border-blue-200/60 dark:border-gray-700/50
+           rounded-3xl
+           shadow-lg shadow-blue-900/5 dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]
+           transition-all duration-300 ease-out;
+  }
+
+  .glass-card:hover {
+    @apply shadow-xl shadow-blue-900/10 dark:shadow-[0_16px_48px_rgba(0,0,0,0.4)]
+           border-blue-300/70 dark:border-gray-600/60;
+  }
+
+  /* =====================================================
+     Buttons - Light/Dark Mode
+     ===================================================== */
+
+  /* Botão Primário - Gradiente Azul no Light, Dourado no Dark */
+  .btn-primary {
+    @apply relative overflow-hidden
+           px-6 py-3
+           bg-gradient-to-r from-quatrelati-blue-600 via-quatrelati-blue-500 to-quatrelati-blue-600
+           dark:from-quatrelati-gold-500 dark:via-quatrelati-gold-400 dark:to-quatrelati-gold-500
+           text-white font-semibold
+           rounded-2xl
+           shadow-lg shadow-quatrelati-blue-500/30 dark:shadow-quatrelati-gold-500/15
+           transition-all duration-300 ease-out
+           hover:shadow-xl hover:shadow-quatrelati-blue-500/40 dark:hover:shadow-quatrelati-gold-500/30
+           hover:scale-[1.02]
+           active:scale-[0.98]
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Botão Secundário - Azul */
+  .btn-secondary {
+    @apply px-6 py-3
+           bg-blue-50 dark:bg-quatrelati-blue-900/30
+           backdrop-blur-sm
+           text-quatrelati-blue-700 dark:text-quatrelati-blue-400
+           font-semibold
+           rounded-2xl
+           border border-blue-300 dark:border-quatrelati-blue-700/50
+           transition-all duration-300
+           hover:bg-blue-100 dark:hover:bg-quatrelati-blue-900/50
+           hover:border-blue-400 dark:hover:border-quatrelati-blue-600
+           hover:scale-[1.02]
+           active:scale-[0.98];
+  }
+
+  /* Botão Ghost */
+  .btn-ghost {
+    @apply px-4 py-2
+           text-gray-700 dark:text-gray-300
+           font-medium
+           rounded-xl
+           transition-all duration-200
+           hover:bg-blue-100 dark:hover:bg-gray-800
+           hover:text-quatrelati-blue-700 dark:hover:text-quatrelati-gold-400;
+  }
+
+  /* Botão Danger */
+  .btn-danger {
+    @apply px-6 py-3
+           bg-red-50 dark:bg-red-900/30
+           backdrop-blur-sm
+           text-red-700 dark:text-red-400
+           font-semibold
+           rounded-2xl
+           border border-red-300 dark:border-red-700/50
+           transition-all duration-300
+           hover:bg-red-100 dark:hover:bg-red-900/50
+           hover:border-red-400 dark:hover:border-red-600
+           hover:scale-[1.02]
+           active:scale-[0.98];
+  }
+
+  /* =====================================================
+     Input - Light/Dark Mode
+     ===================================================== */
+  .input-glass {
+    @apply w-full px-4 py-3.5
+           bg-white dark:bg-gray-800/80
+           border border-gray-300 dark:border-gray-700
+           rounded-xl
+           text-gray-900 dark:text-gray-100
+           placeholder:text-gray-500 dark:placeholder:text-gray-500
+           transition-all duration-200
+           focus:outline-none
+           focus:ring-2 focus:ring-quatrelati-blue-500/40 dark:focus:ring-quatrelati-blue-400/30
+           focus:border-quatrelati-blue-500 dark:focus:border-quatrelati-blue-400
+           focus:bg-white dark:focus:bg-gray-800
+           focus:shadow-lg focus:shadow-quatrelati-blue-500/10
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Select */
+  .select-glass {
+    @apply w-full px-4 py-3.5 pr-10
+           bg-white dark:bg-gray-800/90
+           backdrop-blur-xl
+           border border-gray-300 dark:border-gray-700
+           rounded-2xl
+           text-gray-900 dark:text-gray-100
+           appearance-none
+           cursor-pointer
+           transition-all duration-200
+           focus:outline-none
+           focus:ring-2 focus:ring-quatrelati-blue-500/40 dark:focus:ring-quatrelati-gold-500/30
+           hover:border-blue-400 dark:hover:bg-gray-800;
+  }
+
+  /* =====================================================
+     Badges - Light/Dark Mode
+     ===================================================== */
+
+  /* Badge Entregue */
+  .badge-success {
+    @apply inline-flex items-center gap-1.5
+           px-3 py-1.5
+           bg-emerald-100 dark:bg-quatrelati-green-500/20
+           text-emerald-700 dark:text-quatrelati-green-400
+           text-sm font-medium
+           rounded-full
+           border border-emerald-300 dark:border-quatrelati-green-500/30;
+  }
+
+  /* Badge Pendente */
+  .badge-warning {
+    @apply inline-flex items-center gap-1.5
+           px-3 py-1.5
+           bg-amber-100 dark:bg-quatrelati-gold-500/20
+           text-amber-700 dark:text-quatrelati-gold-400
+           text-sm font-medium
+           rounded-full
+           border border-amber-300 dark:border-quatrelati-gold-500/30;
+  }
+
+  /* Badge Info */
+  .badge-info {
+    @apply inline-flex items-center gap-1.5
+           px-3 py-1.5
+           bg-blue-100 dark:bg-quatrelati-blue-500/20
+           text-blue-700 dark:text-quatrelati-blue-400
+           text-sm font-medium
+           rounded-full
+           border border-blue-300 dark:border-quatrelati-blue-500/30;
+  }
+
+  /* =====================================================
+     Sidebar - Light/Dark Mode
+     ===================================================== */
+  .sidebar {
+    @apply fixed inset-y-0 left-0 w-72
+           bg-gradient-to-b from-white via-slate-50 to-blue-50
+           dark:bg-gradient-to-b dark:from-gray-900 dark:via-gray-900 dark:to-gray-950
+           backdrop-blur-2xl backdrop-saturate-150
+           border-r border-blue-200 dark:border-gray-800
+           shadow-xl shadow-blue-900/5 dark:shadow-black/20;
+  }
+
+  /* =====================================================
+     Header - Light/Dark Mode
+     ===================================================== */
+  .header-glass {
+    @apply sticky top-0 z-40
+           bg-white/90 dark:bg-gray-900/80
+           backdrop-blur-2xl backdrop-saturate-200
+           border-b border-blue-200/80 dark:border-gray-800
+           px-6 py-4;
+  }
+
+  /* =====================================================
+     Skeleton - Light/Dark Mode
+     ===================================================== */
+  .skeleton-quatrelati {
+    @apply rounded-lg;
+    background: linear-gradient(
+      90deg,
+      rgba(59,130,246,0.1) 0%,
+      rgba(59,130,246,0.2) 50%,
+      rgba(59,130,246,0.1) 100%
+    );
+    background-size: 200% 100%;
+    animation: gradient-shift 1.5s ease-in-out infinite;
+  }
+
+  .dark .skeleton-quatrelati {
+    background: linear-gradient(
+      90deg,
+      rgba(75,85,99,0.3) 0%,
+      rgba(75,85,99,0.5) 50%,
+      rgba(75,85,99,0.3) 100%
+    );
+  }
+
+  /* =====================================================
+     Table - Light/Dark Mode
+     ===================================================== */
+  .table-glass {
+    @apply bg-white dark:bg-gray-900/80
+           backdrop-blur-2xl
+           rounded-3xl
+           border border-blue-200/80 dark:border-gray-800
+           overflow-hidden
+           shadow-lg shadow-blue-900/5 dark:shadow-none;
+  }
+
+  .table-glass th {
+    @apply px-6 py-4 text-left text-sm font-semibold
+           text-quatrelati-blue-700 dark:text-quatrelati-gold-400
+           bg-blue-50 dark:bg-gray-800/50
+           border-b border-blue-200 dark:border-gray-700;
+  }
+
+  .table-glass td {
+    @apply px-6 py-4 text-sm text-gray-700 dark:text-gray-300;
+  }
+
+  .table-glass tbody tr {
+    @apply hover:bg-blue-50/70 dark:hover:bg-gray-800/50
+           transition-colors;
+  }
+
+  .table-glass tbody tr:not(:last-child) {
+    @apply border-b border-blue-100 dark:border-gray-800;
+  }
+
+  /* =====================================================
+     Modal - Light/Dark Mode
+     ===================================================== */
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+  }
+
+  .modal-backdrop {
+    @apply absolute inset-0 bg-slate-900/30 dark:bg-black/60 backdrop-blur-sm;
+  }
+
+  .modal-content {
+    @apply relative w-full max-w-lg
+           bg-white dark:bg-gray-900/95
+           backdrop-blur-2xl backdrop-saturate-200
+           rounded-3xl
+           border border-blue-200 dark:border-gray-700
+           shadow-2xl shadow-blue-900/15 dark:shadow-black/30
+           p-6;
+  }
+
+  /* =====================================================
+     Stat Cards - Light/Dark Mode
+     ===================================================== */
+  .stat-card-gold {
+    @apply relative overflow-hidden
+           bg-gradient-to-br from-quatrelati-blue-500 to-quatrelati-blue-700
+           dark:from-quatrelati-gold-400 dark:to-quatrelati-gold-600
+           rounded-3xl p-6
+           shadow-xl shadow-quatrelati-blue-500/25 dark:shadow-quatrelati-gold-500/20;
+  }
+
+  .stat-card-blue {
+    @apply relative overflow-hidden
+           bg-gradient-to-br from-indigo-500 to-indigo-700
+           dark:from-quatrelati-blue-400 dark:to-quatrelati-blue-600
+           rounded-3xl p-6
+           shadow-xl shadow-indigo-500/25 dark:shadow-quatrelati-blue-500/20;
+  }
+
+  .stat-card-green {
+    @apply relative overflow-hidden
+           bg-gradient-to-br from-emerald-500 to-emerald-700
+           dark:from-quatrelati-green-400 dark:to-quatrelati-green-600
+           rounded-3xl p-6
+           shadow-xl shadow-emerald-500/25 dark:shadow-quatrelati-green-500/20;
+  }
+
+  /* =====================================================
+     Nav Items - Light/Dark Mode
+     ===================================================== */
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3
+           text-gray-600 dark:text-gray-400
+           rounded-xl
+           transition-all duration-200
+           hover:bg-blue-100 dark:hover:bg-gray-800
+           hover:text-quatrelati-blue-700 dark:hover:text-quatrelati-gold-400;
+  }
+
+  .nav-item-active {
+    @apply flex items-center gap-3 px-4 py-3
+           bg-quatrelati-blue-100 dark:bg-quatrelati-gold-500/20
+           text-quatrelati-blue-700 dark:text-quatrelati-gold-400
+           rounded-xl font-medium
+           border border-quatrelati-blue-200 dark:border-quatrelati-gold-500/30
+           shadow-sm shadow-quatrelati-blue-500/10;
+  }
+}
+
+@layer utilities {
+  /* Scrollbar - Light/Dark Mode */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(59,130,246,0.3) transparent;
+  }
+
+  .dark .scrollbar-thin {
+    scrollbar-color: rgba(75,85,99,0.5) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(59,130,246,0.3);
+    border-radius: 3px;
+  }
+
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(75,85,99,0.5);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(59,130,246,0.5);
+  }
+
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(75,85,99,0.7);
+  }
+
+  /* Gradiente de texto */
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent
+           bg-gradient-to-r from-quatrelati-gold-600 via-quatrelati-gold-500 to-quatrelati-gold-400;
+  }
+
+  /* Linha brilhante */
+  .shine-line::before {
+    content: '';
+    @apply absolute inset-x-0 top-0 h-px
+           bg-gradient-to-r from-transparent via-white/50 to-transparent;
+  }
+}
+
+/* Animações */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}

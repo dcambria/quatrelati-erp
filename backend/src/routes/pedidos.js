@@ -1003,13 +1003,13 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
         doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(9);
 
         // Pedidos - coluna Pedido
-        doc.text(`${pedidosGeral}`, col0 + 4, currentY + 7);
+        doc.text(`${pedidosGeral} Pedidos`, col0 + 4, currentY + 7);
 
         // Peso - coluna Peso
         doc.text(`${pesoGeral.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg`, col4, currentY + 7, { width: 68, align: 'right' });
 
         // Caixas - coluna Cx
-        doc.text(`${caixasGeral.toLocaleString('pt-BR')}`, col5, currentY + 7, { width: 42, align: 'right' });
+        doc.text(`${caixasGeral.toLocaleString('pt-BR')} Cx`, col5, currentY + 7, { width: 50, align: 'right' });
 
         // Total - coluna Total
         doc.fontSize(10);

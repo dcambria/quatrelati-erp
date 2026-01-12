@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Produtos
-// v1.1.0 - Adiciona máscaras Peso e Moeda
+// v1.2.0 - Máscaras Peso e Moeda formato BR
 // =====================================================
 
 import { useState, useEffect, useRef } from 'react';

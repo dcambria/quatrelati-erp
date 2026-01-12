@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Clientes
-// v1.4.0 - Adiciona máscara Telefone
+// v1.5.0 - Máscaras CNPJ, CEP e Telefone completas
 // =====================================================
 
 import { useState, useEffect } from 'react';

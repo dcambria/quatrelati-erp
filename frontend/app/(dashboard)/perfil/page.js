@@ -1,5 +1,10 @@
 'use client';
 
+// =====================================================
+// Página de Perfil do Usuário
+// v1.1.0 - Adiciona máscara Telefone BR
+// =====================================================
+
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';

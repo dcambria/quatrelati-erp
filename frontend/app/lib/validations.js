@@ -1,6 +1,6 @@
 // =====================================================
 // Utilitários de Validação
-// v1.5.0 - Adiciona máscaras CPF, Moeda e Peso
+// v1.6.0 - Implementação completa de máscaras brasileiras
 // =====================================================
 
 import { z } from 'zod';

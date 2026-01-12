@@ -1,6 +1,6 @@
 // =====================================================
 // Modal de Formulário de Pedido
-// v1.2.0 - Adiciona máscara no horário
+// v1.3.0 - Máscara horário com intervalo
 // =====================================================
 
 'use client';

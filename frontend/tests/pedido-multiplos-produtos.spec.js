@@ -1,9 +1,13 @@
+// =====================================================
+// Testes de Pedidos com Múltiplos Produtos
+// v1.1.0 - Habilitar testes e atualizar seletores
+// =====================================================
 const { test, expect } = require('@playwright/test');
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const API_URL = 'http://localhost:3001';
 
-test.skip('criar pedido com multiplos produtos', async ({ page }) => {
+test('criar pedido com multiplos produtos', async ({ page }) => {
   test.setTimeout(90000);
 
   // Login via UI
@@ -96,7 +100,7 @@ test.skip('criar pedido com multiplos produtos', async ({ page }) => {
   console.log('Pedido com multiplos produtos criado com sucesso!');
 });
 
-test.skip('editar pedido com multiplos produtos', async ({ page }) => {
+test('editar pedido com multiplos produtos', async ({ page }) => {
   test.setTimeout(90000);
 
   // Login via UI
@@ -118,16 +122,17 @@ test.skip('editar pedido com multiplos produtos', async ({ page }) => {
   await page.waitForTimeout(2000);
 
   // Encontrar o primeiro pedido e clicar no botao de editar
-  const editButtons = page.locator('button[title="Editar"]');
-  const editCount = await editButtons.count();
-  console.log(`Encontrados ${editCount} botoes de editar`);
+  // Botões de editar usam svg.text-blue-500 dentro de .group/tip
+  const editButton = page.locator('.group\\/tip button').filter({ has: page.locator('svg.text-blue-500') }).first();
+  const editVisible = await editButton.isVisible({ timeout: 5000 }).catch(() => false);
+  console.log(`Botao de editar visivel: ${editVisible}`);
 
-  if (editCount === 0) {
+  if (!editVisible) {
     throw new Error('Nenhum pedido encontrado para editar');
   }
 
   // Clicar no primeiro botao de editar
-  await editButtons.first().click();
+  await editButton.click();
   await page.waitForTimeout(1000);
 
   // Verificar se o modal de edicao abriu

@@ -1,14 +1,22 @@
+// =====================================================
+// Testes Responsivos
+// v1.1.0 - Corrigir seletores de login
+// =====================================================
 const { test, expect } = require('@playwright/test');
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test('capturar screenshots responsivos', async ({ page }) => {
+  test.setTimeout(60000);
+
   // Login
   await page.goto(`${BASE_URL}/login`);
+  await page.waitForLoadState('networkidle');
   await page.waitForTimeout(1000);
-  await page.fill('input[name="email"]', 'daniel.cambria@bureau-it.com');
-  await page.fill('input[name="password"]', 'srxwdjedi');
+  await page.fill('input[type="email"]', 'daniel.cambria@bureau-it.com');
+  await page.fill('input[type="password"]', 'srxwdjedi');
   await page.click('button[type="submit"]');
+  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
   await page.waitForTimeout(2000);
 
   // Desktop expandido

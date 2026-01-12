@@ -65,7 +65,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/health || exit 1
 
 # Comando de inicialização
-CMD ["node", "src/index.js"]
+CMD ["node", "src/server.js"]
 
 # -----------------------------------------------------
 # Stage 4: Development (alternativa)

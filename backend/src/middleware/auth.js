@@ -1,10 +1,18 @@
 // =====================================================
 // Middleware de Autenticação JWT
+// v1.1.0 - Removido fallback inseguro do JWT_SECRET
 // =====================================================
 
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'quatrelati-jwt-secret-2026-super-seguro';
+// JWT_SECRET deve ser definido no .env - sem fallback por segurança
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+    console.error('[AUTH] ERRO CRÍTICO: JWT_SECRET não definido no .env');
+    console.error('[AUTH] A aplicação não pode funcionar sem JWT_SECRET configurado.');
+    process.exit(1);
+}
 
 /**
  * Middleware de autenticação

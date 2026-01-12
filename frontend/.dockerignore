@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Next.js
+.next
+out
+
+# Tests
+tests
+coverage
+*.test.js
+*.spec.js
+playwright-report
+test-results
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Documentation
+*.md
+docs
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Misc
+.DS_Store
+Thumbs.db
+
+# Storybook
+storybook-static

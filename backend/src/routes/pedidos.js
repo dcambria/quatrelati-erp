@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Pedidos
-// v1.8.0 - Adicionar exportação Excel
+// v1.9.0 - Aplicar Activity Log em todas as rotas
 // =====================================================
 
 const express = require('express');
@@ -10,6 +10,7 @@ const { format } = require('date-fns');
 const { ptBR } = require('date-fns/locale');
 const { authMiddleware } = require('../middleware/auth');
 const { pedidoValidation, pedidoUpdateValidation, idValidation, pedidosQueryValidation } = require('../middleware/validation');
+const { activityLogMiddleware } = require('../middleware/activityLog');
 
 // Todas as rotas requerem autenticação
 router.use(authMiddleware);
@@ -252,7 +253,7 @@ router.get('/:id', idValidation, async (req, res) => {
  * Criar novo pedido com múltiplos itens
  * Usa transação para garantir integridade dos dados
  */
-router.post('/', async (req, res) => {
+router.post('/', activityLogMiddleware('criar', 'pedido'), async (req, res) => {
     // Obter client do pool para transação
     const client = await req.db.connect();
 
@@ -410,7 +411,7 @@ router.post('/', async (req, res) => {
  * Atualizar pedido com suporte a múltiplos itens
  * Usa transação para garantir integridade dos dados
  */
-router.put('/:id', idValidation, async (req, res) => {
+router.put('/:id', idValidation, activityLogMiddleware('atualizar', 'pedido'), async (req, res) => {
     const { id } = req.params;
     const { data_pedido, cliente_id, nf, data_entrega, observacoes, preco_descarga_pallet, horario_recebimento, created_by, itens } = req.body;
 
@@ -607,7 +608,7 @@ router.put('/:id', idValidation, async (req, res) => {
  * DELETE /api/pedidos/:id
  * Excluir pedido
  */
-router.delete('/:id', idValidation, async (req, res) => {
+router.delete('/:id', idValidation, activityLogMiddleware('excluir', 'pedido'), async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -634,7 +635,7 @@ router.delete('/:id', idValidation, async (req, res) => {
  * PATCH /api/pedidos/:id/entregar
  * Marcar pedido como entregue
  */
-router.patch('/:id/entregar', idValidation, async (req, res) => {
+router.patch('/:id/entregar', idValidation, activityLogMiddleware('entregar', 'pedido'), async (req, res) => {
     try {
         const { id } = req.params;
         const { data_entrega_real } = req.body;
@@ -666,7 +667,7 @@ router.patch('/:id/entregar', idValidation, async (req, res) => {
  * PATCH /api/pedidos/:id/reverter-entrega
  * Reverter pedido para pendente (desfazer entrega)
  */
-router.patch('/:id/reverter-entrega', idValidation, async (req, res) => {
+router.patch('/:id/reverter-entrega', idValidation, activityLogMiddleware('reverter_entrega', 'pedido'), async (req, res) => {
     try {
         const { id } = req.params;
 

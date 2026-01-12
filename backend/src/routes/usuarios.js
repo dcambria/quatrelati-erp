@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Usuários
-// v1.2.0 - Campo telefone no cadastro
+// v1.3.0 - Aplicar Activity Log em todas as rotas
 // =====================================================
 
 const express = require('express');
@@ -9,6 +9,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { authMiddleware, superadminOnly } = require('../middleware/auth');
 const { usuarioValidation, usuarioUpdateValidation, idValidation } = require('../middleware/validation');
+const { activityLogMiddleware } = require('../middleware/activityLog');
 const emailService = require('../services/emailService');
 
 // Todas as rotas requerem autenticação e nível superadmin
@@ -74,7 +75,7 @@ router.get('/:id', idValidation, async (req, res) => {
  * POST /api/usuarios
  * Criar novo usuário
  */
-router.post('/', usuarioValidation, async (req, res) => {
+router.post('/', usuarioValidation, activityLogMiddleware('criar', 'usuario'), async (req, res) => {
     try {
         const { nome, email, telefone, senha, nivel = 'vendedor' } = req.body;
 
@@ -111,7 +112,7 @@ router.post('/', usuarioValidation, async (req, res) => {
  * PUT /api/usuarios/:id
  * Atualizar usuário
  */
-router.put('/:id', idValidation, usuarioUpdateValidation, async (req, res) => {
+router.put('/:id', idValidation, usuarioUpdateValidation, activityLogMiddleware('atualizar', 'usuario'), async (req, res) => {
     try {
         const { id } = req.params;
         const { nome, email, telefone, senha, nivel, ativo } = req.body;
@@ -175,7 +176,7 @@ router.put('/:id', idValidation, usuarioUpdateValidation, async (req, res) => {
  * DELETE /api/usuarios/:id
  * Soft delete do usuário
  */
-router.delete('/:id', idValidation, async (req, res) => {
+router.delete('/:id', idValidation, activityLogMiddleware('excluir', 'usuario'), async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -238,7 +239,7 @@ router.delete('/:id', idValidation, async (req, res) => {
  * POST /api/usuarios/:id/invite
  * Envia email de convite para um usuário existente
  */
-router.post('/:id/invite', idValidation, async (req, res) => {
+router.post('/:id/invite', idValidation, activityLogMiddleware('reenviar_convite', 'usuario'), async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -290,7 +291,7 @@ router.post('/:id/invite', idValidation, async (req, res) => {
  * POST /api/usuarios/invite
  * Cria usuário e envia convite por email
  */
-router.post('/invite', async (req, res) => {
+router.post('/invite', activityLogMiddleware('enviar_convite', 'usuario'), async (req, res) => {
     try {
         const { nome, email, nivel = 'vendedor' } = req.body;
 

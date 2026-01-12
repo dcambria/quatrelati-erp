@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Autenticação
-// v1.3.0 - Rate limiting em endpoints sensíveis
+// v1.5.0 - Activity Log em todas as rotas de auth
 // =====================================================
 
 const express = require('express');
@@ -10,6 +10,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { loginValidation } = require('../middleware/validation');
 const { authMiddleware } = require('../middleware/auth');
+const { logActivity } = require('../middleware/activityLog');
 const {
     loginLimiter,
     forgotPasswordLimiter,
@@ -90,6 +91,19 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
             [user.id, refreshToken, expiresAt]
         );
 
+        // Registrar login no activity log
+        await logActivity(req.db, {
+            userId: user.id,
+            userNome: user.nome,
+            userNivel: user.nivel,
+            action: 'login',
+            entity: 'auth',
+            entityId: user.id,
+            entityName: user.email,
+            ipAddress: req.ip || req.connection?.remoteAddress,
+            userAgent: req.get('User-Agent'),
+        });
+
         res.json({
             message: 'Login realizado com sucesso',
             user: {
@@ -164,11 +178,33 @@ router.post('/logout', authMiddleware, async (req, res) => {
     try {
         const { refreshToken } = req.body;
 
+        // Buscar dados do usuário para o log
+        const userResult = await req.db.query(
+            'SELECT nome, email, nivel FROM usuarios WHERE id = $1',
+            [req.userId]
+        );
+        const user = userResult.rows[0];
+
         if (refreshToken) {
             await req.db.query(
                 'DELETE FROM refresh_tokens WHERE token = $1 AND user_id = $2',
                 [refreshToken, req.userId]
             );
+        }
+
+        // Registrar logout no activity log
+        if (user) {
+            await logActivity(req.db, {
+                userId: req.userId,
+                userNome: user.nome,
+                userNivel: user.nivel,
+                action: 'logout',
+                entity: 'auth',
+                entityId: req.userId,
+                entityName: user.email,
+                ipAddress: req.ip || req.connection?.remoteAddress,
+                userAgent: req.get('User-Agent'),
+            });
         }
 
         res.json({ message: 'Logout realizado com sucesso' });
@@ -212,6 +248,12 @@ router.put('/profile', authMiddleware, async (req, res) => {
             return res.status(400).json({ error: 'Nome é obrigatório (mínimo 2 caracteres)' });
         }
 
+        // Buscar dados anteriores para comparação no log
+        const userBefore = await req.db.query(
+            'SELECT nome, telefone, nivel FROM usuarios WHERE id = $1',
+            [req.userId]
+        );
+
         const result = await req.db.query(`
             UPDATE usuarios
             SET nome = $1, telefone = $2
@@ -223,9 +265,28 @@ router.put('/profile', authMiddleware, async (req, res) => {
             return res.status(404).json({ error: 'Usuário não encontrado' });
         }
 
+        const user = result.rows[0];
+
+        // Registrar atualização de perfil no activity log
+        await logActivity(req.db, {
+            userId: req.userId,
+            userNome: user.nome,
+            userNivel: user.nivel,
+            action: 'atualizar_perfil',
+            entity: 'auth',
+            entityId: req.userId,
+            entityName: user.email,
+            details: {
+                before: userBefore.rows[0],
+                after: { nome: user.nome, telefone: user.telefone }
+            },
+            ipAddress: req.ip || req.connection?.remoteAddress,
+            userAgent: req.get('User-Agent'),
+        });
+
         res.json({
             message: 'Perfil atualizado com sucesso',
-            user: result.rows[0]
+            user
         });
     } catch (error) {
         console.error('Erro ao atualizar perfil:', error);
@@ -386,7 +447,7 @@ router.put('/change-password', authMiddleware, async (req, res) => {
 
         // Buscar usuário
         const result = await req.db.query(
-            'SELECT senha_hash FROM usuarios WHERE id = $1',
+            'SELECT nome, email, nivel, senha_hash FROM usuarios WHERE id = $1',
             [req.userId]
         );
 
@@ -394,8 +455,10 @@ router.put('/change-password', authMiddleware, async (req, res) => {
             return res.status(404).json({ error: 'Usuário não encontrado' });
         }
 
+        const user = result.rows[0];
+
         // Verificar senha atual
-        const senhaValida = await bcrypt.compare(currentPassword, result.rows[0].senha_hash);
+        const senhaValida = await bcrypt.compare(currentPassword, user.senha_hash);
         if (!senhaValida) {
             return res.status(401).json({ error: 'Senha atual incorreta' });
         }
@@ -414,6 +477,19 @@ router.put('/change-password', authMiddleware, async (req, res) => {
             'DELETE FROM refresh_tokens WHERE user_id = $1',
             [req.userId]
         );
+
+        // Registrar alteração de senha no activity log
+        await logActivity(req.db, {
+            userId: req.userId,
+            userNome: user.nome,
+            userNivel: user.nivel,
+            action: 'alterar_senha',
+            entity: 'auth',
+            entityId: req.userId,
+            entityName: user.email,
+            ipAddress: req.ip || req.connection?.remoteAddress,
+            userAgent: req.get('User-Agent'),
+        });
 
         res.json({ message: 'Senha alterada com sucesso' });
     } catch (error) {
@@ -597,9 +673,9 @@ router.post('/reset-password', resetPasswordLimiter, async (req, res) => {
             return res.status(400).json({ error: 'Senha deve ter no mínimo 8 caracteres' });
         }
 
-        // Buscar token válido
+        // Buscar token válido com dados do usuário
         const result = await req.db.query(
-            `SELECT ml.*, u.id as user_id
+            `SELECT ml.*, u.id as user_id, u.nome, u.email, u.nivel
              FROM magic_links ml
              JOIN usuarios u ON ml.user_id = u.id
              WHERE ml.token = $1
@@ -636,6 +712,20 @@ router.post('/reset-password', resetPasswordLimiter, async (req, res) => {
             'DELETE FROM refresh_tokens WHERE user_id = $1',
             [recovery.user_id]
         );
+
+        // Registrar redefinição de senha no activity log
+        await logActivity(req.db, {
+            userId: recovery.user_id,
+            userNome: recovery.nome,
+            userNivel: recovery.nivel,
+            action: 'redefinir_senha',
+            entity: 'auth',
+            entityId: recovery.user_id,
+            entityName: recovery.email,
+            details: { method: recovery.type },
+            ipAddress: req.ip || req.connection?.remoteAddress,
+            userAgent: req.get('User-Agent'),
+        });
 
         res.json({ message: 'Senha redefinida com sucesso' });
     } catch (error) {

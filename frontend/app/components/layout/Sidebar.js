@@ -18,6 +18,7 @@ import {
   Settings,
   Eye,
   XCircle,
+  Activity,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -34,6 +35,10 @@ const menuItems = [
 
 const adminItems = [
   { href: '/usuarios', label: 'Usuarios', icon: UserCog, adminOnly: true },
+];
+
+const superadminItems = [
+  { href: '/atividades', label: 'Atividades', icon: Activity, superadminOnly: true },
 ];
 
 export default function Sidebar() {
@@ -236,6 +241,31 @@ export default function Sidebar() {
                   )}
                   {adminItems.map((item) => {
                     if (item.adminOnly && !isAdmin) return null;
+                    const Icon = item.icon;
+                    const active = isActive(item.href);
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={handleNavClick}
+                        className={`
+                          flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200
+                          ${isCollapsed && !isMobile ? 'justify-center' : ''}
+                          ${active
+                            ? 'bg-quatrelati-blue-500 text-white dark:bg-quatrelati-gold-500 dark:text-gray-900'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                          }
+                        `}
+                        title={isCollapsed && !isMobile ? item.label : undefined}
+                      >
+                        <Icon className="w-5 h-5 flex-shrink-0" />
+                        {(!isCollapsed || isMobile) && <span className="font-medium">{item.label}</span>}
+                      </Link>
+                    );
+                  })}
+                  {/* Superadmin items */}
+                  {user?.nivel === 'superadmin' && superadminItems.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item.href);
 

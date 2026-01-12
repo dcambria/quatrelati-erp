@@ -1,5 +1,6 @@
 // =====================================================
 // Rotas de Produtos
+// v1.1.0 - Aplicar Activity Log em todas as rotas
 // GET: todos podem ver
 // POST/PUT/DELETE: apenas admin/superadmin
 // =====================================================
@@ -8,6 +9,7 @@ const express = require('express');
 const router = express.Router();
 const { authMiddleware, adminOnly } = require('../middleware/auth');
 const { produtoValidation, idValidation } = require('../middleware/validation');
+const { activityLogMiddleware } = require('../middleware/activityLog');
 
 // Todas as rotas requerem autenticação
 router.use(authMiddleware);
@@ -92,7 +94,7 @@ router.get('/:id', idValidation, async (req, res) => {
  * POST /api/produtos
  * Criar novo produto (apenas admin/superadmin)
  */
-router.post('/', adminOnly, produtoValidation, async (req, res) => {
+router.post('/', adminOnly, produtoValidation, activityLogMiddleware('criar', 'produto'), async (req, res) => {
     try {
         const { nome, descricao, peso_caixa_kg, preco_padrao, imagem_url } = req.body;
 
@@ -116,7 +118,7 @@ router.post('/', adminOnly, produtoValidation, async (req, res) => {
  * PUT /api/produtos/:id
  * Atualizar produto (apenas admin/superadmin)
  */
-router.put('/:id', adminOnly, idValidation, produtoValidation, async (req, res) => {
+router.put('/:id', adminOnly, idValidation, produtoValidation, activityLogMiddleware('atualizar', 'produto'), async (req, res) => {
     try {
         const { id } = req.params;
         const { nome, descricao, peso_caixa_kg, preco_padrao, ativo, imagem_url } = req.body;
@@ -151,7 +153,7 @@ router.put('/:id', adminOnly, idValidation, produtoValidation, async (req, res) 
  * DELETE /api/produtos/:id
  * Soft delete do produto (apenas admin/superadmin)
  */
-router.delete('/:id', adminOnly, idValidation, async (req, res) => {
+router.delete('/:id', adminOnly, idValidation, activityLogMiddleware('excluir', 'produto'), async (req, res) => {
     try {
         const { id } = req.params;
 

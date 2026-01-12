@@ -1,12 +1,13 @@
 // =====================================================
 // Rotas de Clientes
-// v1.3.0 - Adicionado campo razao_social
+// v1.4.0 - Aplicar Activity Log em todas as rotas
 // =====================================================
 
 const express = require('express');
 const router = express.Router();
 const { authMiddleware } = require('../middleware/auth');
 const { clienteValidation, idValidation } = require('../middleware/validation');
+const { activityLogMiddleware } = require('../middleware/activityLog');
 
 // Todas as rotas requerem autenticação
 router.use(authMiddleware);
@@ -198,7 +199,7 @@ router.get('/:id/pedidos', idValidation, async (req, res) => {
  * POST /api/clientes
  * Criar novo cliente
  */
-router.post('/', clienteValidation, async (req, res) => {
+router.post('/', clienteValidation, activityLogMiddleware('criar', 'cliente'), async (req, res) => {
     try {
         const {
             nome, razao_social, cnpj_cpf, telefone, email, endereco, observacoes, logo_url,
@@ -250,7 +251,7 @@ router.post('/', clienteValidation, async (req, res) => {
  * Atualizar cliente
  * Somente o vendedor associado ou admin/superadmin pode editar
  */
-router.put('/:id', idValidation, clienteValidation, async (req, res) => {
+router.put('/:id', idValidation, clienteValidation, activityLogMiddleware('atualizar', 'cliente'), async (req, res) => {
     try {
         const { id } = req.params;
         const {
@@ -327,7 +328,7 @@ router.put('/:id', idValidation, clienteValidation, async (req, res) => {
  * Soft delete do cliente
  * Somente o vendedor associado ou admin/superadmin pode excluir
  */
-router.delete('/:id', idValidation, async (req, res) => {
+router.delete('/:id', idValidation, activityLogMiddleware('excluir', 'cliente'), async (req, res) => {
     try {
         const { id } = req.params;
 

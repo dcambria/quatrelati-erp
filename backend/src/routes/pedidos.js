@@ -1,7 +1,6 @@
 // =====================================================
 // Rotas de Pedidos
-// v1.7.0 - Transações DB para criar/atualizar pedidos
-//          multi-item (rollback em caso de erro)
+// v1.8.0 - Adicionar exportação Excel
 // =====================================================
 
 const express = require('express');
@@ -1127,6 +1126,174 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
     } catch (error) {
         console.error('Erro ao exportar PDF:', error);
         res.status(500).json({ error: 'Erro ao gerar PDF' });
+    }
+});
+
+/**
+ * GET /api/pedidos/exportar/excel
+ * Exportar pedidos para Excel
+ * Filtros: mes, ano, cliente_id, produto_id, status, vendedor_id
+ */
+router.get('/exportar/excel', pedidosQueryValidation, async (req, res) => {
+    try {
+        const ExcelJS = require('exceljs');
+        let { mes, ano, cliente_id, produto_id, status, vendedor_id } = req.query;
+
+        // Verificar permissões
+        const userNivel = req.user.nivel;
+        const userId = req.user.id;
+        const canViewAll = ['superadmin', 'admin', 'visualizador'].includes(userNivel);
+
+        if (!canViewAll) {
+            vendedor_id = userId;
+        }
+
+        // Query base
+        let query = `
+            SELECT
+                p.id,
+                p.numero_pedido,
+                p.data_pedido,
+                p.data_entrega,
+                p.nf,
+                p.entregue,
+                p.observacoes,
+                c.nome as cliente_nome,
+                c.cidade as cliente_cidade,
+                c.estado as cliente_estado,
+                u.nome as vendedor_nome,
+                pi.quantidade_caixas,
+                pi.preco_unitario,
+                pr.nome as produto_nome,
+                pr.peso_caixa_kg
+            FROM pedidos p
+            JOIN clientes c ON p.cliente_id = c.id
+            LEFT JOIN usuarios u ON p.vendedor_id = u.id
+            LEFT JOIN pedido_itens pi ON p.id = pi.pedido_id
+            LEFT JOIN produtos pr ON pi.produto_id = pr.id
+            WHERE 1=1
+        `;
+
+        const params = [];
+        let paramIndex = 1;
+
+        if (mes && ano) {
+            query += ` AND EXTRACT(MONTH FROM p.data_entrega) = $${paramIndex++} AND EXTRACT(YEAR FROM p.data_entrega) = $${paramIndex++}`;
+            params.push(parseInt(mes), parseInt(ano));
+        } else if (ano) {
+            query += ` AND EXTRACT(YEAR FROM p.data_entrega) = $${paramIndex++}`;
+            params.push(parseInt(ano));
+        }
+
+        if (cliente_id) {
+            query += ` AND p.cliente_id = $${paramIndex++}`;
+            params.push(parseInt(cliente_id));
+        }
+
+        if (produto_id) {
+            query += ` AND pi.produto_id = $${paramIndex++}`;
+            params.push(parseInt(produto_id));
+        }
+
+        if (status === 'pendente') {
+            query += ` AND p.entregue = false`;
+        } else if (status === 'entregue') {
+            query += ` AND p.entregue = true`;
+        }
+
+        if (vendedor_id) {
+            query += ` AND p.vendedor_id = $${paramIndex++}`;
+            params.push(parseInt(vendedor_id));
+        }
+
+        query += ` ORDER BY p.data_entrega DESC, p.numero_pedido DESC`;
+
+        const result = await req.db.query(query, params);
+
+        // Criar workbook
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'Quatrelati ERP';
+        workbook.created = new Date();
+
+        const worksheet = workbook.addWorksheet('Pedidos', {
+            properties: { tabColor: { argb: '1E3A8A' } }
+        });
+
+        // Definir colunas
+        worksheet.columns = [
+            { header: 'N. Pedido', key: 'numero_pedido', width: 12 },
+            { header: 'Data Pedido', key: 'data_pedido', width: 12 },
+            { header: 'Data Entrega', key: 'data_entrega', width: 12 },
+            { header: 'Cliente', key: 'cliente_nome', width: 30 },
+            { header: 'Cidade', key: 'cliente_cidade', width: 15 },
+            { header: 'UF', key: 'cliente_estado', width: 5 },
+            { header: 'Vendedor', key: 'vendedor_nome', width: 20 },
+            { header: 'Produto', key: 'produto_nome', width: 25 },
+            { header: 'Caixas', key: 'quantidade_caixas', width: 10 },
+            { header: 'Peso (kg)', key: 'peso_total', width: 12 },
+            { header: 'Preco Unit.', key: 'preco_unitario', width: 12 },
+            { header: 'Total', key: 'total', width: 15 },
+            { header: 'NF', key: 'nf', width: 12 },
+            { header: 'Status', key: 'status', width: 12 },
+        ];
+
+        // Estilo do cabeçalho
+        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFF' } };
+        worksheet.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: '1E3A8A' }
+        };
+        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+        // Adicionar dados
+        result.rows.forEach(row => {
+            const pesoTotal = (row.quantidade_caixas || 0) * (row.peso_caixa_kg || 0);
+            const total = (row.quantidade_caixas || 0) * (row.preco_unitario || 0);
+
+            worksheet.addRow({
+                numero_pedido: row.numero_pedido,
+                data_pedido: row.data_pedido ? format(new Date(row.data_pedido), 'dd/MM/yyyy') : '',
+                data_entrega: row.data_entrega ? format(new Date(row.data_entrega), 'dd/MM/yyyy') : '',
+                cliente_nome: row.cliente_nome,
+                cliente_cidade: row.cliente_cidade,
+                cliente_estado: row.cliente_estado,
+                vendedor_nome: row.vendedor_nome || '-',
+                produto_nome: row.produto_nome,
+                quantidade_caixas: row.quantidade_caixas,
+                peso_total: pesoTotal.toFixed(2),
+                preco_unitario: row.preco_unitario,
+                total: total.toFixed(2),
+                nf: row.nf || '-',
+                status: row.entregue ? 'Entregue' : 'Pendente'
+            });
+        });
+
+        // Formatar colunas de moeda
+        worksheet.getColumn('preco_unitario').numFmt = 'R$ #,##0.00';
+        worksheet.getColumn('total').numFmt = 'R$ #,##0.00';
+
+        // Adicionar linha de totais
+        const lastRow = worksheet.rowCount + 1;
+        worksheet.addRow({});
+        const totalRow = worksheet.addRow({
+            numero_pedido: 'TOTAIS',
+            quantidade_caixas: { formula: `SUM(I2:I${lastRow - 1})` },
+            peso_total: { formula: `SUM(J2:J${lastRow - 1})` },
+            total: { formula: `SUM(L2:L${lastRow - 1})` }
+        });
+        totalRow.font = { bold: true };
+
+        // Configurar response
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename=pedidos-quatrelati-${ano || 'todos'}-${mes || 'todos'}.xlsx`);
+
+        await workbook.xlsx.write(res);
+        res.end();
+
+    } catch (error) {
+        console.error('Erro ao exportar Excel:', error);
+        res.status(500).json({ error: 'Erro ao gerar Excel' });
     }
 });
 

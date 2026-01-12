@@ -1,7 +1,6 @@
 // =====================================================
 // Middleware de Validação
-// v1.1.0 - Validações aprimoradas: CNPJ/CPF, CEP, datas,
-//          horário, senha forte
+// v1.2.0 - Adicionar validação de telefone internacional
 // =====================================================
 
 const { validationResult, body, param, query } = require('express-validator');
@@ -143,6 +142,28 @@ const isStrongPassword = (senha) => {
     if (!/[A-Z]/.test(senha)) return false; // Pelo menos uma maiúscula
     if (!/[0-9]/.test(senha)) return false; // Pelo menos um número
     if (!/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/`~]/.test(senha)) return false; // Pelo menos um especial
+    return true;
+};
+
+/**
+ * Valida telefone formato internacional
+ * Aceita: +55 11 99999-9999, (11) 99999-9999, 11999999999, etc.
+ * @param {string} telefone - Telefone a validar
+ * @returns {boolean}
+ */
+const isValidPhone = (telefone) => {
+    if (!telefone) return true; // Campo opcional
+
+    // Remove formatação
+    const numeros = telefone.replace(/\D/g, '');
+
+    // Telefone brasileiro: 10-11 dígitos (com DDD)
+    // Telefone internacional: 7-15 dígitos
+    if (numeros.length < 7 || numeros.length > 15) return false;
+
+    // Não pode ser só zeros ou números repetidos
+    if (/^0+$/.test(numeros) || /^(\d)\1+$/.test(numeros)) return false;
+
     return true;
 };
 
@@ -299,8 +320,8 @@ const clienteValidation = [
         .withMessage('CNPJ/CPF inválido (deve ser um documento válido)'),
     body('telefone')
         .optional()
-        .isLength({ max: 20 })
-        .withMessage('Telefone inválido'),
+        .custom(isValidPhone)
+        .withMessage('Telefone inválido (deve ter entre 7 e 15 dígitos)'),
     body('email')
         .optional()
         .isEmail()
@@ -361,6 +382,10 @@ const usuarioValidation = [
         .withMessage('Email é obrigatório')
         .isEmail()
         .withMessage('Email inválido'),
+    body('telefone')
+        .optional()
+        .custom(isValidPhone)
+        .withMessage('Telefone inválido (deve ter entre 7 e 15 dígitos)'),
     body('senha')
         .notEmpty()
         .withMessage('Senha é obrigatória')
@@ -382,6 +407,10 @@ const usuarioUpdateValidation = [
         .optional()
         .isEmail()
         .withMessage('Email inválido'),
+    body('telefone')
+        .optional()
+        .custom(isValidPhone)
+        .withMessage('Telefone inválido (deve ter entre 7 e 15 dígitos)'),
     body('senha')
         .optional()
         .custom((value) => {

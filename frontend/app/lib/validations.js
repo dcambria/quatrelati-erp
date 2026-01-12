@@ -1,6 +1,6 @@
 // =====================================================
 // Utilitários de Validação
-// v1.0.0 - Validações brasileiras e regras de negócio
+// v1.1.0 - Adiciona máscara e schema CNPJ apenas
 // =====================================================
 
 import { z } from 'zod';
@@ -183,6 +183,47 @@ export const cnpjCpfSchema = z.string()
   .refine((val) => !val || validarCPFouCNPJ(val), {
     message: 'CPF ou CNPJ inválido',
   });
+
+/**
+ * Schema para CNPJ apenas com validação
+ */
+export const cnpjSchema = z.string()
+  .optional()
+  .refine((val) => !val || validarCNPJ(val), {
+    message: 'CNPJ inválido',
+  });
+
+/**
+ * Aplica máscara de CNPJ (XX.XXX.XXX/XXXX-XX)
+ * @param {string} valor - Valor a ser formatado
+ * @returns {string} Valor formatado
+ */
+export function mascaraCNPJ(valor) {
+  if (!valor) return '';
+
+  // Remove tudo que não é número
+  const numeros = valor.replace(/\D/g, '');
+
+  // Limita a 14 dígitos
+  const limitado = numeros.slice(0, 14);
+
+  // Aplica a máscara progressivamente
+  let formatado = limitado;
+  if (limitado.length > 2) {
+    formatado = limitado.slice(0, 2) + '.' + limitado.slice(2);
+  }
+  if (limitado.length > 5) {
+    formatado = formatado.slice(0, 6) + '.' + formatado.slice(6);
+  }
+  if (limitado.length > 8) {
+    formatado = formatado.slice(0, 10) + '/' + formatado.slice(10);
+  }
+  if (limitado.length > 12) {
+    formatado = formatado.slice(0, 15) + '-' + formatado.slice(15);
+  }
+
+  return formatado;
+}
 
 /**
  * Schema para CEP com validação

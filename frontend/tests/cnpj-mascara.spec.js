@@ -11,6 +11,44 @@ const TEST_USER = {
   password: 'srxwdjedi',
 };
 
+test.describe('Máscara CEP', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(`${BASE_URL}/login`);
+    await page.waitForLoadState('networkidle');
+    await page.fill('input[type="email"]', TEST_USER.email);
+    await page.fill('input[type="password"]', TEST_USER.password);
+    await page.click('button[type="submit"]');
+    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
+  });
+
+  test('deve aplicar máscara ao digitar CEP', async ({ page }) => {
+    await page.goto(`${BASE_URL}/clientes`);
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    // Clicar em Novo Cliente
+    const btnNovo = page.locator('button').filter({ hasText: /Novo Cliente/i });
+    await btnNovo.click();
+    await page.waitForTimeout(500);
+
+    // Localizar campo CEP
+    const cepField = page.locator('input[placeholder="00000-000"]');
+
+    // Digitar CEP sem formatação
+    await cepField.fill('');
+    await cepField.type('01310100', { delay: 50 });
+
+    await page.waitForTimeout(300);
+
+    // Verificar valor com máscara
+    const valorFormatado = await cepField.inputValue();
+    console.log('CEP digitado formatado:', valorFormatado);
+
+    // Deve estar formatado como XXXXX-XXX
+    expect(valorFormatado).toBe('01310-100');
+  });
+});
+
 test.describe('Máscara CNPJ', () => {
   test.beforeEach(async ({ page }) => {
     // Login

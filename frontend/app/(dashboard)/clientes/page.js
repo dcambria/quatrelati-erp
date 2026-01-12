@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Clientes
-// v1.2.0 - CNPJ apenas com máscara e validação
+// v1.3.0 - Adiciona máscara CEP
 // =====================================================
 
 import { useState, useEffect } from 'react';
@@ -37,7 +37,7 @@ import Select from '../../components/ui/Select';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import Loading, { TableSkeleton } from '../../components/ui/Loading';
-import { cnpjSchema, cepSchema, mascaraCNPJ } from '../../lib/validations';
+import { cnpjSchema, cepSchema, mascaraCNPJ, mascaraCEP } from '../../lib/validations';
 
 const ESTADOS = [
   { value: 'AC', label: 'AC' }, { value: 'AL', label: 'AL' }, { value: 'AP', label: 'AP' },
@@ -524,7 +524,8 @@ export default function ClientesPage() {
                 label="CEP"
                 placeholder="00000-000"
                 error={errors.cep?.message}
-                {...register('cep')}
+                value={watch('cep') || ''}
+                onChange={(e) => setValue('cep', mascaraCEP(e.target.value))}
               />
             </div>
             <Input

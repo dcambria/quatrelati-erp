@@ -1,6 +1,6 @@
 // =====================================================
 // Utilitários de Validação
-// v1.1.0 - Adiciona máscara e schema CNPJ apenas
+// v1.2.0 - Adiciona máscara CEP
 // =====================================================
 
 import { z } from 'zod';
@@ -233,6 +233,28 @@ export const cepSchema = z.string()
   .refine((val) => !val || validarCEP(val), {
     message: 'CEP inválido (formato: XXXXX-XXX)',
   });
+
+/**
+ * Aplica máscara de CEP (XXXXX-XXX)
+ * @param {string} valor - Valor a ser formatado
+ * @returns {string} Valor formatado
+ */
+export function mascaraCEP(valor) {
+  if (!valor) return '';
+
+  // Remove tudo que não é número
+  const numeros = valor.replace(/\D/g, '');
+
+  // Limita a 8 dígitos
+  const limitado = numeros.slice(0, 8);
+
+  // Aplica a máscara XXXXX-XXX
+  if (limitado.length > 5) {
+    return limitado.slice(0, 5) + '-' + limitado.slice(5);
+  }
+
+  return limitado;
+}
 
 /**
  * Schema para horário com validação

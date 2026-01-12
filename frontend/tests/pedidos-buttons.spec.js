@@ -1,6 +1,6 @@
 // =====================================================
 // Testes dos Botões da Página de Pedidos
-// v1.1.0 - Tooltips CSS, badge atrasado, ordenacao status
+// v1.2.0 - Correcao de credenciais e seletores
 // =====================================================
 
 import { test, expect } from '@playwright/test';

@@ -1,111 +1,108 @@
 # =====================================================
-# Docker Compose - Produção
-# v1.0.0 - Multi-stage builds + Nginx reverse proxy
+# Docker Compose - Production
+# v1.0.0
+# =====================================================
+# Usage:
+#   docker-compose -f docker-compose.prod.yml up -d
 # =====================================================
 
 services:
-  # -------------------------------------------------
-  # PostgreSQL Database
-  # -------------------------------------------------
   postgres:
     image: postgres:15-alpine
     container_name: quatrelati-db-prod
-    restart: unless-stopped
+    restart: always
     environment:
-      POSTGRES_USER: ${DB_USER:-quatrelati}
+      POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME:-quatrelati_pedidos}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - postgres_data_prod:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-quatrelati} -d ${DB_NAME:-quatrelati_pedidos}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - quatrelati-internal
+      - quatrelati-prod
 
-  # -------------------------------------------------
-  # Backend API
-  # -------------------------------------------------
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
       target: production
     container_name: quatrelati-api-prod
-    restart: unless-stopped
+    restart: always
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: postgres://${DB_USER:-quatrelati}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-quatrelati_pedidos}
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://quatrelati.com.br}
-      FRONTEND_URL: ${FRONTEND_URL:-https://quatrelati.com.br}
-      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
-      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
-      TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM}
-      SMTP_HOST: ${SMTP_HOST}
+      SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASS: ${SMTP_PASS}
-      SMTP_FROM: ${SMTP_FROM}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@quatrelati.com.br}
     depends_on:
       postgres:
         condition: service_healthy
     networks:
-      - quatrelati-internal
+      - quatrelati-prod
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
 
-  # -------------------------------------------------
-  # Frontend (Next.js)
-  # -------------------------------------------------
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       target: production
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.quatrelati.com.br/api}
     container_name: quatrelati-web-prod
-    restart: unless-stopped
+    restart: always
     environment:
       NODE_ENV: production
     depends_on:
       - backend
     networks:
-      - quatrelati-internal
+      - quatrelati-prod
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
-  # -------------------------------------------------
-  # Nginx Reverse Proxy
-  # -------------------------------------------------
   nginx:
     image: nginx:alpine
-    container_name: quatrelati-proxy
-    restart: unless-stopped
+    container_name: quatrelati-nginx
+    restart: always
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
-      - nginx_logs:/var/log/nginx
+      - ./nginx/logs:/var/log/nginx
     depends_on:
       - frontend
       - backend
     networks:
-      - quatrelati-internal
-    healthcheck:
-      test: ["CMD", "nginx", "-t"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - quatrelati-prod
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
 
 volumes:
-  postgres_data:
-  nginx_logs:
+  postgres_data_prod:
+    driver: local
 
 networks:
-  quatrelati-internal:
+  quatrelati-prod:
     driver: bridge

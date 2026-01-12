@@ -479,6 +479,7 @@ const pedidosQueryValidation = [
 ];
 
 module.exports = {
+    // Middleware
     validate,
     loginValidation,
     pedidoValidation,
@@ -488,5 +489,13 @@ module.exports = {
     usuarioValidation,
     usuarioUpdateValidation,
     idValidation,
-    pedidosQueryValidation
+    pedidosQueryValidation,
+    // Helper functions (for testing)
+    isValidCPF,
+    isValidCNPJ,
+    isValidCNPJorCPF,
+    isValidCEP,
+    isValidHorario,
+    isStrongPassword,
+    isValidPhone
 };

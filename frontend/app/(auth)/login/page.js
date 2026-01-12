@@ -4,7 +4,7 @@
  * ===========================================
  * Quatrelati - Tela de Login
  * Design Apple HIG com Glassmorphism
- * v2.7.0 - Fluxo WhatsApp corrigido
+ * v2.8.0 - Validação de senha forte
  * ===========================================
  */
 
@@ -32,6 +32,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import BureauFooter from '../../components/common/BureauFooter';
 import PhoneInput from '../../components/ui/PhoneInput';
 import api from '../../lib/api';
+import { senhaForteSchema } from '../../lib/validations';
 
 const loginSchema = z.object({
   email: z.string().email('Email invalido'),
@@ -51,7 +52,7 @@ const codeSchema = z.object({
 });
 
 const resetSchema = z.object({
-  newPassword: z.string().min(8, 'Senha deve ter no minimo 8 caracteres'),
+  newPassword: senhaForteSchema,
   confirmPassword: z.string().min(1, 'Confirmacao e obrigatoria'),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: 'Senhas nao conferem',

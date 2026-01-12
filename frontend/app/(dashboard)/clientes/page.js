@@ -1,5 +1,10 @@
 'use client';
 
+// =====================================================
+// Página de Clientes
+// v1.1.0 - Adicionar validações CNPJ/CPF e CEP
+// =====================================================
+
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,6 +37,7 @@ import Select from '../../components/ui/Select';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import Loading, { TableSkeleton } from '../../components/ui/Loading';
+import { cnpjCpfSchema, cepSchema } from '../../lib/validations';
 
 const ESTADOS = [
   { value: 'AC', label: 'AC' }, { value: 'AL', label: 'AL' }, { value: 'AP', label: 'AP' },
@@ -48,14 +54,14 @@ const ESTADOS = [
 const clienteSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
   razao_social: z.string().optional(),
-  cnpj_cpf: z.string().optional(),
+  cnpj_cpf: cnpjCpfSchema,
   telefone: z.string().optional(),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   endereco: z.string().optional(),
   endereco_entrega: z.string().optional(),
   cidade: z.string().optional(),
   estado: z.string().optional(),
-  cep: z.string().optional(),
+  cep: cepSchema,
   contato_nome: z.string().optional(),
   observacoes: z.string().optional(),
   vendedor_id: z.string().optional(),
@@ -448,6 +454,8 @@ export default function ClientesPage() {
               />
               <Input
                 label="CNPJ/CPF"
+                placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                error={errors.cnpj_cpf?.message}
                 {...register('cnpj_cpf')}
               />
             </div>
@@ -514,6 +522,7 @@ export default function ClientesPage() {
               <Input
                 label="CEP"
                 placeholder="00000-000"
+                error={errors.cep?.message}
                 {...register('cep')}
               />
             </div>

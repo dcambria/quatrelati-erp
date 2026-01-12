@@ -1,6 +1,6 @@
 // =====================================================
 // Modal de Formulário de Pedido
-// v1.0.0 - Criar/Editar pedidos
+// v1.1.0 - Validação de datas, horário e preços
 // =====================================================
 
 'use client';
@@ -15,6 +15,7 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Button from '../../../components/ui/Button';
 import { formatCurrency, calcularTotalPedido } from '../utils';
+import { horarioSchema, precoPositivoSchema } from '../../../lib/validations';
 
 const pedidoSchema = z.object({
   data_pedido: z.string().min(1, 'Data é obrigatória'),
@@ -22,8 +23,17 @@ const pedidoSchema = z.object({
   data_entrega: z.string().optional(),
   nf: z.string().optional(),
   observacoes: z.string().optional(),
-  preco_descarga_pallet: z.string().optional(),
-  horario_recebimento: z.string().optional(),
+  preco_descarga_pallet: precoPositivoSchema,
+  horario_recebimento: horarioSchema,
+}).refine((data) => {
+  // Se data_entrega foi preenchida, deve ser >= data_pedido
+  if (data.data_entrega && data.data_pedido) {
+    return new Date(data.data_entrega) >= new Date(data.data_pedido);
+  }
+  return true;
+}, {
+  message: 'Data de entrega deve ser igual ou posterior à data do pedido',
+  path: ['data_entrega'],
 });
 
 export default function PedidoFormModal({
@@ -269,9 +279,12 @@ export default function PedidoFormModal({
               <input
                 type="text"
                 placeholder="Ex: 08:00 às 17:00"
-                className="input-glass w-full"
+                className={`input-glass w-full ${errors.horario_recebimento ? 'border-red-500' : ''}`}
                 {...register('horario_recebimento')}
               />
+              {errors.horario_recebimento && (
+                <p className="text-red-500 text-xs mt-1">{errors.horario_recebimento.message}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -282,9 +295,12 @@ export default function PedidoFormModal({
                 step="0.01"
                 min="0"
                 placeholder="0,00"
-                className="input-glass w-full"
+                className={`input-glass w-full ${errors.preco_descarga_pallet ? 'border-red-500' : ''}`}
                 {...register('preco_descarga_pallet')}
               />
+              {errors.preco_descarga_pallet && (
+                <p className="text-red-500 text-xs mt-1">{errors.preco_descarga_pallet.message}</p>
+              )}
             </div>
           </div>
         </div>

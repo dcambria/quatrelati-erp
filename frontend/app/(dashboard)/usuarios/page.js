@@ -1,5 +1,10 @@
 'use client';
 
+// =====================================================
+// Página de Usuários
+// v1.1.0 - Adicionar validação de senha forte
+// =====================================================
+
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,12 +35,13 @@ import Modal from '../../components/ui/Modal';
 import Loading from '../../components/ui/Loading';
 import Gravatar from '../../components/ui/Gravatar';
 import PhoneInput from '../../components/ui/PhoneInput';
+import { senhaForteOpcionalSchema } from '../../lib/validations';
 
 const usuarioSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
   email: z.string().email('Email inválido'),
   telefone: z.string().optional(),
-  senha: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres').optional().or(z.literal('')),
+  senha: senhaForteOpcionalSchema,
   nivel: z.string().min(1, 'Nível é obrigatório'),
 });
 

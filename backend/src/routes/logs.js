@@ -1,5 +1,6 @@
 // =====================================================
 // Rotas de Logs de Atividade
+// v1.1.0 - Corrigido SQL Injection em estatisticas
 // Apenas superadmins podem acessar
 // =====================================================
 
@@ -169,40 +170,43 @@ router.get('/estatisticas', async (req, res) => {
     try {
         const { dias = 30 } = req.query;
 
+        // Validar e sanitizar parâmetro dias (1-365)
+        const diasInt = Math.min(Math.max(parseInt(dias) || 30, 1), 365);
+
         // Total de logs nos últimos X dias
         const totalResult = await req.db.query(`
             SELECT COUNT(*) as total
             FROM activity_logs
-            WHERE created_at >= NOW() - INTERVAL '${parseInt(dias)} days'
-        `);
+            WHERE created_at >= NOW() - make_interval(days => $1)
+        `, [diasInt]);
 
         // Logs por usuário
         const porUsuarioResult = await req.db.query(`
             SELECT user_nome, COUNT(*) as total
             FROM activity_logs
-            WHERE created_at >= NOW() - INTERVAL '${parseInt(dias)} days'
+            WHERE created_at >= NOW() - make_interval(days => $1)
             GROUP BY user_nome
             ORDER BY total DESC
             LIMIT 10
-        `);
+        `, [diasInt]);
 
         // Logs por ação
         const porAcaoResult = await req.db.query(`
             SELECT action, COUNT(*) as total
             FROM activity_logs
-            WHERE created_at >= NOW() - INTERVAL '${parseInt(dias)} days'
+            WHERE created_at >= NOW() - make_interval(days => $1)
             GROUP BY action
             ORDER BY total DESC
-        `);
+        `, [diasInt]);
 
         // Logs por dia
         const porDiaResult = await req.db.query(`
             SELECT DATE(created_at) as data, COUNT(*) as total
             FROM activity_logs
-            WHERE created_at >= NOW() - INTERVAL '${parseInt(dias)} days'
+            WHERE created_at >= NOW() - make_interval(days => $1)
             GROUP BY DATE(created_at)
             ORDER BY data DESC
-        `);
+        `, [diasInt]);
 
         res.json({
             total: parseInt(totalResult.rows[0].total),

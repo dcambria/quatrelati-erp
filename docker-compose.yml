@@ -3,16 +3,16 @@ services:
     image: postgres:15-alpine
     container_name: quatrelati-db
     environment:
-      POSTGRES_USER: quatrelati
-      POSTGRES_PASSWORD: quatrelati2026
-      POSTGRES_DB: quatrelati_pedidos
+      POSTGRES_USER: ${DB_USER:-quatrelati}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dev_password_change_me}
+      POSTGRES_DB: ${DB_NAME:-quatrelati_pedidos}
     ports:
       - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U quatrelati -d quatrelati_pedidos"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-quatrelati} -d ${DB_NAME:-quatrelati_pedidos}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,9 +28,9 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3001
-      DATABASE_URL: postgres://quatrelati:quatrelati2026@postgres:5432/quatrelati_pedidos
-      JWT_SECRET: quatrelati-jwt-secret-2026-super-seguro
-      JWT_REFRESH_SECRET: quatrelati-refresh-secret-2026-super-seguro
+      DATABASE_URL: postgres://${DB_USER:-quatrelati}:${DB_PASSWORD:-dev_password_change_me}@postgres:5432/${DB_NAME:-quatrelati_pedidos}
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_me}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_jwt_refresh_secret_change_me}
       CORS_ORIGIN: http://localhost:3002
     ports:
       - "3001:3001"

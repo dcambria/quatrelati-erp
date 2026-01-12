@@ -7,7 +7,7 @@ test('capturar screenshots responsivos', async ({ page }) => {
   await page.goto(`${BASE_URL}/login`);
   await page.waitForTimeout(1000);
   await page.fill('input[name="email"]', 'daniel.cambria@bureau-it.com');
-  await page.fill('input[name="password"]', 'Quatrelati@2026');
+  await page.fill('input[name="password"]', 'srxwdjedi');
   await page.click('button[type="submit"]');
   await page.waitForTimeout(2000);
 

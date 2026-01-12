@@ -8,7 +8,7 @@ test('capturar footer bureau logo', async ({ page }) => {
   const loginResponse = await page.request.post(`${API_URL}/api/auth/login`, {
     data: {
       email: 'daniel.cambria@bureau-it.com',
-      senha: 'Quatrelati@2026'
+      senha: 'srxwdjedi'
     }
   });
 

@@ -13,7 +13,7 @@ test.skip('criar pedido com multiplos produtos', async ({ page }) => {
   // Aguardar inputs estarem visiveis
   await page.waitForSelector('input[type="email"]', { state: 'visible', timeout: 10000 });
   await page.fill('input[type="email"]', 'daniel.cambria@bureau-it.com');
-  await page.fill('input[type="password"]', 'Quatrelati@2026');
+  await page.fill('input[type="password"]', 'srxwdjedi');
   await page.click('button[type="submit"]');
 
   // Aguardar login completo e redirecionamento
@@ -106,7 +106,7 @@ test.skip('editar pedido com multiplos produtos', async ({ page }) => {
   // Aguardar inputs estarem visiveis
   await page.waitForSelector('input[type="email"]', { state: 'visible', timeout: 10000 });
   await page.fill('input[type="email"]', 'daniel.cambria@bureau-it.com');
-  await page.fill('input[type="password"]', 'Quatrelati@2026');
+  await page.fill('input[type="password"]', 'srxwdjedi');
   await page.click('button[type="submit"]');
 
   await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });

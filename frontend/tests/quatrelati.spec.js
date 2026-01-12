@@ -6,7 +6,7 @@ test.setTimeout(60000);
 
 const TEST_USER = {
   email: 'daniel.cambria@bureau-it.com',
-  password: 'Quatrelati@2026',
+  password: 'srxwdjedi',
   nome: 'Daniel Cambria',
 };
 

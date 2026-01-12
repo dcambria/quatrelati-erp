@@ -8,7 +8,7 @@ async function login(page) {
   await page.waitForLoadState('networkidle');
   await page.waitForSelector('input[type="email"]', { state: 'visible', timeout: 10000 });
   await page.fill('input[type="email"]', 'daniel.cambria@bureau-it.com');
-  await page.fill('input[type="password"]', 'Quatrelati@2026');
+  await page.fill('input[type="password"]', 'srxwdjedi');
   await page.click('button[type="submit"]');
   await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
   await page.waitForTimeout(1000);

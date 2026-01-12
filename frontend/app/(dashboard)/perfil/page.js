@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { mascaraTelefone } from '../../lib/validations';
 import Header from '../../components/layout/Header';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -203,9 +204,14 @@ export default function PerfilPage() {
   };
 
   const handleTelefoneChange = (e) => {
-    // Permite apenas numeros, espacos, parenteses e hifens
-    const valor = e.target.value.replace(/[^\d\s()-]/g, '');
-    setTelefoneLocal(valor);
+    // Aplica máscara brasileira se o país selecionado for Brasil
+    if (paisSelecionado.pais === 'BR') {
+      setTelefoneLocal(mascaraTelefone(e.target.value));
+    } else {
+      // Permite apenas numeros, espacos, parenteses e hifens
+      const valor = e.target.value.replace(/[^\d\s()-]/g, '');
+      setTelefoneLocal(valor);
+    }
   };
 
   const onSubmit = async (data) => {

@@ -1,6 +1,6 @@
 // =====================================================
 // Utilitários de Validação
-// v1.4.0 - Adiciona máscara Horário
+// v1.5.0 - Adiciona máscaras CPF, Moeda e Peso
 // =====================================================
 
 import { z } from 'zod';
@@ -345,6 +345,92 @@ export function mascaraHorario(valor) {
 
   // Horário simples
   return formatarHorario(valor);
+}
+
+/**
+ * Aplica máscara de CPF (XXX.XXX.XXX-XX)
+ * @param {string} valor - Valor a ser formatado
+ * @returns {string} Valor formatado
+ */
+export function mascaraCPF(valor) {
+  if (!valor) return '';
+
+  // Remove tudo que não é número
+  const numeros = valor.replace(/\D/g, '');
+
+  // Limita a 11 dígitos
+  const limitado = numeros.slice(0, 11);
+
+  // Aplica a máscara progressivamente
+  let formatado = limitado;
+  if (limitado.length > 3) {
+    formatado = limitado.slice(0, 3) + '.' + limitado.slice(3);
+  }
+  if (limitado.length > 6) {
+    formatado = formatado.slice(0, 7) + '.' + formatado.slice(7);
+  }
+  if (limitado.length > 9) {
+    formatado = formatado.slice(0, 11) + '-' + formatado.slice(11);
+  }
+
+  return formatado;
+}
+
+/**
+ * Aplica máscara de Moeda brasileira (1.234,56)
+ * @param {string} valor - Valor a ser formatado
+ * @returns {string} Valor formatado
+ */
+export function mascaraMoeda(valor) {
+  if (!valor) return '';
+
+  // Remove tudo que não é número
+  let numeros = valor.replace(/\D/g, '');
+
+  if (numeros.length === 0) return '';
+
+  // Converte para número e divide por 100 (centavos)
+  const numero = parseInt(numeros, 10) / 100;
+
+  // Formata com separadores brasileiros
+  return numero.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+/**
+ * Aplica máscara de Peso (1.234,567)
+ * @param {string} valor - Valor a ser formatado
+ * @returns {string} Valor formatado
+ */
+export function mascaraPeso(valor) {
+  if (!valor) return '';
+
+  // Permite números e vírgula/ponto
+  let limpo = valor.replace(/[^\d,\.]/g, '');
+
+  // Substitui ponto por vírgula para padronizar
+  limpo = limpo.replace('.', ',');
+
+  // Permite apenas uma vírgula
+  const partes = limpo.split(',');
+  if (partes.length > 2) {
+    limpo = partes[0] + ',' + partes.slice(1).join('');
+  }
+
+  // Limita casas decimais a 3
+  if (partes.length === 2 && partes[1].length > 3) {
+    limpo = partes[0] + ',' + partes[1].slice(0, 3);
+  }
+
+  // Adiciona separador de milhar na parte inteira
+  if (partes[0].length > 3) {
+    const inteiro = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    limpo = partes.length === 2 ? inteiro + ',' + partes[1] : inteiro;
+  }
+
+  return limpo;
 }
 
 /**

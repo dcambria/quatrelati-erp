@@ -1,5 +1,10 @@
 'use client';
 
+// =====================================================
+// Página de Produtos
+// v1.1.0 - Adiciona máscaras Peso e Moeda
+// =====================================================
+
 import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,6 +24,7 @@ import {
   ImageIcon,
 } from 'lucide-react';
 import api from '../../lib/api';
+import { mascaraPeso, mascaraMoeda } from '../../lib/validations';
 import Header from '../../components/layout/Header';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -51,6 +57,8 @@ export default function ProdutosPage() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(produtoSchema),
@@ -82,14 +90,23 @@ export default function ProdutosPage() {
   };
 
   const abrirModal = (produto = null) => {
+    // Formata número para formato brasileiro
+    const formatBR = (valor, decimais = 2) => {
+      if (!valor && valor !== 0) return '';
+      return Number(valor).toLocaleString('pt-BR', {
+        minimumFractionDigits: decimais,
+        maximumFractionDigits: decimais,
+      });
+    };
+
     if (produto) {
       setEditingProduto(produto);
       setImagemUrl(produto.imagem_url || '');
       reset({
         nome: produto.nome || '',
         descricao: produto.descricao || '',
-        peso_caixa_kg: produto.peso_caixa_kg?.toString() || '',
-        preco_padrao: produto.preco_padrao?.toString() || '',
+        peso_caixa_kg: formatBR(produto.peso_caixa_kg, 3),
+        preco_padrao: formatBR(produto.preco_padrao, 2),
       });
     } else {
       setEditingProduto(null);
@@ -153,11 +170,17 @@ export default function ProdutosPage() {
   const onSubmit = async (data) => {
     setSaving(true);
     try {
+      // Converte formato brasileiro (1.234,56) para número
+      const parseBR = (valor) => {
+        if (!valor) return null;
+        return parseFloat(valor.replace(/\./g, '').replace(',', '.'));
+      };
+
       const payload = {
         nome: data.nome,
         descricao: data.descricao || null,
-        peso_caixa_kg: parseFloat(data.peso_caixa_kg),
-        preco_padrao: data.preco_padrao ? parseFloat(data.preco_padrao) : null,
+        peso_caixa_kg: parseBR(data.peso_caixa_kg),
+        preco_padrao: parseBR(data.preco_padrao),
         imagem_url: imagemUrl || null,
       };
 
@@ -438,18 +461,16 @@ export default function ProdutosPage() {
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Peso por Caixa (kg)"
-              type="number"
-              step="0.001"
-              min="0"
+              placeholder="0,000"
               error={errors.peso_caixa_kg?.message}
-              {...register('peso_caixa_kg')}
+              value={watch('peso_caixa_kg') || ''}
+              onChange={(e) => setValue('peso_caixa_kg', mascaraPeso(e.target.value))}
             />
             <Input
               label="Preço Padrão (R$/kg)"
-              type="number"
-              step="0.01"
-              min="0"
-              {...register('preco_padrao')}
+              placeholder="0,00"
+              value={watch('preco_padrao') || ''}
+              onChange={(e) => setValue('preco_padrao', mascaraMoeda(e.target.value))}
             />
           </div>
 

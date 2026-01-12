@@ -104,12 +104,29 @@ test.describe.serial('Quatrelati - Sistema de Gestao de Pedidos', () => {
 
   test.describe.serial('Pedidos', () => {
     test('deve carregar pagina de pedidos', async ({ page }) => {
-      await login(page);
-      await page.goto(`${BASE_URL}/pedidos`);
+      // Login direto via UI
+      await page.goto(`${BASE_URL}/login`);
       await page.waitForLoadState('networkidle');
+
+      const emailInput = page.locator('input[type="email"]');
+      await emailInput.waitFor({ state: 'visible', timeout: 10000 });
+      await emailInput.fill(TEST_USER.email);
+      await page.locator('input[type="password"]').fill(TEST_USER.password);
+      await page.locator('button[type="submit"]').click();
+
+      // Aguardar redirecionamento
+      await page.waitForURL((url) => !url.pathname.includes('/login'), {
+        timeout: 30000,
+      });
       await page.waitForTimeout(2000);
 
-      const isOnPedidos = page.url().includes('/pedidos');
+      // Ir para pedidos
+      await page.goto(`${BASE_URL}/pedidos`);
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(3000);
+
+      const currentUrl = page.url();
+      const isOnPedidos = currentUrl.includes('/pedidos');
       const hasTable = await page.locator('table').isVisible().catch(() => false);
 
       expect(isOnPedidos || hasTable).toBeTruthy();

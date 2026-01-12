@@ -159,12 +159,34 @@ class ApiClient {
   // Download de arquivo (PDF)
   async download(endpoint, filename) {
     const url = `${this.baseUrl}${endpoint}`;
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       headers: this.getHeaders(),
     });
 
+    // Se for 401, tentar renovar o token
+    if (response.status === 401 && typeof window !== 'undefined') {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        const refreshed = await this.refreshToken(refreshToken);
+        if (refreshed) {
+          // Repetir a requisição com o novo token
+          response = await fetch(url, {
+            headers: this.getHeaders(),
+          });
+        }
+      }
+
+      if (response.status === 401) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+        throw new Error('Sessão expirada');
+      }
+    }
+
     if (!response.ok) {
-      throw new Error('Erro ao baixar arquivo');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Erro ao baixar arquivo');
     }
 
     const blob = await response.blob();

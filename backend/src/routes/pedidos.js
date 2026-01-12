@@ -1,8 +1,7 @@
 // =====================================================
 // Rotas de Pedidos
-// v1.6.0 - PDF otimizado: economia de tinta, layout limpo,
-//          destaque amarelo p/ entregues, datas atrasadas
-//          em vermelho, totais alinhados às colunas
+// v1.7.0 - Transações DB para criar/atualizar pedidos
+//          multi-item (rollback em caso de erro)
 // =====================================================
 
 const express = require('express');
@@ -252,8 +251,12 @@ router.get('/:id', idValidation, async (req, res) => {
 /**
  * POST /api/pedidos
  * Criar novo pedido com múltiplos itens
+ * Usa transação para garantir integridade dos dados
  */
 router.post('/', async (req, res) => {
+    // Obter client do pool para transação
+    const client = await req.db.connect();
+
     try {
         const {
             data_pedido,
@@ -268,12 +271,17 @@ router.post('/', async (req, res) => {
 
         // Validação básica
         if (!data_pedido || !cliente_id) {
+            client.release();
             return res.status(400).json({ error: 'Data e cliente são obrigatórios' });
         }
 
         if (!itens || !Array.isArray(itens) || itens.length === 0) {
+            client.release();
             return res.status(400).json({ error: 'Pelo menos um item é obrigatório' });
         }
+
+        // Iniciar transação
+        await client.query('BEGIN');
 
         // Gerar número do pedido (YYMMXX)
         const dataPedido = new Date(data_pedido);
@@ -281,7 +289,7 @@ router.post('/', async (req, res) => {
         const mes = (dataPedido.getMonth() + 1).toString().padStart(2, '0');
 
         // Buscar último número do mês
-        const ultimoNumero = await req.db.query(`
+        const ultimoNumero = await client.query(`
             SELECT numero_pedido
             FROM pedidos
             WHERE numero_pedido LIKE $1
@@ -304,12 +312,14 @@ router.post('/', async (req, res) => {
 
         const itensProcessados = [];
         for (const item of itens) {
-            const produtoResult = await req.db.query(
+            const produtoResult = await client.query(
                 'SELECT peso_caixa_kg, preco_padrao FROM produtos WHERE id = $1',
                 [item.produto_id]
             );
 
             if (produtoResult.rows.length === 0) {
+                await client.query('ROLLBACK');
+                client.release();
                 return res.status(400).json({ error: `Produto ${item.produto_id} não encontrado` });
             }
 
@@ -331,7 +341,7 @@ router.post('/', async (req, res) => {
         }
 
         // Inserir pedido
-        const result = await req.db.query(`
+        const result = await client.query(`
             INSERT INTO pedidos (
                 data_pedido, cliente_id, numero_pedido, nf, data_entrega,
                 quantidade_caixas, peso_kg, preco_unitario,
@@ -348,14 +358,17 @@ router.post('/', async (req, res) => {
 
         // Inserir itens do pedido
         for (const item of itensProcessados) {
-            await req.db.query(`
+            await client.query(`
                 INSERT INTO pedido_itens (
                     pedido_id, produto_id, quantidade_caixas, peso_kg, preco_unitario, subtotal
                 ) VALUES ($1, $2, $3, $4, $5, $6)
             `, [pedidoId, item.produto_id, item.quantidade_caixas, item.peso_kg, item.preco_unitario, item.subtotal]);
         }
 
-        // Buscar dados completos
+        // Commit da transação
+        await client.query('COMMIT');
+
+        // Buscar dados completos (fora da transação)
         const pedidoCompleto = await req.db.query(`
             SELECT
                 p.*,
@@ -381,35 +394,46 @@ router.post('/', async (req, res) => {
             pedido
         });
     } catch (error) {
+        // Rollback em caso de erro
+        await client.query('ROLLBACK');
         console.error('Erro ao criar pedido:', error);
         if (error.code === '23505') {
             return res.status(400).json({ error: 'Número de pedido já existe' });
         }
         res.status(500).json({ error: 'Erro ao criar pedido' });
+    } finally {
+        client.release();
     }
 });
 
 /**
  * PUT /api/pedidos/:id
  * Atualizar pedido com suporte a múltiplos itens
+ * Usa transação para garantir integridade dos dados
  */
 router.put('/:id', idValidation, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { data_pedido, cliente_id, nf, data_entrega, observacoes, preco_descarga_pallet, horario_recebimento, created_by, itens } = req.body;
+    const { id } = req.params;
+    const { data_pedido, cliente_id, nf, data_entrega, observacoes, preco_descarga_pallet, horario_recebimento, created_by, itens } = req.body;
 
-        // Verificar se pedido existe
-        const pedidoAtual = await req.db.query(
-            'SELECT * FROM pedidos WHERE id = $1',
-            [id]
-        );
+    // Se tem itens, usar transação
+    if (itens && Array.isArray(itens) && itens.length > 0) {
+        const client = await req.db.connect();
 
-        if (pedidoAtual.rows.length === 0) {
-            return res.status(404).json({ error: 'Pedido não encontrado' });
-        }
+        try {
+            await client.query('BEGIN');
 
-        // Se tem itens, processar múltiplos produtos
-        if (itens && Array.isArray(itens) && itens.length > 0) {
+            // Verificar se pedido existe
+            const pedidoAtual = await client.query(
+                'SELECT * FROM pedidos WHERE id = $1',
+                [id]
+            );
+
+            if (pedidoAtual.rows.length === 0) {
+                await client.query('ROLLBACK');
+                client.release();
+                return res.status(404).json({ error: 'Pedido não encontrado' });
+            }
+
             // Calcular totais dos itens
             let totalGeral = 0;
             let pesoGeral = 0;
@@ -418,12 +442,14 @@ router.put('/:id', idValidation, async (req, res) => {
 
             const itensProcessados = [];
             for (const item of itens) {
-                const produtoResult = await req.db.query(
+                const produtoResult = await client.query(
                     'SELECT peso_caixa_kg FROM produtos WHERE id = $1',
                     [item.produto_id]
                 );
 
                 if (produtoResult.rows.length === 0) {
+                    await client.query('ROLLBACK');
+                    client.release();
                     return res.status(400).json({ error: `Produto ${item.produto_id} não encontrado` });
                 }
 
@@ -448,7 +474,7 @@ router.put('/:id', idValidation, async (req, res) => {
             precoMedio = pesoGeral > 0 ? totalGeral / pesoGeral : itensProcessados[0]?.preco_unitario || 0;
 
             // Atualizar pedido principal
-            await req.db.query(`
+            await client.query(`
                 UPDATE pedidos SET
                     data_pedido = $1,
                     cliente_id = $2,
@@ -480,18 +506,39 @@ router.put('/:id', idValidation, async (req, res) => {
             ]);
 
             // Deletar itens antigos
-            await req.db.query('DELETE FROM pedido_itens WHERE pedido_id = $1', [id]);
+            await client.query('DELETE FROM pedido_itens WHERE pedido_id = $1', [id]);
 
             // Inserir novos itens
             for (const item of itensProcessados) {
-                await req.db.query(`
+                await client.query(`
                     INSERT INTO pedido_itens (
                         pedido_id, produto_id, quantidade_caixas, peso_kg, preco_unitario, subtotal
                     ) VALUES ($1, $2, $3, $4, $5, $6)
                 `, [id, item.produto_id, item.quantidade_caixas, item.peso_kg, item.preco_unitario, item.subtotal]);
             }
-        } else {
-            // Atualização simples sem itens
+
+            // Commit da transação
+            await client.query('COMMIT');
+            client.release();
+        } catch (error) {
+            await client.query('ROLLBACK');
+            client.release();
+            console.error('Erro ao atualizar pedido:', error);
+            return res.status(500).json({ error: 'Erro ao atualizar pedido' });
+        }
+    } else {
+        // Atualização simples sem itens (não precisa de transação)
+        try {
+            // Verificar se pedido existe
+            const pedidoAtual = await req.db.query(
+                'SELECT * FROM pedidos WHERE id = $1',
+                [id]
+            );
+
+            if (pedidoAtual.rows.length === 0) {
+                return res.status(404).json({ error: 'Pedido não encontrado' });
+            }
+
             const campos = [];
             const valores = [];
             let paramIndex = 1;
@@ -518,9 +565,14 @@ router.put('/:id', idValidation, async (req, res) => {
                     WHERE id = $${paramIndex}
                 `, valores);
             }
+        } catch (error) {
+            console.error('Erro ao atualizar pedido:', error);
+            return res.status(500).json({ error: 'Erro ao atualizar pedido' });
         }
+    }
 
-        // Buscar dados completos
+    // Buscar dados completos
+    try {
         const pedidoCompleto = await req.db.query(`
             SELECT
                 p.*,
@@ -547,8 +599,8 @@ router.put('/:id', idValidation, async (req, res) => {
             pedido
         });
     } catch (error) {
-        console.error('Erro ao atualizar pedido:', error);
-        res.status(500).json({ error: 'Erro ao atualizar pedido' });
+        console.error('Erro ao buscar pedido atualizado:', error);
+        res.status(500).json({ error: 'Pedido atualizado mas erro ao buscar dados' });
     }
 });
 

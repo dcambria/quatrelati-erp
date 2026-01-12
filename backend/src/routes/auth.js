@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Autenticação
-// v1.2.0 - Recuperação de senha via Email e WhatsApp (Twilio)
+// v1.3.0 - Rate limiting em endpoints sensíveis
 // =====================================================
 
 const express = require('express');
@@ -10,6 +10,13 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { loginValidation } = require('../middleware/validation');
 const { authMiddleware } = require('../middleware/auth');
+const {
+    loginLimiter,
+    forgotPasswordLimiter,
+    whatsappRecoveryLimiter,
+    verifyLimiter,
+    resetPasswordLimiter
+} = require('../middleware/rateLimit');
 
 // Configuração do Twilio para WhatsApp (valores em .env)
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
@@ -34,7 +41,7 @@ const REFRESH_EXPIRES_IN = '7d';
  * POST /api/auth/login
  * Realiza login e retorna tokens
  */
-router.post('/login', loginValidation, async (req, res) => {
+router.post('/login', loginLimiter, loginValidation, async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -230,7 +237,7 @@ router.put('/profile', authMiddleware, async (req, res) => {
  * POST /api/auth/forgot-password
  * Envia magic link para redefinir senha
  */
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
     try {
         const { email } = req.body;
 
@@ -289,7 +296,7 @@ router.post('/forgot-password', async (req, res) => {
  * POST /api/auth/verify-magic-link
  * Valida magic link e retorna tokens
  */
-router.post('/verify-magic-link', async (req, res) => {
+router.post('/verify-magic-link', verifyLimiter, async (req, res) => {
     try {
         const { token } = req.body;
 
@@ -419,7 +426,7 @@ router.put('/change-password', authMiddleware, async (req, res) => {
  * POST /api/auth/forgot-password-whatsapp
  * Envia código de recuperação via WhatsApp (Twilio)
  */
-router.post('/forgot-password-whatsapp', async (req, res) => {
+router.post('/forgot-password-whatsapp', whatsappRecoveryLimiter, async (req, res) => {
     try {
         const { phone } = req.body;
 
@@ -516,7 +523,7 @@ router.post('/forgot-password-whatsapp', async (req, res) => {
  * POST /api/auth/verify-whatsapp-code
  * Valida código de recuperação do WhatsApp
  */
-router.post('/verify-whatsapp-code', async (req, res) => {
+router.post('/verify-whatsapp-code', verifyLimiter, async (req, res) => {
     try {
         const { email, code } = req.body;
 
@@ -578,7 +585,7 @@ router.post('/verify-whatsapp-code', async (req, res) => {
  * POST /api/auth/reset-password
  * Redefine a senha usando token de recuperação
  */
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', resetPasswordLimiter, async (req, res) => {
     try {
         const { token, newPassword } = req.body;
 

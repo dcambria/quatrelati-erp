@@ -23,6 +23,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: development
     container_name: quatrelati-api
     environment:
       NODE_ENV: development
@@ -46,6 +47,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: development
     container_name: quatrelati-web
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3001/api

@@ -1,8 +1,150 @@
 // =====================================================
 // Middleware de Validação
+// v1.1.0 - Validações aprimoradas: CNPJ/CPF, CEP, datas,
+//          horário, senha forte
 // =====================================================
 
 const { validationResult, body, param, query } = require('express-validator');
+
+// =====================================================
+// Funções de Validação Customizadas
+// =====================================================
+
+/**
+ * Valida CPF brasileiro (11 dígitos)
+ * @param {string} cpf - CPF a validar (com ou sem formatação)
+ * @returns {boolean}
+ */
+const isValidCPF = (cpf) => {
+    if (!cpf) return true; // Campo opcional
+
+    // Remover formatação
+    cpf = cpf.replace(/[^\d]/g, '');
+
+    // Verificar tamanho
+    if (cpf.length !== 11) return false;
+
+    // Verificar dígitos repetidos
+    if (/^(\d)\1{10}$/.test(cpf)) return false;
+
+    // Calcular dígitos verificadores
+    let soma = 0;
+    for (let i = 0; i < 9; i++) {
+        soma += parseInt(cpf.charAt(i)) * (10 - i);
+    }
+    let resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    if (resto !== parseInt(cpf.charAt(9))) return false;
+
+    soma = 0;
+    for (let i = 0; i < 10; i++) {
+        soma += parseInt(cpf.charAt(i)) * (11 - i);
+    }
+    resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    if (resto !== parseInt(cpf.charAt(10))) return false;
+
+    return true;
+};
+
+/**
+ * Valida CNPJ brasileiro (14 dígitos)
+ * @param {string} cnpj - CNPJ a validar (com ou sem formatação)
+ * @returns {boolean}
+ */
+const isValidCNPJ = (cnpj) => {
+    if (!cnpj) return true; // Campo opcional
+
+    // Remover formatação
+    cnpj = cnpj.replace(/[^\d]/g, '');
+
+    // Verificar tamanho
+    if (cnpj.length !== 14) return false;
+
+    // Verificar dígitos repetidos
+    if (/^(\d)\1{13}$/.test(cnpj)) return false;
+
+    // Calcular primeiro dígito verificador
+    let tamanho = cnpj.length - 2;
+    let numeros = cnpj.substring(0, tamanho);
+    const digitos = cnpj.substring(tamanho);
+    let soma = 0;
+    let pos = tamanho - 7;
+
+    for (let i = tamanho; i >= 1; i--) {
+        soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+        if (pos < 2) pos = 9;
+    }
+
+    let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+    if (resultado !== parseInt(digitos.charAt(0))) return false;
+
+    // Calcular segundo dígito verificador
+    tamanho = tamanho + 1;
+    numeros = cnpj.substring(0, tamanho);
+    soma = 0;
+    pos = tamanho - 7;
+
+    for (let i = tamanho; i >= 1; i--) {
+        soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+        if (pos < 2) pos = 9;
+    }
+
+    resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+    if (resultado !== parseInt(digitos.charAt(1))) return false;
+
+    return true;
+};
+
+/**
+ * Valida CNPJ ou CPF
+ * @param {string} doc - Documento a validar
+ * @returns {boolean}
+ */
+const isValidCNPJorCPF = (doc) => {
+    if (!doc) return true; // Campo opcional
+
+    const numeros = doc.replace(/[^\d]/g, '');
+
+    if (numeros.length === 11) return isValidCPF(doc);
+    if (numeros.length === 14) return isValidCNPJ(doc);
+
+    return false;
+};
+
+/**
+ * Valida CEP brasileiro (XXXXX-XXX ou XXXXXXXX)
+ * @param {string} cep - CEP a validar
+ * @returns {boolean}
+ */
+const isValidCEP = (cep) => {
+    if (!cep) return true; // Campo opcional
+    return /^\d{5}-?\d{3}$/.test(cep);
+};
+
+/**
+ * Valida formato de horário (HH:MM ou HH:MM:SS)
+ * @param {string} horario - Horário a validar
+ * @returns {boolean}
+ */
+const isValidHorario = (horario) => {
+    if (!horario) return true; // Campo opcional
+    return /^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/.test(horario);
+};
+
+/**
+ * Valida senha forte (mínimo 8 chars, 1 maiúscula, 1 número, 1 especial)
+ * @param {string} senha - Senha a validar
+ * @returns {boolean}
+ */
+const isStrongPassword = (senha) => {
+    if (!senha) return false;
+    if (senha.length < 8) return false;
+    if (!/[A-Z]/.test(senha)) return false; // Pelo menos uma maiúscula
+    if (!/[0-9]/.test(senha)) return false; // Pelo menos um número
+    if (!/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/`~]/.test(senha)) return false; // Pelo menos um especial
+    return true;
+};
 
 /**
  * Middleware para processar resultados de validação
@@ -69,7 +211,21 @@ const pedidoValidation = [
     body('data_entrega')
         .optional()
         .isISO8601()
-        .withMessage('Data de entrega inválida'),
+        .withMessage('Data de entrega inválida')
+        .custom((value, { req }) => {
+            if (value && req.body.data_pedido) {
+                const dataEntrega = new Date(value);
+                const dataPedido = new Date(req.body.data_pedido);
+                if (dataEntrega < dataPedido) {
+                    throw new Error('Data de entrega não pode ser anterior à data do pedido');
+                }
+            }
+            return true;
+        }),
+    body('horario_recebimento')
+        .optional()
+        .custom(isValidHorario)
+        .withMessage('Horário inválido (formato: HH:MM)'),
     body('nf')
         .optional()
         .isString()
@@ -105,7 +261,21 @@ const pedidoUpdateValidation = [
     body('data_entrega')
         .optional()
         .isISO8601()
-        .withMessage('Data de entrega inválida'),
+        .withMessage('Data de entrega inválida')
+        .custom((value, { req }) => {
+            if (value && req.body.data_pedido) {
+                const dataEntrega = new Date(value);
+                const dataPedido = new Date(req.body.data_pedido);
+                if (dataEntrega < dataPedido) {
+                    throw new Error('Data de entrega não pode ser anterior à data do pedido');
+                }
+            }
+            return true;
+        }),
+    body('horario_recebimento')
+        .optional()
+        .custom(isValidHorario)
+        .withMessage('Horário inválido (formato: HH:MM)'),
     body('entregue')
         .optional()
         .isBoolean()
@@ -125,8 +295,8 @@ const clienteValidation = [
         .withMessage('Nome deve ter entre 2 e 150 caracteres'),
     body('cnpj_cpf')
         .optional()
-        .isLength({ max: 20 })
-        .withMessage('CNPJ/CPF inválido'),
+        .custom(isValidCNPJorCPF)
+        .withMessage('CNPJ/CPF inválido (deve ser um documento válido)'),
     body('telefone')
         .optional()
         .isLength({ max: 20 })
@@ -139,6 +309,10 @@ const clienteValidation = [
         .optional()
         .isString()
         .withMessage('Endereço inválido'),
+    body('cep')
+        .optional()
+        .custom(isValidCEP)
+        .withMessage('CEP inválido (formato: XXXXX-XXX)'),
     body('observacoes')
         .optional()
         .isString()
@@ -190,8 +364,8 @@ const usuarioValidation = [
     body('senha')
         .notEmpty()
         .withMessage('Senha é obrigatória')
-        .isLength({ min: 8 })
-        .withMessage('Senha deve ter no mínimo 8 caracteres'),
+        .custom(isStrongPassword)
+        .withMessage('Senha deve ter mínimo 8 caracteres, 1 maiúscula, 1 número e 1 caractere especial'),
     body('nivel')
         .optional()
         .isIn(['superadmin', 'admin', 'vendedor', 'visualizador'])
@@ -210,8 +384,13 @@ const usuarioUpdateValidation = [
         .withMessage('Email inválido'),
     body('senha')
         .optional()
-        .isLength({ min: 8 })
-        .withMessage('Senha deve ter no mínimo 8 caracteres'),
+        .custom((value) => {
+            // Se senha for fornecida, deve ser forte
+            if (value && !isStrongPassword(value)) {
+                throw new Error('Senha deve ter mínimo 8 caracteres, 1 maiúscula, 1 número e 1 caractere especial');
+            }
+            return true;
+        }),
     body('nivel')
         .optional()
         .isIn(['superadmin', 'admin', 'vendedor', 'visualizador'])

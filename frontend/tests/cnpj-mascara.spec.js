@@ -11,7 +11,7 @@ const TEST_USER = {
   password: 'srxwdjedi',
 };
 
-test.describe('Máscara CEP', () => {
+test.describe('Máscaras CEP e Telefone', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(`${BASE_URL}/login`);
     await page.waitForLoadState('networkidle');
@@ -26,26 +26,56 @@ test.describe('Máscara CEP', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
 
-    // Clicar em Novo Cliente
     const btnNovo = page.locator('button').filter({ hasText: /Novo Cliente/i });
     await btnNovo.click();
     await page.waitForTimeout(500);
 
-    // Localizar campo CEP
     const cepField = page.locator('input[placeholder="00000-000"]');
-
-    // Digitar CEP sem formatação
     await cepField.fill('');
     await cepField.type('01310100', { delay: 50 });
-
     await page.waitForTimeout(300);
 
-    // Verificar valor com máscara
     const valorFormatado = await cepField.inputValue();
     console.log('CEP digitado formatado:', valorFormatado);
-
-    // Deve estar formatado como XXXXX-XXX
     expect(valorFormatado).toBe('01310-100');
+  });
+
+  test('deve aplicar máscara ao digitar Telefone celular', async ({ page }) => {
+    await page.goto(`${BASE_URL}/clientes`);
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    const btnNovo = page.locator('button').filter({ hasText: /Novo Cliente/i });
+    await btnNovo.click();
+    await page.waitForTimeout(500);
+
+    const telefoneField = page.locator('input[placeholder="(11) 99999-9999"]');
+    await telefoneField.fill('');
+    await telefoneField.type('11999887766', { delay: 50 });
+    await page.waitForTimeout(300);
+
+    const valorFormatado = await telefoneField.inputValue();
+    console.log('Telefone celular formatado:', valorFormatado);
+    expect(valorFormatado).toBe('(11) 99988-7766');
+  });
+
+  test('deve aplicar máscara ao digitar Telefone fixo', async ({ page }) => {
+    await page.goto(`${BASE_URL}/clientes`);
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    const btnNovo = page.locator('button').filter({ hasText: /Novo Cliente/i });
+    await btnNovo.click();
+    await page.waitForTimeout(500);
+
+    const telefoneField = page.locator('input[placeholder="(11) 99999-9999"]');
+    await telefoneField.fill('');
+    await telefoneField.type('1133445566', { delay: 50 });
+    await page.waitForTimeout(300);
+
+    const valorFormatado = await telefoneField.inputValue();
+    console.log('Telefone fixo formatado:', valorFormatado);
+    expect(valorFormatado).toBe('(11) 3344-5566');
   });
 });
 

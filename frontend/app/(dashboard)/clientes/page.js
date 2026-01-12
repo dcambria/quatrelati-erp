@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Clientes
-// v1.3.0 - Adiciona máscara CEP
+// v1.4.0 - Adiciona máscara Telefone
 // =====================================================
 
 import { useState, useEffect } from 'react';
@@ -37,7 +37,7 @@ import Select from '../../components/ui/Select';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import Loading, { TableSkeleton } from '../../components/ui/Loading';
-import { cnpjSchema, cepSchema, mascaraCNPJ, mascaraCEP } from '../../lib/validations';
+import { cnpjSchema, cepSchema, mascaraCNPJ, mascaraCEP, mascaraTelefone } from '../../lib/validations';
 
 const ESTADOS = [
   { value: 'AC', label: 'AC' }, { value: 'AL', label: 'AL' }, { value: 'AP', label: 'AP' },
@@ -469,7 +469,8 @@ export default function ClientesPage() {
               <Input
                 label="Telefone"
                 placeholder="(11) 99999-9999"
-                {...register('telefone')}
+                value={watch('telefone') || ''}
+                onChange={(e) => setValue('telefone', mascaraTelefone(e.target.value))}
               />
               <Input
                 label="Email"

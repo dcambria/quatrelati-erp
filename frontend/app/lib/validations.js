@@ -1,6 +1,6 @@
 // =====================================================
 // Utilitários de Validação
-// v1.2.0 - Adiciona máscara CEP
+// v1.3.0 - Adiciona máscara Telefone
 // =====================================================
 
 import { z } from 'zod';
@@ -254,6 +254,42 @@ export function mascaraCEP(valor) {
   }
 
   return limitado;
+}
+
+/**
+ * Aplica máscara de Telefone (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
+ * @param {string} valor - Valor a ser formatado
+ * @returns {string} Valor formatado
+ */
+export function mascaraTelefone(valor) {
+  if (!valor) return '';
+
+  // Remove tudo que não é número
+  const numeros = valor.replace(/\D/g, '');
+
+  // Limita a 11 dígitos
+  const limitado = numeros.slice(0, 11);
+
+  // Aplica a máscara progressivamente
+  let formatado = limitado;
+
+  if (limitado.length > 0) {
+    formatado = '(' + limitado;
+  }
+  if (limitado.length > 2) {
+    formatado = '(' + limitado.slice(0, 2) + ') ' + limitado.slice(2);
+  }
+  if (limitado.length > 7) {
+    // Celular: (XX) XXXXX-XXXX
+    if (limitado.length > 10) {
+      formatado = '(' + limitado.slice(0, 2) + ') ' + limitado.slice(2, 7) + '-' + limitado.slice(7);
+    } else {
+      // Fixo: (XX) XXXX-XXXX
+      formatado = '(' + limitado.slice(0, 2) + ') ' + limitado.slice(2, 6) + '-' + limitado.slice(6);
+    }
+  }
+
+  return formatado;
 }
 
 /**

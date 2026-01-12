@@ -1,6 +1,6 @@
 // =====================================================
 // Modal de Formulário de Pedido
-// v1.1.0 - Validação de datas, horário e preços
+// v1.2.0 - Adiciona máscara no horário
 // =====================================================
 
 'use client';
@@ -15,7 +15,7 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Button from '../../../components/ui/Button';
 import { formatCurrency, calcularTotalPedido } from '../utils';
-import { horarioSchema, precoPositivoSchema } from '../../../lib/validations';
+import { horarioSchema, precoPositivoSchema, mascaraHorario } from '../../../lib/validations';
 
 const pedidoSchema = z.object({
   data_pedido: z.string().min(1, 'Data é obrigatória'),
@@ -55,6 +55,8 @@ export default function PedidoFormModal({
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(pedidoSchema),
@@ -280,7 +282,8 @@ export default function PedidoFormModal({
                 type="text"
                 placeholder="Ex: 08:00 às 17:00"
                 className={`input-glass w-full ${errors.horario_recebimento ? 'border-red-500' : ''}`}
-                {...register('horario_recebimento')}
+                value={watch('horario_recebimento') || ''}
+                onChange={(e) => setValue('horario_recebimento', mascaraHorario(e.target.value))}
               />
               {errors.horario_recebimento && (
                 <p className="text-red-500 text-xs mt-1">{errors.horario_recebimento.message}</p>

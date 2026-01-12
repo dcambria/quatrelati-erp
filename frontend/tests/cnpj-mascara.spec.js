@@ -1,5 +1,5 @@
 // =====================================================
-// Teste E2E - Máscara CNPJ no formulário de Clientes
+// Teste E2E - Máscaras nos formulários
 // =====================================================
 
 const { test, expect } = require('@playwright/test');
@@ -193,5 +193,57 @@ test.describe('Máscara CNPJ', () => {
     await page.screenshot({ path: 'tests/screenshots/cnpj-valido.png' });
 
     expect(valorFormatado).toBe('11.222.333/0001-81');
+  });
+});
+
+test.describe('Máscara Horário', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(`${BASE_URL}/login`);
+    await page.waitForLoadState('networkidle');
+    await page.fill('input[type="email"]', TEST_USER.email);
+    await page.fill('input[type="password"]', TEST_USER.password);
+    await page.click('button[type="submit"]');
+    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
+  });
+
+  test('deve aplicar máscara ao digitar horário simples', async ({ page }) => {
+    await page.goto(`${BASE_URL}/pedidos`);
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    // Clicar em Novo Pedido
+    const btnNovo = page.locator('button').filter({ hasText: /Novo Pedido/i });
+    await btnNovo.click();
+    await page.waitForTimeout(500);
+
+    // Localizar campo Horário de Recebimento
+    const horarioField = page.locator('input[placeholder="Ex: 08:00 às 17:00"]');
+    await horarioField.fill('');
+    await horarioField.type('0800', { delay: 50 });
+    await page.waitForTimeout(300);
+
+    const valorFormatado = await horarioField.inputValue();
+    console.log('Horário simples formatado:', valorFormatado);
+    expect(valorFormatado).toBe('08:00');
+  });
+
+  test('deve aplicar máscara ao digitar intervalo de horário', async ({ page }) => {
+    await page.goto(`${BASE_URL}/pedidos`);
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+
+    const btnNovo = page.locator('button').filter({ hasText: /Novo Pedido/i });
+    await btnNovo.click();
+    await page.waitForTimeout(500);
+
+    const horarioField = page.locator('input[placeholder="Ex: 08:00 às 17:00"]');
+    await horarioField.fill('');
+    // Digitar horário com intervalo
+    await horarioField.type('0800 às 1700', { delay: 30 });
+    await page.waitForTimeout(300);
+
+    const valorFormatado = await horarioField.inputValue();
+    console.log('Intervalo de horário formatado:', valorFormatado);
+    expect(valorFormatado).toBe('08:00 às 17:00');
   });
 });

@@ -1,6 +1,6 @@
 // =====================================================
 // Utilitários de Validação
-// v1.3.0 - Adiciona máscara Telefone
+// v1.4.0 - Adiciona máscara Horário
 // =====================================================
 
 import { z } from 'zod';
@@ -290,6 +290,61 @@ export function mascaraTelefone(valor) {
   }
 
   return formatado;
+}
+
+/**
+ * Aplica máscara de Horário (HH:MM ou HH:MM às HH:MM)
+ * @param {string} valor - Valor a ser formatado
+ * @returns {string} Valor formatado
+ */
+export function mascaraHorario(valor) {
+  if (!valor) return '';
+
+  // Função para formatar um horário individual
+  const formatarHorario = (str) => {
+    const numeros = str.replace(/\D/g, '').slice(0, 4);
+    if (numeros.length === 0) return '';
+    if (numeros.length <= 2) return numeros;
+    return numeros.slice(0, 2) + ':' + numeros.slice(2);
+  };
+
+  // Verifica se tem separador de intervalo completo
+  const separadoresCompletos = [' às ', ' a ', ' - '];
+  for (const sep of separadoresCompletos) {
+    const idx = valor.toLowerCase().indexOf(sep.toLowerCase());
+    if (idx !== -1) {
+      const inicio = formatarHorario(valor.slice(0, idx));
+      const fim = formatarHorario(valor.slice(idx + sep.length));
+      return inicio + ' às ' + fim;
+    }
+  }
+
+  // Verifica separadores parciais (usuário ainda digitando)
+  // Inclui variações com e sem acento
+  const separadoresParciais = [' às', ' as', ' à', ' a', 'às', 'as', 'à', ' -', '- '];
+  for (const sep of separadoresParciais) {
+    const idx = valor.toLowerCase().indexOf(sep.toLowerCase());
+    if (idx !== -1 && idx > 0) {
+      const inicio = formatarHorario(valor.slice(0, idx));
+      const resto = valor.slice(idx);
+      const fimNumeros = resto.replace(/[^0-9]/g, '');
+      if (fimNumeros) {
+        return inicio + ' às ' + formatarHorario(fimNumeros);
+      }
+      return inicio + resto;
+    }
+  }
+
+  // Verifica se termina com espaço (início de separador)
+  if (valor.endsWith(' ')) {
+    const numeros = valor.replace(/\D/g, '');
+    if (numeros.length >= 4) {
+      return formatarHorario(numeros) + ' ';
+    }
+  }
+
+  // Horário simples
+  return formatarHorario(valor);
 }
 
 /**

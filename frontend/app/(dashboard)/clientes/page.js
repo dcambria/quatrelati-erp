@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Clientes
-// v2.12.0 - Header unificado sticky (título + toolbar + colunas)
+// v2.12.3 - Header colunas sem bordas laterais
 // =====================================================
 
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
@@ -931,6 +931,93 @@ export default function ClientesPage() {
             </button>
           </div>
         </form>
+
+        {/* Cabeçalho das Colunas (apenas modo lista) */}
+        {viewMode === 'list' && !loading && clientes.length > 0 && (
+          <div className="bg-gray-50 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700">
+            <table className="w-full">
+              <thead>
+                <tr>
+                  <th className="px-3 py-2.5 w-10">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (selectedClientes.size > 0) {
+                          clearSelection();
+                        } else {
+                          selectAllVisible();
+                        }
+                      }}
+                      className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      title={selectedClientes.size > 0 ? 'Limpar seleção' : 'Selecionar primeiros 10'}
+                    >
+                      {selectedClientes.size > 0 ? (
+                        <CheckSquare className="w-5 h-5 text-quatrelati-blue-600 dark:text-quatrelati-blue-400" />
+                      ) : (
+                        <Square className="w-5 h-5 text-gray-400" />
+                      )}
+                    </button>
+                  </th>
+                  <th
+                    className="px-4 py-2.5 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-colors"
+                    onClick={() => handleSort('nome')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Cliente
+                      <SortIcon column="nome" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-2.5 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-colors"
+                    onClick={() => handleSort('contato')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Contato
+                      <SortIcon column="contato" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-2.5 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-colors"
+                    onClick={() => handleSort('telefone')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Telefone
+                      <SortIcon column="telefone" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-2.5 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-colors"
+                    onClick={() => handleSort('email')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Email
+                      <SortIcon column="email" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-2.5 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-colors"
+                    onClick={() => handleSort('vendedor')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Vendedor
+                      <SortIcon column="vendedor" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-2.5 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-colors"
+                    onClick={() => handleSort('pedidos')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Pedidos
+                      <SortIcon column="pedidos" />
+                    </div>
+                  </th>
+                  <th className="px-4 py-2.5 text-right text-sm font-semibold text-gray-700 dark:text-gray-300">Ações</th>
+                </tr>
+              </thead>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Barra de Seleção para Rotas */}
@@ -1153,90 +1240,10 @@ export default function ClientesPage() {
           ))}
         </div>
       ) : viewMode === 'list' ? (
-        /* Visualização em Lista com Ordenação */
+        /* Visualização em Lista - tbody apenas (cabeçalho está no sticky) */
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-800">
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  {/* Checkbox para seleção */}
-                  <th className="px-3 py-3 w-10">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (selectedClientes.size > 0) {
-                          clearSelection();
-                        } else {
-                          selectAllVisible();
-                        }
-                      }}
-                      className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                      title={selectedClientes.size > 0 ? 'Limpar seleção' : 'Selecionar primeiros 10'}
-                    >
-                      {selectedClientes.size > 0 ? (
-                        <CheckSquare className="w-5 h-5 text-quatrelati-blue-600 dark:text-quatrelati-blue-400" />
-                      ) : (
-                        <Square className="w-5 h-5 text-gray-400" />
-                      )}
-                    </button>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
-                    onClick={() => handleSort('nome')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Cliente
-                      <SortIcon column="nome" />
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
-                    onClick={() => handleSort('contato')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Contato
-                      <SortIcon column="contato" />
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
-                    onClick={() => handleSort('telefone')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Telefone
-                      <SortIcon column="telefone" />
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
-                    onClick={() => handleSort('email')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Email
-                      <SortIcon column="email" />
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
-                    onClick={() => handleSort('vendedor')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Vendedor
-                      <SortIcon column="vendedor" />
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
-                    onClick={() => handleSort('pedidos')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Pedidos
-                      <SortIcon column="pedidos" />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-300">Ações</th>
-                </tr>
-              </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {clientesOrdenados.map((cliente) => (
                   <tr

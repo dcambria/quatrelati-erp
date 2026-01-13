@@ -39,6 +39,7 @@ const adminItems = [
 
 const superadminItems = [
   { href: '/atividades', label: 'Atividades', icon: Activity, superadminOnly: true },
+  { href: '/configuracoes', label: 'Configuracoes', icon: Settings, superadminOnly: true },
 ];
 
 export default function Sidebar() {

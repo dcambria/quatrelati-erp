@@ -18,6 +18,8 @@ CREATE TABLE usuarios (
     senha_hash VARCHAR(255) NOT NULL,
     nivel VARCHAR(20) DEFAULT 'user' CHECK (nivel IN ('superadmin', 'admin', 'user')),
     ativo BOOLEAN DEFAULT true,
+    pode_visualizar_todos BOOLEAN DEFAULT false,
+    telefone VARCHAR(20),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -32,6 +34,8 @@ CREATE TABLE clientes (
     endereco TEXT,
     observacoes TEXT,
     ativo BOOLEAN DEFAULT true,
+    created_by INTEGER,
+    vendedor_id INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -44,6 +48,7 @@ CREATE TABLE produtos (
     peso_caixa_kg DECIMAL(10,3) NOT NULL,
     preco_padrao DECIMAL(10,2),
     ativo BOOLEAN DEFAULT true,
+    imagem_url VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

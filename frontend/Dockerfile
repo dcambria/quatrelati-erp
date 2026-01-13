@@ -6,7 +6,7 @@
 # -----------------------------------------------------
 # Stage 1: Dependencies
 # -----------------------------------------------------
-FROM node:18-alpine AS deps
+FROM node:22-alpine AS deps
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN npm ci
 # -----------------------------------------------------
 # Stage 2: Builder
 # -----------------------------------------------------
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -41,7 +41,7 @@ RUN npm run build
 # -----------------------------------------------------
 # Stage 3: Production
 # -----------------------------------------------------
-FROM node:18-alpine AS production
+FROM node:22-alpine AS production
 
 WORKDIR /app
 
@@ -78,7 +78,7 @@ CMD ["node", "server.js"]
 # -----------------------------------------------------
 # Stage 4: Development (alternativa)
 # -----------------------------------------------------
-FROM node:18-alpine AS development
+FROM node:22-alpine AS development
 
 WORKDIR /app
 

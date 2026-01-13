@@ -5,11 +5,16 @@ node_modules/
 
 # Testing
 coverage/
+backend/coverage/
+frontend/tests/screenshots/
+frontend/playwright-report/
+.test_token
 
 # Next.js
 .next/
 out/
 build/
+.swc/
 
 # Production
 dist/
@@ -29,6 +34,13 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+backend/.env
+frontend/.env.local
+!*.env.example
+
+# Nginx
+nginx/ssl/
+nginx/logs/
 
 # Vercel
 .vercel

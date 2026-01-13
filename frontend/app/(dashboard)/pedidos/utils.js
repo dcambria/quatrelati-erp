@@ -1,30 +1,15 @@
 // =====================================================
 // Utilitários da Página de Pedidos
-// v1.0.0
+// v1.0.1 - Usando formatters centralizados
 // =====================================================
+
+// Re-exporta funções centralizadas para manter compatibilidade
+export { formatCurrency, formatNumber, formatDate } from '../../lib/formatters';
 
 export const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
-
-export const formatCurrency = (value) => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
-};
-
-export const formatNumber = (value) => {
-  return new Intl.NumberFormat('pt-BR').format(value);
-};
-
-// Formata data sem problemas de timezone
-export const formatDate = (dateStr) => {
-  if (!dateStr) return '-';
-  const [year, month, day] = dateStr.split('T')[0].split('-');
-  return `${day}/${month}/${year}`;
-};
 
 // Verifica se é mês atual
 export const isCurrentMonth = (mes, ano) => {

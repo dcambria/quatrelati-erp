@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Clientes
-// v1.4.0 - Aplicar Activity Log em todas as rotas
+// v1.4.1 - Usando middleware vendedorFilter centralizado
 // =====================================================
 
 const express = require('express');
@@ -8,6 +8,7 @@ const router = express.Router();
 const { authMiddleware } = require('../middleware/auth');
 const { clienteValidation, idValidation } = require('../middleware/validation');
 const { activityLogMiddleware } = require('../middleware/activityLog');
+const { vendedorFilterMiddleware } = require('../middleware/vendedorFilter');
 
 // Todas as rotas requerem autenticação
 router.use(authMiddleware);
@@ -18,7 +19,7 @@ router.use(authMiddleware);
  * Vendedores veem apenas seus clientes (exceto se pode_visualizar_todos)
  * Suporta filtro global por vendedor para admins
  */
-router.get('/', async (req, res) => {
+router.get('/', vendedorFilterMiddleware, async (req, res) => {
     try {
         const { ativo, search, vendedor_id, page = 1, limit = 100 } = req.query;
 
@@ -26,25 +27,12 @@ router.get('/', async (req, res) => {
         let params = [];
         let paramIndex = 1;
 
-        // Verificar nível do usuário para filtrar por criador
-        const userResult = await req.db.query(
-            'SELECT nivel, pode_visualizar_todos FROM usuarios WHERE id = $1',
-            [req.userId]
-        );
-        const userNivel = userResult.rows[0]?.nivel;
-        const podeVisualizarTodos = userResult.rows[0]?.pode_visualizar_todos;
-        const canViewAll = ['superadmin', 'admin'].includes(userNivel) || podeVisualizarTodos;
-
-        // Vendedores sem permissão só veem seus próprios clientes
-        if (!canViewAll) {
-            whereConditions.push(`c.vendedor_id = $${paramIndex}`);
-            params.push(req.userId);
-            paramIndex++;
-        } else if (vendedor_id) {
-            // Filtro global por vendedor (para admins)
-            whereConditions.push(`c.vendedor_id = $${paramIndex}`);
-            params.push(parseInt(vendedor_id));
-            paramIndex++;
+        // Filtro de vendedor usando middleware centralizado
+        const vendedorFilter = req.addVendedorFilter('c.vendedor_id', vendedor_id, paramIndex);
+        if (vendedorFilter.clause) {
+            whereConditions.push(vendedorFilter.clause);
+            params.push(vendedorFilter.param);
+            paramIndex = vendedorFilter.newIndex;
         }
 
         // Filtro por status ativo

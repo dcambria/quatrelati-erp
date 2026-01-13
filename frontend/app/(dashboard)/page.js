@@ -39,7 +39,8 @@ import { useVendedorFilter } from '../contexts/VendedorFilterContext';
 import Header from '../components/layout/Header';
 import Card, { StatCard } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Loading, { Skeleton } from '../components/ui/Loading';
+import Loading from '../components/ui/Loading';
+import { formatCurrency, formatNumber } from '../lib/formatters';
 
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -116,17 +117,6 @@ export default function DashboardPage() {
   const isCurrentMonth = () => {
     const hoje = new Date();
     return mes === hoje.getMonth() + 1 && ano === hoje.getFullYear();
-  };
-
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
-
-  const formatNumber = (value) => {
-    return new Intl.NumberFormat('pt-BR').format(value);
   };
 
   const pieData = resumo ? [

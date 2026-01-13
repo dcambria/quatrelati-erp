@@ -4,7 +4,7 @@
  * ===========================================
  * Quatrelati - Validacao de Magic Link
  * Design Apple HIG com Glassmorphism
- * v1.1.0
+ * v1.1.1 - Removido console.log de debug
  * ===========================================
  */
 
@@ -36,9 +36,7 @@ function MagicLinkContent() {
       }
 
       try {
-        console.log('[MagicLink] Validando token:', token.substring(0, 20) + '...');
         const response = await api.post('/auth/verify-magic-link', { token });
-        console.log('[MagicLink] Resposta:', response.data);
         const { user, accessToken, refreshToken } = response.data;
 
         // Salvar tokens

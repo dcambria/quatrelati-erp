@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Autenticação
-// v1.5.0 - Activity Log em todas as rotas de auth
+// v1.5.1 - Removido import duplicado de crypto
 // =====================================================
 
 const express = require('express');
@@ -320,7 +320,6 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
         const user = result.rows[0];
 
         // Gerar token único
-        const crypto = require('crypto');
         const token = crypto.randomBytes(32).toString('hex');
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
 

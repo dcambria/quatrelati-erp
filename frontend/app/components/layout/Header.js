@@ -1,7 +1,5 @@
 'use client';
 
-import { Menu, Bell } from 'lucide-react';
-
 export default function Header({ title, subtitle, actions }) {
   return (
     <header className="header-glass">

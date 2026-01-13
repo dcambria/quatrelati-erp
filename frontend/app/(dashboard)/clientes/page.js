@@ -36,7 +36,7 @@ import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
-import Loading, { TableSkeleton } from '../../components/ui/Loading';
+import Loading from '../../components/ui/Loading';
 import { cnpjSchema, cepSchema, mascaraCNPJ, mascaraCEP, mascaraTelefone } from '../../lib/validations';
 
 const ESTADOS = [

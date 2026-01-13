@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Pedidos
-// v2.0.0 - PDF/Excel exportação movida para pdfExportService
+// v2.0.3 - Query do PDF usa colunas completas do cliente
 // =====================================================
 
 const express = require('express');
@@ -8,6 +8,7 @@ const router = express.Router();
 const { authMiddleware } = require('../middleware/auth');
 const { pedidoValidation, pedidoUpdateValidation, idValidation, pedidosQueryValidation } = require('../middleware/validation');
 const { activityLogMiddleware } = require('../middleware/activityLog');
+const { vendedorFilterMiddleware } = require('../middleware/vendedorFilter');
 const { exportarPedidosPDF, exportarPedidosExcel, exportarPedidoIndividualPDF } = require('../services/pdfExportService');
 
 // Todas as rotas requerem autenticação
@@ -19,7 +20,7 @@ router.use(authMiddleware);
  * Usuários normais veem apenas seus pedidos
  * Admin, superadmin e visualizador veem todos
  */
-router.get('/', pedidosQueryValidation, async (req, res) => {
+router.get('/', pedidosQueryValidation, vendedorFilterMiddleware, async (req, res) => {
     try {
         const {
             mes,
@@ -36,20 +37,12 @@ router.get('/', pedidosQueryValidation, async (req, res) => {
         let params = [];
         let paramIndex = 1;
 
-        // Verificar nível do usuário para filtrar por criador
-        const userResult = await req.db.query(
-            'SELECT nivel, pode_visualizar_todos FROM usuarios WHERE id = $1',
-            [req.userId]
-        );
-        const userNivel = userResult.rows[0]?.nivel;
-        const podeVisualizarTodos = userResult.rows[0]?.pode_visualizar_todos;
-        const canViewAll = ['superadmin', 'admin'].includes(userNivel) || podeVisualizarTodos;
-
-        // Vendedores sem permissão só veem seus próprios pedidos
-        if (!canViewAll) {
-            whereConditions.push(`p.created_by = $${paramIndex}`);
-            params.push(req.userId);
-            paramIndex++;
+        // Filtro de vendedor usando middleware centralizado
+        const vendedorFilter = req.addVendedorFilter('p.created_by', vendedor_id, paramIndex);
+        if (vendedorFilter.clause) {
+            whereConditions.push(vendedorFilter.clause);
+            params.push(vendedorFilter.param);
+            paramIndex = vendedorFilter.newIndex;
         }
 
         // Filtro por mês/ano (baseado na data de entrega)
@@ -81,13 +74,6 @@ router.get('/', pedidosQueryValidation, async (req, res) => {
         if (status && status !== 'todos') {
             whereConditions.push(`p.entregue = $${paramIndex}`);
             params.push(status === 'entregue');
-            paramIndex++;
-        }
-
-        // Filtro por vendedor (apenas para quem pode ver todos)
-        if (vendedor_id && canViewAll) {
-            whereConditions.push(`p.created_by = $${paramIndex}`);
-            params.push(parseInt(vendedor_id));
             paramIndex++;
         }
 
@@ -695,23 +681,12 @@ router.patch('/:id/reverter-entrega', idValidation, activityLogMiddleware('rever
  * Exportar pedidos filtrados para PDF
  * Filtros: mes, ano, cliente_id, produto_id, status, vendedor_id
  */
-router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
+router.get('/exportar/pdf', pedidosQueryValidation, vendedorFilterMiddleware, async (req, res) => {
     try {
         let { mes, ano, cliente_id, produto_id, status, vendedor_id } = req.query;
 
-        // Verificar nível do usuário
-        const userResult = await req.db.query(
-            'SELECT nivel, pode_visualizar_todos FROM usuarios WHERE id = $1',
-            [req.userId]
-        );
-        const userNivel = userResult.rows[0]?.nivel;
-        const podeVisualizarTodos = userResult.rows[0]?.pode_visualizar_todos;
-        const canViewAll = ['superadmin', 'admin'].includes(userNivel) || podeVisualizarTodos;
-
-        // Vendedores sem permissão só podem exportar seus próprios pedidos
-        if (!canViewAll) {
-            vendedor_id = req.userId;
-        }
+        // Usar middleware para filtro de vendedor
+        const filteredVendedorId = req.getVendedorId(vendedor_id);
 
         let whereConditions = [];
         let params = [];
@@ -745,9 +720,9 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
             paramIndex++;
         }
 
-        if (vendedor_id) {
+        if (filteredVendedorId) {
             whereConditions.push(`p.created_by = $${paramIndex}`);
-            params.push(parseInt(vendedor_id));
+            params.push(filteredVendedorId);
             paramIndex++;
         }
 
@@ -757,8 +732,8 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
 
         // Buscar nome do vendedor se filtrado
         let nomeVendedor = null;
-        if (vendedor_id) {
-            const vendedorResult = await req.db.query('SELECT nome FROM usuarios WHERE id = $1', [vendedor_id]);
+        if (filteredVendedorId) {
+            const vendedorResult = await req.db.query('SELECT nome FROM usuarios WHERE id = $1', [filteredVendedorId]);
             nomeVendedor = vendedorResult.rows[0]?.nome;
         }
 
@@ -830,22 +805,12 @@ router.get('/exportar/pdf', pedidosQueryValidation, async (req, res) => {
  * Exportar pedidos para Excel
  * Filtros: mes, ano, cliente_id, produto_id, status, vendedor_id
  */
-router.get('/exportar/excel', pedidosQueryValidation, async (req, res) => {
+router.get('/exportar/excel', pedidosQueryValidation, vendedorFilterMiddleware, async (req, res) => {
     try {
         let { mes, ano, cliente_id, produto_id, status, vendedor_id } = req.query;
 
-        // Verificar permissões
-        const userResult = await req.db.query(
-            'SELECT nivel, pode_visualizar_todos FROM usuarios WHERE id = $1',
-            [req.userId]
-        );
-        const userNivel = userResult.rows[0]?.nivel;
-        const podeVisualizarTodos = userResult.rows[0]?.pode_visualizar_todos;
-        const canViewAll = ['superadmin', 'admin'].includes(userNivel) || podeVisualizarTodos;
-
-        if (!canViewAll) {
-            vendedor_id = req.userId;
-        }
+        // Usar middleware para filtro de vendedor
+        const filteredVendedorId = req.getVendedorId(vendedor_id);
 
         // Query base
         let query = `
@@ -890,9 +855,9 @@ router.get('/exportar/excel', pedidosQueryValidation, async (req, res) => {
             query += ` AND p.entregue = true`;
         }
 
-        if (vendedor_id) {
+        if (filteredVendedorId) {
             query += ` AND p.created_by = $${paramIndex++}`;
-            params.push(parseInt(vendedor_id));
+            params.push(filteredVendedorId);
         }
 
         query += ` ORDER BY p.data_entrega DESC, p.numero_pedido DESC`;
@@ -915,14 +880,24 @@ router.get('/:id/pdf', idValidation, async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Buscar pedido completo
+        // Buscar pedido completo com todas as colunas do cliente
         const pedidoResult = await req.db.query(`
-            SELECT p.*, c.nome as cliente_nome, c.razao_social as cliente_razao_social,
-                c.cnpj_cpf as cliente_cnpj, c.telefone as cliente_telefone, c.email as cliente_email,
-                c.endereco as cliente_endereco, c.endereco_entrega as cliente_endereco_entrega,
-                c.cidade as cliente_cidade, c.estado as cliente_estado, c.cep as cliente_cep,
-                c.contato_nome as cliente_contato, c.observacoes as cliente_observacoes,
-                u.nome as vendedor_nome, u.telefone as vendedor_telefone, u.email as vendedor_email
+            SELECT p.*,
+                c.nome as cliente_nome,
+                COALESCE(c.razao_social, c.nome) as cliente_razao_social,
+                c.cnpj_cpf as cliente_cnpj,
+                c.telefone as cliente_telefone,
+                c.email as cliente_email,
+                c.endereco as cliente_endereco,
+                COALESCE(c.endereco_entrega, c.endereco) as cliente_endereco_entrega,
+                c.cidade as cliente_cidade,
+                c.estado as cliente_estado,
+                c.cep as cliente_cep,
+                c.contato_nome as cliente_contato,
+                c.observacoes as cliente_observacoes,
+                u.nome as vendedor_nome,
+                u.telefone as vendedor_telefone,
+                u.email as vendedor_email
             FROM pedidos p
             LEFT JOIN clientes c ON p.cliente_id = c.id
             LEFT JOIN usuarios u ON p.created_by = u.id

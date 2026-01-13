@@ -291,4 +291,281 @@ describe('Logs Routes Integration', () => {
             expect(response.status).toBe(500);
         });
     });
+
+    // =====================================================
+    // TESTES DE ERROR LOGS
+    // =====================================================
+
+    describe('GET /api/logs/errors', () => {
+        it('deve listar error logs para superadmin', async () => {
+            mockPool.query.mockResolvedValueOnce({
+                rows: [{
+                    id: 1,
+                    user_id: 1,
+                    user_nome: 'Admin',
+                    error_type: 'validation',
+                    error_message: 'Email inválido',
+                    endpoint: '/api/clientes',
+                    method: 'PUT',
+                    created_at: new Date()
+                }],
+                rowCount: 1
+            });
+            mockPool.query.mockResolvedValueOnce({
+                rows: [{ total: 1 }],
+                rowCount: 1
+            });
+
+            const response = await request(app)
+                .get('/api/logs/errors')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toHaveProperty('errors');
+            expect(response.body).toHaveProperty('pagination');
+        });
+
+        it('deve filtrar por user_id', async () => {
+            mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+            mockPool.query.mockResolvedValueOnce({ rows: [{ total: 0 }], rowCount: 1 });
+
+            const response = await request(app)
+                .get('/api/logs/errors?user_id=1')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(200);
+        });
+
+        it('deve filtrar por error_type', async () => {
+            mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+            mockPool.query.mockResolvedValueOnce({ rows: [{ total: 0 }], rowCount: 1 });
+
+            const response = await request(app)
+                .get('/api/logs/errors?error_type=validation')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(200);
+        });
+
+        it('deve filtrar por endpoint', async () => {
+            mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+            mockPool.query.mockResolvedValueOnce({ rows: [{ total: 0 }], rowCount: 1 });
+
+            const response = await request(app)
+                .get('/api/logs/errors?endpoint=/api/clientes')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(200);
+        });
+
+        it('deve filtrar por data_inicio e data_fim', async () => {
+            mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+            mockPool.query.mockResolvedValueOnce({ rows: [{ total: 0 }], rowCount: 1 });
+
+            const response = await request(app)
+                .get('/api/logs/errors?data_inicio=2026-01-01&data_fim=2026-12-31')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(200);
+        });
+
+        it('deve paginar resultados', async () => {
+            mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+            mockPool.query.mockResolvedValueOnce({ rows: [{ total: 100 }], rowCount: 1 });
+
+            const response = await request(app)
+                .get('/api/logs/errors?page=2&limit=25')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.pagination.page).toBe(2);
+            expect(response.body.pagination.limit).toBe(25);
+        });
+
+        it('deve retornar 500 em caso de erro', async () => {
+            mockPool.query.mockRejectedValueOnce(new Error('DB Error'));
+
+            const response = await request(app)
+                .get('/api/logs/errors')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(500);
+        });
+    });
+
+    describe('GET /api/logs/errors/tipos', () => {
+        it('deve listar tipos de erro distintos', async () => {
+            mockPool.query.mockResolvedValueOnce({
+                rows: [
+                    { error_type: 'validation' },
+                    { error_type: 'authentication' },
+                    { error_type: 'server_error' }
+                ],
+                rowCount: 3
+            });
+
+            const response = await request(app)
+                .get('/api/logs/errors/tipos')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toHaveProperty('tipos');
+            expect(response.body.tipos).toContain('validation');
+        });
+
+        it('deve retornar 500 em caso de erro', async () => {
+            mockPool.query.mockRejectedValueOnce(new Error('DB Error'));
+
+            const response = await request(app)
+                .get('/api/logs/errors/tipos')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(500);
+        });
+    });
+
+    describe('GET /api/logs/errors/estatisticas', () => {
+        it('deve retornar estatísticas de erros', async () => {
+            mockPool.query.mockResolvedValueOnce({ rows: [{ total: 50 }], rowCount: 1 });
+            mockPool.query.mockResolvedValueOnce({
+                rows: [{ error_type: 'validation', total: 30 }],
+                rowCount: 1
+            });
+            mockPool.query.mockResolvedValueOnce({
+                rows: [{ endpoint: '/api/clientes', total: 20 }],
+                rowCount: 1
+            });
+            mockPool.query.mockResolvedValueOnce({
+                rows: [{ data: '2026-01-15', total: 5 }],
+                rowCount: 1
+            });
+
+            const response = await request(app)
+                .get('/api/logs/errors/estatisticas')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toHaveProperty('total');
+            expect(response.body).toHaveProperty('porTipo');
+            expect(response.body).toHaveProperty('porEndpoint');
+            expect(response.body).toHaveProperty('porDia');
+        });
+
+        it('deve aceitar parâmetro dias', async () => {
+            mockPool.query.mockResolvedValueOnce({ rows: [{ total: 10 }], rowCount: 1 });
+            mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+            mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+            mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+            const response = await request(app)
+                .get('/api/logs/errors/estatisticas?dias=7')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(200);
+        });
+
+        it('deve retornar 500 em caso de erro', async () => {
+            mockPool.query.mockRejectedValueOnce(new Error('DB Error'));
+
+            const response = await request(app)
+                .get('/api/logs/errors/estatisticas')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(500);
+        });
+    });
+
+    // =====================================================
+    // TESTES DE LIMPAR LOGS
+    // =====================================================
+
+    describe('DELETE /api/logs/clear', () => {
+        it('deve limpar activity logs mantendo últimos 7 dias por padrão', async () => {
+            mockPool.query.mockResolvedValueOnce({ rowCount: 25 });
+
+            const response = await request(app)
+                .delete('/api/logs/clear')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toHaveProperty('message');
+            expect(response.body).toHaveProperty('deletados');
+        });
+
+        it('deve aceitar parâmetro dias customizado', async () => {
+            mockPool.query.mockResolvedValueOnce({ rowCount: 100 });
+
+            const response = await request(app)
+                .delete('/api/logs/clear?dias=30')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.deletados).toBe(100);
+        });
+
+        it('deve limpar todos os logs quando dias=0', async () => {
+            mockPool.query.mockResolvedValueOnce({ rowCount: 500 });
+
+            const response = await request(app)
+                .delete('/api/logs/clear?dias=0')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(200);
+        });
+
+        it('deve retornar 500 em caso de erro', async () => {
+            mockPool.query.mockRejectedValueOnce(new Error('DB Error'));
+
+            const response = await request(app)
+                .delete('/api/logs/clear')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(500);
+        });
+    });
+
+    describe('DELETE /api/logs/errors/clear', () => {
+        it('deve limpar error logs mantendo últimos 7 dias por padrão', async () => {
+            mockPool.query.mockResolvedValueOnce({ rowCount: 10 });
+
+            const response = await request(app)
+                .delete('/api/logs/errors/clear')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toHaveProperty('message');
+            expect(response.body).toHaveProperty('deletados');
+        });
+
+        it('deve aceitar parâmetro dias customizado', async () => {
+            mockPool.query.mockResolvedValueOnce({ rowCount: 50 });
+
+            const response = await request(app)
+                .delete('/api/logs/errors/clear?dias=1')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.deletados).toBe(50);
+        });
+
+        it('deve limpar todos os error logs quando dias=0', async () => {
+            mockPool.query.mockResolvedValueOnce({ rowCount: 200 });
+
+            const response = await request(app)
+                .delete('/api/logs/errors/clear?dias=0')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(200);
+        });
+
+        it('deve retornar 500 em caso de erro', async () => {
+            mockPool.query.mockRejectedValueOnce(new Error('DB Error'));
+
+            const response = await request(app)
+                .delete('/api/logs/errors/clear')
+                .set('Authorization', `Bearer ${superadminToken}`);
+
+            expect(response.status).toBe(500);
+        });
+    });
 });

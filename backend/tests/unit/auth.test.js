@@ -75,7 +75,7 @@ describe('Auth Middleware', () => {
 
         it('deve rejeitar token expirado', () => {
             const expiredToken = jwt.sign(
-                { id: 1, email: 'test@test.com', nivel: 'admin' },
+                { id: 1, email: 'test@bureau-it.com', nivel: 'admin' },
                 'test-jwt-secret-for-unit-tests',
                 { expiresIn: '-1s' }
             );
@@ -89,7 +89,7 @@ describe('Auth Middleware', () => {
 
         it('deve aceitar token válido e popular req', () => {
             const validToken = jwt.sign(
-                { id: 1, email: 'test@test.com', nivel: 'admin' },
+                { id: 1, email: 'test@bureau-it.com', nivel: 'admin' },
                 'test-jwt-secret-for-unit-tests',
                 { expiresIn: '1h' }
             );
@@ -98,7 +98,7 @@ describe('Auth Middleware', () => {
             authMiddleware(req, res, next);
 
             expect(req.userId).toBe(1);
-            expect(req.userEmail).toBe('test@test.com');
+            expect(req.userEmail).toBe('test@bureau-it.com');
             expect(req.userNivel).toBe('admin');
             expect(next).toHaveBeenCalled();
         });

@@ -43,13 +43,13 @@ describe('seedPasswords', () => {
         mockPool.query.mockResolvedValueOnce({ rows: [] });
         // Mock para UPDATE (senhas atualizadas)
         mockPool.query.mockResolvedValueOnce({
-            rows: [{ email: 'user1@test.com' }, { email: 'user2@test.com' }]
+            rows: [{ email: 'user1@bureau-it.com' }, { email: 'user2@bureau-it.com' }]
         });
 
         await seedPasswords(mockPool);
 
         expect(console.log).toHaveBeenCalledWith(
-            'Senhas atualizadas para: user1@test.com, user2@test.com'
+            'Senhas atualizadas para: user1@bureau-it.com, user2@bureau-it.com'
         );
     });
 

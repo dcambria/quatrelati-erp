@@ -38,7 +38,7 @@ describe('Autenticação', () => {
     const JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret';
 
     test('deve gerar token JWT válido', () => {
-      const payload = { id: 1, email: 'test@test.com', nivel: 'admin' };
+      const payload = { id: 1, email: 'test@bureau-it.com', nivel: 'admin' };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
 
       expect(token).toBeDefined();
@@ -46,7 +46,7 @@ describe('Autenticação', () => {
 
       const decoded = jwt.verify(token, JWT_SECRET);
       expect(decoded.id).toBe(1);
-      expect(decoded.email).toBe('test@test.com');
+      expect(decoded.email).toBe('test@bureau-it.com');
     });
 
     test('deve rejeitar token inválido', () => {

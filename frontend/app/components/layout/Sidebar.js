@@ -1,3 +1,8 @@
+// =====================================================
+// Sidebar - Menu lateral responsivo
+// v1.3.0 - Botão flutuante de recolher/expandir
+//          Filtro "Ver como" expande sidebar ao clicar
+// =====================================================
 'use client';
 
 import Link from 'next/link';
@@ -90,9 +95,9 @@ export default function Sidebar() {
         `}
       >
         <div className="flex flex-col h-full">
-          {/* Header com logo e botao fechar/recolher */}
+          {/* Header com logo */}
           <div className="p-4 border-b border-blue-200 dark:border-gray-800">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               {/* Logo */}
               <div className={`flex items-center justify-center ${isCollapsed && !isMobile ? 'w-full' : 'flex-1'}`}>
                 {isCollapsed && !isMobile ? (
@@ -122,6 +127,31 @@ export default function Sidebar() {
               )}
             </div>
           </div>
+
+          {/* Botão flutuante de recolher/expandir (desktop only) */}
+          {!isMobile && (
+            <button
+              onClick={toggleCollapsed}
+              className="absolute -right-3 top-20 z-50
+                         w-6 h-6 rounded-full
+                         bg-white dark:bg-gray-800
+                         border border-blue-200 dark:border-gray-700
+                         shadow-md hover:shadow-lg
+                         flex items-center justify-center
+                         text-gray-500 dark:text-gray-400
+                         hover:text-quatrelati-blue-600 dark:hover:text-quatrelati-gold-400
+                         hover:border-quatrelati-blue-400 dark:hover:border-quatrelati-gold-600
+                         transition-all duration-200
+                         hover:scale-110"
+              title={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
+            >
+              {isCollapsed ? (
+                <ChevronRight className="w-4 h-4" />
+              ) : (
+                <ChevronLeft className="w-4 h-4" />
+              )}
+            </button>
+          )}
 
           {/* Filtro Global de Vendedor */}
           {canFilter && (!isCollapsed || isMobile) && (
@@ -172,25 +202,13 @@ export default function Sidebar() {
             </div>
           )}
 
-          {/* Filtro Global de Vendedor (collapsed) */}
+          {/* Filtro Global de Vendedor (collapsed) - expande ao clicar */}
           {canFilter && isCollapsed && !isMobile && (
             <div className="px-2 py-2 border-b border-blue-200 dark:border-gray-800">
               <button
                 onClick={() => {
-                  // Cicla entre vendedores ou limpa
-                  if (!isFiltering) {
-                    if (vendedores.length > 0) {
-                      selecionarVendedor(vendedores[0]);
-                    }
-                  } else {
-                    const currentIndex = vendedores.findIndex(v => v.id === vendedorSelecionado?.id);
-                    const nextIndex = (currentIndex + 1) % (vendedores.length + 1);
-                    if (nextIndex === vendedores.length) {
-                      limparFiltro();
-                    } else {
-                      selecionarVendedor(vendedores[nextIndex]);
-                    }
-                  }
+                  // Expande o sidebar para permitir seleção do vendedor
+                  toggleCollapsed();
                 }}
                 className={`w-full p-2 rounded-lg transition-all duration-200 flex items-center justify-center
                   ${isFiltering
@@ -373,26 +391,6 @@ export default function Sidebar() {
               )}
             </div>
 
-            {/* Collapse toggle (desktop only) */}
-            {!isMobile && (
-              <button
-                onClick={toggleCollapsed}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium
-                           text-gray-500 dark:text-gray-400
-                           hover:bg-gray-100 dark:hover:bg-gray-800
-                           rounded-xl transition-all duration-200"
-                title={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
-              >
-                {isCollapsed ? (
-                  <ChevronRight className="w-4 h-4" />
-                ) : (
-                  <>
-                    <ChevronLeft className="w-4 h-4" />
-                    <span>Recolher</span>
-                  </>
-                )}
-              </button>
-            )}
           </div>
         </div>
       </aside>

@@ -66,7 +66,7 @@ describe('Auth Routes - Twilio WhatsApp', () => {
                 rows: [{
                     id: 1,
                     nome: 'João Silva',
-                    email: 'joao@test.com',
+                    email: 'joao@bureau-it.com',
                     telefone: '+55 11 99999-9999'
                 }],
                 rowCount: 1
@@ -85,7 +85,7 @@ describe('Auth Routes - Twilio WhatsApp', () => {
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
             expect(response.body.message).toContain('WhatsApp');
-            expect(response.body.email).toBe('joao@test.com');
+            expect(response.body.email).toBe('joao@bureau-it.com');
         });
 
         it('deve retornar erro quando Twilio falha', async () => {
@@ -94,7 +94,7 @@ describe('Auth Routes - Twilio WhatsApp', () => {
                 rows: [{
                     id: 1,
                     nome: 'João Silva',
-                    email: 'joao@test.com',
+                    email: 'joao@bureau-it.com',
                     telefone: '+5511999999999'
                 }],
                 rowCount: 1
@@ -120,7 +120,7 @@ describe('Auth Routes - Twilio WhatsApp', () => {
                 rows: [{
                     id: 1,
                     nome: 'Maria',
-                    email: 'maria@test.com',
+                    email: 'maria@bureau-it.com',
                     telefone: '5511988887777' // Sem +
                 }],
                 rowCount: 1
@@ -211,7 +211,7 @@ describe('Auth Routes - Twilio não configurado', () => {
             rows: [{
                 id: 1,
                 nome: 'Test User',
-                email: 'test@test.com',
+                email: 'test@bureau-it.com',
                 telefone: '+5511999999999'
             }],
             rowCount: 1

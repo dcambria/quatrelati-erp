@@ -1,10 +1,11 @@
 'use client';
 // =====================================================
 // Pagina de Gestao de Pedidos
-// v2.0.0 - Refatorado: componentes extraídos
+// v2.2.0 - Indicador visual de filtros ativos
 // =====================================================
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import {
   Plus,
@@ -31,8 +32,17 @@ import { ResumoPedidos, TabelaPedidos, PedidoFormModal, PdfExportModal } from '.
 import { MESES, isCurrentMonth } from './utils';
 
 export default function PedidosPage() {
+  const searchParams = useSearchParams();
   const { canEdit, canViewAll } = useAuth();
   const { vendedorId: vendedorGlobal } = useVendedorFilter();
+
+  // Ler parâmetros da URL (vindos do dashboard)
+  const urlMes = searchParams.get('mes');
+  const urlAno = searchParams.get('ano');
+  const urlStatus = searchParams.get('status');
+  const urlClienteId = searchParams.get('cliente_id');
+  const urlProdutoId = searchParams.get('produto_id');
+  const urlPedidoId = searchParams.get('pedido_id');
 
   // Estados principais
   const [loading, setLoading] = useState(true);
@@ -42,13 +52,42 @@ export default function PedidosPage() {
   const [produtos, setProdutos] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
 
-  // Estados de filtro
-  const [mes, setMes] = useState(new Date().getMonth() + 1);
-  const [ano, setAno] = useState(new Date().getFullYear());
-  const [filtroStatus, setFiltroStatus] = useState('todos');
-  const [filtroCliente, setFiltroCliente] = useState('');
+  // Estados de filtro (inicializados com URL ou valores padrão)
+  const [mes, setMes] = useState(urlMes ? parseInt(urlMes) : new Date().getMonth() + 1);
+  const [ano, setAno] = useState(urlAno ? parseInt(urlAno) : new Date().getFullYear());
+  const [filtroStatus, setFiltroStatus] = useState(urlStatus || 'todos');
+  const [filtroCliente, setFiltroCliente] = useState(urlClienteId || '');
+  const [filtroProduto, setFiltroProduto] = useState(urlProdutoId || '');
   const [busca, setBusca] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Verificar se há filtros ativos (além do mês/ano atual)
+  const hoje = new Date();
+  const mesAtual = hoje.getMonth() + 1;
+  const anoAtual = hoje.getFullYear();
+
+  const hasActiveFilters =
+    filtroStatus !== 'todos' ||
+    filtroCliente !== '' ||
+    filtroProduto !== '' ||
+    mes !== mesAtual ||
+    ano !== anoAtual;
+
+  const contadorFiltros = [
+    filtroStatus !== 'todos',
+    filtroCliente !== '',
+    filtroProduto !== '',
+    mes !== mesAtual || ano !== anoAtual,
+  ].filter(Boolean).length;
+
+  const limparFiltros = () => {
+    setFiltroStatus('todos');
+    setFiltroCliente('');
+    setFiltroProduto('');
+    setMes(mesAtual);
+    setAno(anoAtual);
+    setBusca('');
+  };
 
   // Estados de modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -68,7 +107,18 @@ export default function PedidosPage() {
 
   useEffect(() => {
     carregarPedidos();
-  }, [mes, ano, filtroStatus, filtroCliente, vendedorGlobal]);
+  }, [mes, ano, filtroStatus, filtroCliente, filtroProduto, vendedorGlobal]);
+
+  // Abrir pedido específico vindo da URL (dashboard)
+  useEffect(() => {
+    if (urlPedidoId && pedidos.length > 0) {
+      const pedido = pedidos.find(p => p.id === parseInt(urlPedidoId));
+      if (pedido) {
+        setEditingPedido(pedido);
+        setModalOpen(true);
+      }
+    }
+  }, [urlPedidoId, pedidos]);
 
   // Funções de carregamento
   const carregarClientes = async () => {
@@ -104,6 +154,7 @@ export default function PedidosPage() {
       let url = `/pedidos?mes=${mes}&ano=${ano}`;
       if (filtroStatus !== 'todos') url += `&status=${filtroStatus}`;
       if (filtroCliente) url += `&cliente_id=${filtroCliente}`;
+      if (filtroProduto) url += `&produto_id=${filtroProduto}`;
       if (vendedorGlobal) url += `&vendedor_id=${vendedorGlobal}`;
 
       const res = await api.get(url);
@@ -337,10 +388,29 @@ export default function PedidosPage() {
                 </button>
               )}
             </div>
+            {/* Indicador de filtros ativos */}
+            {hasActiveFilters && (
+              <button
+                onClick={limparFiltros}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg text-sm font-medium hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+                title="Clique para limpar filtros"
+              >
+                <Filter className="w-3.5 h-3.5" />
+                <span>{contadorFiltros} filtro{contadorFiltros > 1 ? 's' : ''}</span>
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
             {/* Botões de ação */}
-            <Button variant="ghost" onClick={() => setShowFilters(!showFilters)} className="!px-2 sm:!px-4">
+            <Button
+              variant={showFilters ? 'primary' : 'ghost'}
+              onClick={() => setShowFilters(!showFilters)}
+              className="!px-2 sm:!px-4 relative"
+            >
               <Filter className="w-4 h-4" />
               <span className="hidden sm:inline ml-1">Filtros</span>
+              {hasActiveFilters && !showFilters && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse" />
+              )}
             </Button>
             <Button variant="secondary" onClick={() => handleExportarPDF('download')} className="!px-2 sm:!px-4">
               <Download className="w-4 h-4" />
@@ -359,7 +429,7 @@ export default function PedidosPage() {
       {/* Filtros */}
       {showFilters && (
         <Card className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Select
               label="Status"
               value={filtroStatus}
@@ -378,6 +448,21 @@ export default function PedidosPage() {
               options={clientes.map(c => ({ value: c.id, label: c.nome }))}
               placeholder="Todos os clientes"
             />
+            <Select
+              label="Produto"
+              value={filtroProduto}
+              onChange={(e) => setFiltroProduto(e.target.value)}
+              options={produtos.map(p => ({ value: p.id, label: p.nome }))}
+              placeholder="Todos os produtos"
+            />
+            {hasActiveFilters && (
+              <div className="flex items-end">
+                <Button variant="ghost" onClick={limparFiltros} className="w-full text-amber-600 hover:text-amber-700 hover:bg-amber-50">
+                  <X className="w-4 h-4 mr-1" />
+                  Limpar filtros
+                </Button>
+              </div>
+            )}
           </div>
         </Card>
       )}

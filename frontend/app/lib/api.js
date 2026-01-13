@@ -70,9 +70,19 @@ class ApiClient {
     const data = await response.json();
 
     if (!response.ok) {
-      const error = new Error(data.error || 'Erro na requisição');
+      // Construir mensagem de erro detalhada
+      let errorMessage = data.error || 'Erro na requisição';
+
+      // Se houver detalhes de validação, incluir na mensagem
+      if (data.details && Array.isArray(data.details) && data.details.length > 0) {
+        const detailMessages = data.details.map(d => d.message).join('; ');
+        errorMessage = detailMessages;
+      }
+
+      const error = new Error(errorMessage);
       error.status = response.status;
       error.details = data.details;
+      error.originalError = data.error;
       throw error;
     }
 

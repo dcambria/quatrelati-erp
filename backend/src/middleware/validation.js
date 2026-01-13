@@ -1,6 +1,6 @@
 // =====================================================
 // Middleware de Validação
-// v1.2.0 - Adicionar validação de telefone internacional
+// v1.3.0 - Bloquear domínios de email de teste
 // =====================================================
 
 const { validationResult, body, param, query } = require('express-validator');
@@ -168,6 +168,51 @@ const isValidPhone = (telefone) => {
 };
 
 /**
+ * Lista de domínios de email bloqueados (teste/inválidos)
+ */
+const BLOCKED_EMAIL_DOMAINS = [
+    'test.com',
+    'teste.com',
+    'example.com',
+    'exemplo.com',
+    'mail.test',
+    'localhost',
+    'test.local',
+    'fake.com',
+    'invalid.com',
+    'noemail.com',
+    'mailinator.com',
+    'tempmail.com',
+    'throwaway.com',
+    'guerrillamail.com',
+    '10minutemail.com',
+];
+
+/**
+ * Verifica se o email usa um domínio bloqueado
+ * @param {string} email - Email a validar
+ * @returns {boolean} true se o domínio NÃO está bloqueado (válido)
+ */
+const isValidEmailDomain = (email) => {
+    if (!email) return true; // Campo opcional em updates
+
+    const domain = email.toLowerCase().split('@')[1];
+    if (!domain) return false;
+
+    // Verificar se o domínio está na lista de bloqueados
+    if (BLOCKED_EMAIL_DOMAINS.includes(domain)) {
+        return false;
+    }
+
+    // Verificar padrões de teste
+    if (domain.endsWith('.test') || domain.endsWith('.local') || domain.endsWith('.invalid')) {
+        return false;
+    }
+
+    return true;
+};
+
+/**
  * Middleware para processar resultados de validação
  */
 const validate = (req, res, next) => {
@@ -315,27 +360,27 @@ const clienteValidation = [
         .isLength({ min: 2, max: 150 })
         .withMessage('Nome deve ter entre 2 e 150 caracteres'),
     body('cnpj_cpf')
-        .optional()
+        .optional({ values: 'falsy' })
         .custom(isValidCNPJorCPF)
         .withMessage('CNPJ/CPF inválido (deve ser um documento válido)'),
     body('telefone')
-        .optional()
+        .optional({ values: 'falsy' })
         .custom(isValidPhone)
         .withMessage('Telefone inválido (deve ter entre 7 e 15 dígitos)'),
     body('email')
-        .optional()
+        .optional({ values: 'falsy' })
         .isEmail()
         .withMessage('Email inválido'),
     body('endereco')
-        .optional()
+        .optional({ values: 'falsy' })
         .isString()
         .withMessage('Endereço inválido'),
     body('cep')
-        .optional()
+        .optional({ values: 'falsy' })
         .custom(isValidCEP)
         .withMessage('CEP inválido (formato: XXXXX-XXX)'),
     body('observacoes')
-        .optional()
+        .optional({ values: 'falsy' })
         .isString()
         .withMessage('Observações inválidas'),
     validate
@@ -381,7 +426,9 @@ const usuarioValidation = [
         .notEmpty()
         .withMessage('Email é obrigatório')
         .isEmail()
-        .withMessage('Email inválido'),
+        .withMessage('Email inválido')
+        .custom(isValidEmailDomain)
+        .withMessage('Domínio de email não permitido (ex: @test.com, @example.com)'),
     body('telefone')
         .optional()
         .custom(isValidPhone)
@@ -406,7 +453,9 @@ const usuarioUpdateValidation = [
     body('email')
         .optional()
         .isEmail()
-        .withMessage('Email inválido'),
+        .withMessage('Email inválido')
+        .custom(isValidEmailDomain)
+        .withMessage('Domínio de email não permitido (ex: @test.com, @example.com)'),
     body('telefone')
         .optional()
         .custom(isValidPhone)

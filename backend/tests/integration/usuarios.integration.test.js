@@ -53,13 +53,13 @@ describe('Usuarios Routes Integration', () => {
                 rows: [{
                     id: 1,
                     nome: 'Admin',
-                    email: 'admin@test.com',
+                    email: 'admin@bureau-it.com',
                     nivel: 'superadmin',
                     ativo: true
                 }, {
                     id: 2,
                     nome: 'Vendedor',
-                    email: 'vendedor@test.com',
+                    email: 'vendedor@bureau-it.com',
                     nivel: 'vendedor',
                     ativo: true
                 }],
@@ -109,7 +109,7 @@ describe('Usuarios Routes Integration', () => {
                 rows: [{
                     id: 2,
                     nome: 'Vendedor',
-                    email: 'vendedor@test.com',
+                    email: 'vendedor@bureau-it.com',
                     nivel: 'vendedor',
                     ativo: true
                 }],
@@ -145,7 +145,7 @@ describe('Usuarios Routes Integration', () => {
                 rows: [{
                     id: 3,
                     nome: 'Novo Usuário',
-                    email: 'novo@test.com',
+                    email: 'novo@bureau-it.com',
                     nivel: 'vendedor',
                     ativo: true
                 }],
@@ -157,7 +157,7 @@ describe('Usuarios Routes Integration', () => {
                 .set('Authorization', `Bearer ${superadminToken}`)
                 .send({
                     nome: 'Novo Usuário',
-                    email: 'novo@test.com',
+                    email: 'novo@bureau-it.com',
                     senha: 'Senha123!',
                     nivel: 'vendedor'
                 });
@@ -177,7 +177,7 @@ describe('Usuarios Routes Integration', () => {
                 .set('Authorization', `Bearer ${superadminToken}`)
                 .send({
                     nome: 'Duplicado',
-                    email: 'existente@test.com',
+                    email: 'existente@bureau-it.com',
                     senha: 'Senha123!'
                 });
 
@@ -192,7 +192,7 @@ describe('Usuarios Routes Integration', () => {
                 rows: [{
                     id: 2,
                     nome: 'Vendedor',
-                    email: 'vendedor@test.com',
+                    email: 'vendedor@bureau-it.com',
                     nivel: 'vendedor',
                     senha_hash: 'hash'
                 }],
@@ -203,7 +203,7 @@ describe('Usuarios Routes Integration', () => {
                 rows: [{
                     id: 2,
                     nome: 'Vendedor Atualizado',
-                    email: 'vendedor@test.com',
+                    email: 'vendedor@bureau-it.com',
                     nivel: 'vendedor'
                 }],
                 rowCount: 1
@@ -231,7 +231,7 @@ describe('Usuarios Routes Integration', () => {
 
         it('deve rejeitar desativação do próprio usuário', async () => {
             mockPool.query.mockResolvedValueOnce({
-                rows: [{ id: 1, nome: 'Admin', email: 'admin@test.com', senha_hash: 'hash' }],
+                rows: [{ id: 1, nome: 'Admin', email: 'admin@bureau-it.com', senha_hash: 'hash' }],
                 rowCount: 1
             });
 
@@ -260,7 +260,7 @@ describe('Usuarios Routes Integration', () => {
             mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
             // Mock para deletar usuário
             mockPool.query.mockResolvedValueOnce({
-                rows: [{ id: 2, nome: 'Vendedor', email: 'vendedor@test.com' }],
+                rows: [{ id: 2, nome: 'Vendedor', email: 'vendedor@bureau-it.com' }],
                 rowCount: 1
             });
 
@@ -322,7 +322,7 @@ describe('Usuarios Routes Integration', () => {
         it('deve enviar convite para usuário existente', async () => {
             // Mock para buscar usuário
             mockPool.query.mockResolvedValueOnce({
-                rows: [{ id: 2, nome: 'Vendedor', email: 'vendedor@test.com', ativo: true }],
+                rows: [{ id: 2, nome: 'Vendedor', email: 'vendedor@bureau-it.com', ativo: true }],
                 rowCount: 1
             });
             // Mock para inserir magic link
@@ -338,7 +338,7 @@ describe('Usuarios Routes Integration', () => {
 
         it('deve rejeitar convite para usuário inativo', async () => {
             mockPool.query.mockResolvedValueOnce({
-                rows: [{ id: 2, nome: 'Vendedor', email: 'vendedor@test.com', ativo: false }],
+                rows: [{ id: 2, nome: 'Vendedor', email: 'vendedor@bureau-it.com', ativo: false }],
                 rowCount: 1
             });
 
@@ -366,7 +366,7 @@ describe('Usuarios Routes Integration', () => {
             mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
             // Mock para criar usuário
             mockPool.query.mockResolvedValueOnce({
-                rows: [{ id: 3, nome: 'Novo', email: 'novo@test.com', nivel: 'vendedor', ativo: true }],
+                rows: [{ id: 3, nome: 'Novo', email: 'novo@bureau-it.com', nivel: 'vendedor', ativo: true }],
                 rowCount: 1
             });
             // Mock para inserir magic link
@@ -377,7 +377,7 @@ describe('Usuarios Routes Integration', () => {
                 .set('Authorization', `Bearer ${superadminToken}`)
                 .send({
                     nome: 'Novo Usuário',
-                    email: 'novo@test.com'
+                    email: 'novo@bureau-it.com'
                 });
 
             expect(response.status).toBe(201);
@@ -395,7 +395,7 @@ describe('Usuarios Routes Integration', () => {
                 .set('Authorization', `Bearer ${superadminToken}`)
                 .send({
                     nome: 'Duplicado',
-                    email: 'existente@test.com'
+                    email: 'existente@bureau-it.com'
                 });
 
             expect(response.status).toBe(400);
@@ -407,7 +407,7 @@ describe('Usuarios Routes Integration', () => {
                 .set('Authorization', `Bearer ${superadminToken}`)
                 .send({
                     nome: 'A',
-                    email: 'test@test.com'
+                    email: 'test@bureau-it.com'
                 });
 
             expect(response.status).toBe(400);
@@ -434,7 +434,7 @@ describe('Usuarios Routes Integration', () => {
                 .set('Authorization', `Bearer ${superadminToken}`)
                 .send({
                     nome: 'Novo Usuário',
-                    email: 'novo@test.com'
+                    email: 'novo@bureau-it.com'
                 });
 
             expect(response.status).toBe(500);
@@ -474,7 +474,7 @@ describe('Usuarios Routes Integration', () => {
                 .set('Authorization', `Bearer ${superadminToken}`)
                 .send({
                     nome: 'Novo Usuário',
-                    email: 'novo@test.com',
+                    email: 'novo@bureau-it.com',
                     senha: 'Senha123!'
                 });
 
@@ -489,7 +489,7 @@ describe('Usuarios Routes Integration', () => {
                 rows: [{
                     id: 2,
                     nome: 'Vendedor',
-                    email: 'vendedor@test.com',
+                    email: 'vendedor@bureau-it.com',
                     nivel: 'vendedor',
                     senha_hash: 'hash'
                 }],
@@ -506,7 +506,7 @@ describe('Usuarios Routes Integration', () => {
                 .set('Authorization', `Bearer ${superadminToken}`)
                 .send({
                     nome: 'Vendedor',
-                    email: 'outro@test.com'
+                    email: 'outro@bureau-it.com'
                 });
 
             expect(response.status).toBe(400);
@@ -519,7 +519,7 @@ describe('Usuarios Routes Integration', () => {
                 rows: [{
                     id: 2,
                     nome: 'Vendedor',
-                    email: 'vendedor@test.com',
+                    email: 'vendedor@bureau-it.com',
                     nivel: 'vendedor',
                     senha_hash: 'hash'
                 }],
@@ -530,7 +530,7 @@ describe('Usuarios Routes Integration', () => {
                 rows: [{
                     id: 2,
                     nome: 'Vendedor',
-                    email: 'vendedor@test.com',
+                    email: 'vendedor@bureau-it.com',
                     nivel: 'vendedor'
                 }],
                 rowCount: 1

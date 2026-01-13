@@ -56,7 +56,7 @@ describe('Clientes Routes Integration', () => {
                     nome: 'Cliente Teste',
                     cnpj_cpf: '12345678901234',
                     telefone: '11999999999',
-                    email: 'cliente@test.com',
+                    email: 'cliente@bureau-it.com',
                     ativo: true,
                     total_pedidos: 5,
                     valor_total_pedidos: 5000.00
@@ -140,7 +140,7 @@ describe('Clientes Routes Integration', () => {
                     nome: 'Cliente Teste',
                     cnpj_cpf: '12345678901234',
                     telefone: '11999999999',
-                    email: 'cliente@test.com',
+                    email: 'cliente@bureau-it.com',
                     ativo: true,
                     total_pedidos: 5,
                     valor_total_pedidos: 5000.00,

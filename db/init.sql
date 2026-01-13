@@ -28,11 +28,18 @@ CREATE TABLE usuarios (
 CREATE TABLE clientes (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(150) NOT NULL,
+    razao_social VARCHAR(200),
     cnpj_cpf VARCHAR(20),
     telefone VARCHAR(20),
     email VARCHAR(100),
     endereco TEXT,
+    endereco_entrega TEXT,
+    cidade VARCHAR(100),
+    estado VARCHAR(2),
+    cep VARCHAR(10),
+    contato_nome VARCHAR(100),
     observacoes TEXT,
+    logo_url VARCHAR(500),
     ativo BOOLEAN DEFAULT true,
     created_by INTEGER,
     vendedor_id INTEGER,
@@ -83,6 +90,43 @@ CREATE TABLE refresh_tokens (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Configurações do Sistema
+CREATE TABLE configuracoes (
+    id SERIAL PRIMARY KEY,
+    chave VARCHAR(100) UNIQUE NOT NULL,
+    valor TEXT,
+    descricao TEXT,
+    updated_by INTEGER REFERENCES usuarios(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Logs de Atividade
+CREATE TABLE activity_logs (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES usuarios(id),
+    user_nome VARCHAR(100),
+    user_nivel VARCHAR(20),
+    action VARCHAR(50) NOT NULL,
+    entity VARCHAR(50) NOT NULL,
+    entity_id INTEGER,
+    entity_name VARCHAR(200),
+    details JSONB,
+    ip_address VARCHAR(50),
+    user_agent TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Magic Links
+CREATE TABLE IF NOT EXISTS magic_links (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
+    token VARCHAR(500) UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- =====================================================
 -- ÍNDICES
 -- =====================================================
@@ -98,6 +142,10 @@ CREATE INDEX idx_produtos_nome ON produtos(nome);
 CREATE INDEX idx_usuarios_email ON usuarios(email);
 CREATE INDEX idx_refresh_tokens_token ON refresh_tokens(token);
 CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
+CREATE INDEX idx_activity_logs_user_id ON activity_logs(user_id);
+CREATE INDEX idx_activity_logs_entity ON activity_logs(entity, entity_id);
+CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at DESC);
+CREATE INDEX idx_magic_links_token ON magic_links(token);
 
 -- =====================================================
 -- FUNÇÕES E TRIGGERS

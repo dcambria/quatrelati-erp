@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Upload
-// v1.1.0 - WebP conversion
+// v1.2.0 - Credenciais AWS via env vars ou fallback
 // =====================================================
 
 const express = require('express');
@@ -12,15 +12,36 @@ const { fromIni } = require('@aws-sdk/credential-provider-ini');
 const crypto = require('crypto');
 const { authMiddleware } = require('../middleware/auth');
 
-// Configurar S3 client com profile default
-const s3Client = new S3Client({
-    region: process.env.AWS_REGION || 'us-east-1',
-    credentials: fromIni({ profile: 'default' }),
-});
+// Configurar S3 client
+// Prioridade: env vars > arquivo de credenciais
+const getS3Client = () => {
+    const config = {
+        region: process.env.AWS_REGION || 'us-east-1',
+    };
+
+    // Se tiver credenciais via env vars, usar elas
+    if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+        config.credentials = {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        };
+    } else {
+        // Fallback para arquivo de credenciais (desenvolvimento local)
+        try {
+            config.credentials = fromIni({ profile: 'default' });
+        } catch (e) {
+            console.warn('[UPLOAD] AWS credentials não configuradas - uploads para S3 não funcionarão');
+        }
+    }
+
+    return new S3Client(config);
+};
+
+const s3Client = getS3Client();
 
 const S3_BUCKET = process.env.S3_BUCKET || 'bureau-it.com';
-const S3_PREFIX = 'quatrelati/produtos';
-const S3_PREFIX_LOGOS = 'quatrelati/logos';
+const S3_PREFIX = 'quatrelati/erp/produtos';
+const S3_PREFIX_LOGOS = 'quatrelati/erp/logos';
 
 // Configurar multer para armazenar em memória
 const upload = multer({
@@ -116,6 +137,21 @@ router.post('/image', upload.single('image'), async (req, res) => {
         });
     } catch (error) {
         console.error('Erro no upload:', error);
+
+        // Erro específico de credenciais AWS
+        if (error.name === 'CredentialsProviderError' || error.message?.includes('credentials')) {
+            return res.status(500).json({
+                error: 'Credenciais AWS não configuradas. Configure AWS_ACCESS_KEY_ID e AWS_SECRET_ACCESS_KEY.'
+            });
+        }
+
+        // Erro de permissão do bucket
+        if (error.name === 'AccessDenied' || error.Code === 'AccessDenied') {
+            return res.status(500).json({
+                error: 'Sem permissão para fazer upload no bucket S3.'
+            });
+        }
+
         res.status(500).json({ error: 'Erro ao fazer upload da imagem' });
     }
 });
@@ -161,6 +197,21 @@ router.post('/logo', upload.single('logo'), async (req, res) => {
         });
     } catch (error) {
         console.error('Erro no upload de logo:', error);
+
+        // Erro específico de credenciais AWS
+        if (error.name === 'CredentialsProviderError' || error.message?.includes('credentials')) {
+            return res.status(500).json({
+                error: 'Credenciais AWS não configuradas. Configure AWS_ACCESS_KEY_ID e AWS_SECRET_ACCESS_KEY.'
+            });
+        }
+
+        // Erro de permissão do bucket
+        if (error.name === 'AccessDenied' || error.Code === 'AccessDenied') {
+            return res.status(500).json({
+                error: 'Sem permissão para fazer upload no bucket S3.'
+            });
+        }
+
         res.status(500).json({ error: 'Erro ao fazer upload da logo' });
     }
 });

@@ -1,7 +1,7 @@
 'use client';
 // =====================================================
 // Contexto de Filtro Global de Vendedor
-// v1.0.0 - Permite admins visualizar sistema como vendedor
+// v1.1.0 - Inclui todos os usuários no filtro VER COMO
 // =====================================================
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -26,11 +26,9 @@ export function VendedorFilterProvider({ children }) {
       const response = await api.get('/usuarios?ativo=true');
       const usuarios = response.data.usuarios || [];
 
-      // Filtrar apenas vendedores e admins, removendo duplicatas por ID
+      // Incluir todos os usuários ativos (vendedor, admin, superadmin)
       const vendedoresMap = new Map();
-      usuarios
-        .filter(u => u.nivel === 'vendedor' || u.nivel === 'admin')
-        .forEach(u => vendedoresMap.set(u.id, u));
+      usuarios.forEach(u => vendedoresMap.set(u.id, u));
 
       const todosVendedores = Array.from(vendedoresMap.values())
         .sort((a, b) => a.nome.localeCompare(b.nome));

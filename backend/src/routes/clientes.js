@@ -1,6 +1,7 @@
 // =====================================================
 // Rotas de Clientes
-// v1.4.1 - Usando middleware vendedorFilter centralizado
+// v1.6.0 - Campos de endereço completo (número, complemento)
+//          Endereço de entrega com mesmos campos
 // =====================================================
 
 const express = require('express');
@@ -9,6 +10,7 @@ const { authMiddleware } = require('../middleware/auth');
 const { clienteValidation, idValidation } = require('../middleware/validation');
 const { activityLogMiddleware } = require('../middleware/activityLog');
 const { vendedorFilterMiddleware } = require('../middleware/vendedorFilter');
+const { exportarClientesPDF } = require('../services/pdfExportService');
 
 // Todas as rotas requerem autenticação
 router.use(authMiddleware);
@@ -94,6 +96,71 @@ router.get('/', vendedorFilterMiddleware, async (req, res) => {
     } catch (error) {
         console.error('Erro ao listar clientes:', error);
         res.status(500).json({ error: 'Erro ao listar clientes' });
+    }
+});
+
+/**
+ * GET /api/clientes/exportar/pdf
+ * Exporta lista de clientes para PDF
+ */
+router.get('/exportar/pdf', vendedorFilterMiddleware, async (req, res) => {
+    try {
+        const { vendedor_id, search } = req.query;
+
+        let whereConditions = [];
+        let params = [];
+        let paramIndex = 1;
+
+        // Filtro de vendedor usando middleware centralizado
+        const vendedorFilter = req.addVendedorFilter('c.vendedor_id', vendedor_id, paramIndex);
+        if (vendedorFilter.clause) {
+            whereConditions.push(vendedorFilter.clause);
+            params.push(vendedorFilter.param);
+            paramIndex = vendedorFilter.newIndex;
+        }
+
+        // Busca por nome
+        if (search) {
+            whereConditions.push(`(c.nome ILIKE $${paramIndex} OR c.cidade ILIKE $${paramIndex})`);
+            params.push(`%${search}%`);
+            paramIndex++;
+        }
+
+        // Apenas ativos
+        whereConditions.push(`c.ativo = true`);
+
+        const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
+
+        const query = `
+            SELECT c.*,
+                v.nome as vendedor_nome,
+                v.email as vendedor_email,
+                (SELECT COUNT(*) FROM pedidos p WHERE p.cliente_id = c.id) as total_pedidos
+            FROM clientes c
+            LEFT JOIN usuarios v ON c.vendedor_id = v.id
+            ${whereClause}
+            ORDER BY c.nome ASC
+        `;
+
+        const result = await req.db.query(query, params);
+
+        // Obter nome do vendedor se filtrado
+        let nomeVendedor = null;
+        if (vendedor_id) {
+            const vendedorResult = await req.db.query(
+                'SELECT nome FROM usuarios WHERE id = $1',
+                [vendedor_id]
+            );
+            nomeVendedor = vendedorResult.rows[0]?.nome;
+        }
+
+        await exportarClientesPDF(res, {
+            clientes: result.rows,
+            nomeVendedor
+        });
+    } catch (error) {
+        console.error('Erro ao exportar clientes PDF:', error);
+        res.status(500).json({ error: 'Erro ao exportar clientes' });
     }
 });
 
@@ -190,8 +257,13 @@ router.get('/:id/pedidos', idValidation, async (req, res) => {
 router.post('/', clienteValidation, activityLogMiddleware('criar', 'cliente'), async (req, res) => {
     try {
         const {
-            nome, razao_social, cnpj_cpf, telefone, email, endereco, observacoes, logo_url,
-            endereco_entrega, cidade, estado, cep, contato_nome, vendedor_id
+            nome, razao_social, cnpj_cpf, telefone, email, observacoes, logo_url,
+            // Endereço principal
+            cep, endereco, numero, complemento, cidade, estado,
+            // Endereço de entrega
+            cep_entrega, endereco_entrega, numero_entrega, complemento_entrega, cidade_entrega, estado_entrega,
+            // Outros
+            contato_nome, vendedor_id
         } = req.body;
 
         // Vendedor associado é o usuário atual (se for vendedor) ou o informado (se for admin)
@@ -209,16 +281,18 @@ router.post('/', clienteValidation, activityLogMiddleware('criar', 'cliente'), a
 
         const result = await req.db.query(`
             INSERT INTO clientes (
-                nome, razao_social, cnpj_cpf, telefone, email, endereco, observacoes, logo_url,
-                endereco_entrega, cidade, estado, cep, contato_nome,
-                vendedor_id, created_by
+                nome, razao_social, cnpj_cpf, telefone, email, observacoes, logo_url,
+                cep, endereco, numero, complemento, cidade, estado,
+                cep_entrega, endereco_entrega, numero_entrega, complemento_entrega, cidade_entrega, estado_entrega,
+                contato_nome, vendedor_id, created_by
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
             RETURNING *
         `, [
-            nome, razao_social, cnpj_cpf, telefone, email, endereco, observacoes, logo_url,
-            endereco_entrega, cidade, estado, cep, contato_nome,
-            vendedorFinal, req.userId
+            nome, razao_social, cnpj_cpf, telefone, email, observacoes, logo_url,
+            cep, endereco, numero, complemento, cidade, estado,
+            cep_entrega, endereco_entrega, numero_entrega, complemento_entrega, cidade_entrega, estado_entrega,
+            contato_nome, vendedorFinal, req.userId
         ]);
 
         res.status(201).json({
@@ -243,8 +317,13 @@ router.put('/:id', idValidation, clienteValidation, activityLogMiddleware('atual
     try {
         const { id } = req.params;
         const {
-            nome, razao_social, cnpj_cpf, telefone, email, endereco, observacoes, ativo, logo_url,
-            endereco_entrega, cidade, estado, cep, contato_nome, vendedor_id
+            nome, razao_social, cnpj_cpf, telefone, email, observacoes, ativo, logo_url,
+            // Endereço principal
+            cep, endereco, numero, complemento, cidade, estado,
+            // Endereço de entrega
+            cep_entrega, endereco_entrega, numero_entrega, complemento_entrega, cidade_entrega, estado_entrega,
+            // Outros
+            contato_nome, vendedor_id
         } = req.body;
 
         // Verificar permissão de edição
@@ -283,22 +362,30 @@ router.put('/:id', idValidation, clienteValidation, activityLogMiddleware('atual
                 cnpj_cpf = COALESCE($3, cnpj_cpf),
                 telefone = COALESCE($4, telefone),
                 email = COALESCE($5, email),
-                endereco = COALESCE($6, endereco),
-                observacoes = COALESCE($7, observacoes),
-                ativo = COALESCE($8, ativo),
-                logo_url = $9,
-                endereco_entrega = COALESCE($10, endereco_entrega),
-                cidade = COALESCE($11, cidade),
-                estado = COALESCE($12, estado),
-                cep = COALESCE($13, cep),
-                contato_nome = COALESCE($14, contato_nome),
-                vendedor_id = $15
-            WHERE id = $16
+                observacoes = COALESCE($6, observacoes),
+                ativo = COALESCE($7, ativo),
+                logo_url = $8,
+                cep = COALESCE($9, cep),
+                endereco = COALESCE($10, endereco),
+                numero = $11,
+                complemento = $12,
+                cidade = COALESCE($13, cidade),
+                estado = COALESCE($14, estado),
+                cep_entrega = $15,
+                endereco_entrega = $16,
+                numero_entrega = $17,
+                complemento_entrega = $18,
+                cidade_entrega = $19,
+                estado_entrega = $20,
+                contato_nome = COALESCE($21, contato_nome),
+                vendedor_id = $22
+            WHERE id = $23
             RETURNING *
         `, [
-            nome, razao_social, cnpj_cpf, telefone, email, endereco, observacoes, ativo, logo_url,
-            endereco_entrega, cidade, estado, cep, contato_nome,
-            vendedorFinal, id
+            nome, razao_social, cnpj_cpf, telefone, email, observacoes, ativo, logo_url,
+            cep, endereco, numero, complemento, cidade, estado,
+            cep_entrega, endereco_entrega, numero_entrega, complemento_entrega, cidade_entrega, estado_entrega,
+            contato_nome, vendedorFinal, id
         ]);
 
         res.json({

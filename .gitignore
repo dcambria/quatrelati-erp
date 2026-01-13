@@ -6,6 +6,10 @@ node_modules/
 # Testing
 coverage/
 backend/coverage/
+
+# Logs
+backend/logs/
+*.log
 frontend/tests/screenshots/
 frontend/playwright-report/
 .test_token
@@ -15,6 +19,12 @@ frontend/playwright-report/
 out/
 build/
 .swc/
+
+# PWA (generated)
+frontend/public/sw.js
+frontend/public/workbox-*.js
+frontend/public/sw.js.map
+frontend/public/workbox-*.js.map
 
 # Production
 dist/

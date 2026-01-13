@@ -373,6 +373,7 @@ export default function UsuariosPage() {
           <Input
             label="Nome"
             error={errors.nome?.message}
+            required
             {...register('nome')}
           />
 
@@ -380,6 +381,7 @@ export default function UsuariosPage() {
             label="Email"
             type="email"
             error={errors.email?.message}
+            required
             {...register('email')}
           />
 
@@ -415,6 +417,7 @@ export default function UsuariosPage() {
           <Select
             label="Nível de Acesso"
             error={errors.nivel?.message}
+            required
             options={NIVEIS.map(n => ({ value: n.value, label: n.label }))}
             {...register('nivel')}
           />

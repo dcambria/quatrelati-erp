@@ -372,8 +372,8 @@ describe('Dashboard Routes Integration', () => {
             });
             mockPool.query.mockResolvedValueOnce({
                 rows: [
-                    { id: 1, nome: 'Vendedor 1', email: 'vendedor1@test.com', nivel: 'vendedor' },
-                    { id: 2, nome: 'Vendedor 2', email: 'vendedor2@test.com', nivel: 'vendedor' }
+                    { id: 1, nome: 'Vendedor 1', email: 'vendedor1@bureau-it.com', nivel: 'vendedor' },
+                    { id: 2, nome: 'Vendedor 2', email: 'vendedor2@bureau-it.com', nivel: 'vendedor' }
                 ],
                 rowCount: 2
             });

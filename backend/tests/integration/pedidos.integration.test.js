@@ -462,7 +462,7 @@ describe('Pedidos Routes Integration', () => {
             });
             mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
             mockPool.query.mockResolvedValueOnce({ rows: [{ total: 0 }], rowCount: 1 });
-            mockPool.query.mockResolvedValueOnce({ rows: [{}], rowCount: 1 });
+            mockPool.query.mockResolvedValueOnce({ rows: [{ total_kg: 0, total_valor: 0, total_caixas: 0 }], rowCount: 1 });
 
             const response = await request(app)
                 .get('/api/pedidos?vendedor_id=2')

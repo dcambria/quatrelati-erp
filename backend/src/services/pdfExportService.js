@@ -1,6 +1,6 @@
 // =====================================================
 // Serviço de Exportação PDF/Excel
-// v1.0.0 - Extraído de pedidos.js para melhor organização
+// v1.3.0 - PDF clientes com endereço completo
 // Este arquivo é excluído da cobertura de testes devido
 // à complexidade de mocking de PDFKit e streams.
 // =====================================================
@@ -694,9 +694,246 @@ async function exportarPedidoIndividualPDF(res, { pedido, itens }) {
     doc.end();
 }
 
+/**
+ * Exporta lista de clientes para PDF
+ * v1.3.0 - Agrupado por vendedor, sem coluna vendedor
+ */
+async function exportarClientesPDF(res, { clientes, nomeVendedor }) {
+    const logoUrl = 'https://s3.amazonaws.com/bureau-it.com/quatrelati/logo-pdf.png';
+
+    let logoBuffer = null;
+    try {
+        logoBuffer = await fetchImage(logoUrl);
+    } catch (e) {
+        console.log('Não foi possível carregar logo:', e.message);
+    }
+
+    const doc = new PDFDocument({
+        margin: 40,
+        size: 'A4',
+        layout: 'landscape',
+        bufferPages: true,
+        autoFirstPage: true
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename=clientes-quatrelati.pdf');
+
+    doc.pipe(res);
+
+    const pageWidth = doc.page.width;
+    const pageHeight = doc.page.height;
+    const margin = 40;
+    const footerY = pageHeight - 35;
+    const dataGeracao = format(new Date(), 'dd/MM/yyyy HH:mm');
+
+    // ===== CABEÇALHO =====
+    if (logoBuffer) {
+        try {
+            doc.image(logoBuffer, margin, 12, { height: 50 });
+        } catch (e) {
+            doc.fillColor('#124EA6').fontSize(18).font('Helvetica-Bold');
+            doc.text('QUATRELATI', margin, 25, { lineBreak: false });
+        }
+    } else {
+        doc.fillColor('#124EA6').fontSize(18).font('Helvetica-Bold');
+        doc.text('QUATRELATI', margin, 25, { lineBreak: false });
+    }
+
+    // Título à direita
+    doc.fillColor('#1F2937').fontSize(14).font('Helvetica-Bold');
+    doc.text('Cadastro de Clientes', pageWidth - margin - 210, 15, { width: 210, align: 'right', lineBreak: false });
+
+    doc.fillColor('#6B7280').fontSize(10).font('Helvetica');
+    doc.text(`${clientes.length} clientes`, pageWidth - margin - 210, 33, { width: 210, align: 'right', lineBreak: false });
+
+    // Indicar se é lista geral ou de vendedor
+    const tipoLista = nomeVendedor ? `Vendedor: ${nomeVendedor}` : 'Lista Geral';
+    doc.fillColor('#4B5563').fontSize(9).font('Helvetica-Bold');
+    doc.text(tipoLista, pageWidth - margin - 210, 47, { width: 210, align: 'right', lineBreak: false });
+
+    // Linha separadora
+    doc.moveTo(margin, 72).lineTo(pageWidth - margin, 72).strokeColor('#D1D5DB').lineWidth(0.5).stroke();
+
+    let currentY = 82;
+
+    // ===== TABELA (sem coluna vendedor - agrupado) =====
+    const headers = ['Cliente', 'Contato', 'Telefone', 'Endereço', 'Pedidos'];
+    const tableWidth = pageWidth - margin * 2;
+    // Larguras ajustadas (total = 762)
+    const colWidths = [150, 100, 90, 350, 72];
+    const colAligns = ['left', 'left', 'left', 'left', 'right'];
+    const startX = margin;
+    const rowHeight = 22;
+    const vendedorHeaderHeight = 26;
+
+    // Agrupar clientes por vendedor
+    const clientesPorVendedor = {};
+    clientes.forEach(cliente => {
+        const vendedor = cliente.vendedor_nome || 'Sem Vendedor';
+        if (!clientesPorVendedor[vendedor]) {
+            clientesPorVendedor[vendedor] = [];
+        }
+        clientesPorVendedor[vendedor].push(cliente);
+    });
+
+    // Ordenar vendedores alfabeticamente
+    const vendedoresOrdenados = Object.keys(clientesPorVendedor).sort((a, b) => {
+        if (a === 'Sem Vendedor') return 1;
+        if (b === 'Sem Vendedor') return -1;
+        return a.localeCompare(b);
+    });
+
+    // Função para desenhar cabeçalho da tabela
+    const drawTableHeader = (y) => {
+        doc.fillColor('#374151').font('Helvetica-Bold').fontSize(8);
+        let xPos = startX;
+        headers.forEach((header, i) => {
+            doc.text(header, xPos + 4, y + 4, { width: colWidths[i] - 8, align: colAligns[i], lineBreak: false });
+            xPos += colWidths[i];
+        });
+        doc.moveTo(startX, y + 18).lineTo(startX + tableWidth, y + 18).strokeColor('#374151').lineWidth(1).stroke();
+        return y + 22;
+    };
+
+    // Função para desenhar cabeçalho de vendedor
+    const drawVendedorHeader = (y, vendedor, qtdClientes) => {
+        doc.rect(startX, y, tableWidth, vendedorHeaderHeight).fill('#1E3A8A');
+        doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(10);
+        doc.text(vendedor, startX + 10, y + 7, { lineBreak: false });
+        doc.font('Helvetica').fontSize(9);
+        doc.text(`${qtdClientes} cliente${qtdClientes > 1 ? 's' : ''}`, startX + tableWidth - 100, y + 8, { width: 90, align: 'right', lineBreak: false });
+        return y + vendedorHeaderHeight;
+    };
+
+    let rowIndex = 0;
+
+    vendedoresOrdenados.forEach((vendedor) => {
+        const clientesVendedor = clientesPorVendedor[vendedor];
+
+        // Verificar se cabe o header do vendedor + header da tabela + pelo menos 1 linha
+        if (currentY + vendedorHeaderHeight + 22 + rowHeight > pageHeight - 50) {
+            doc.addPage();
+            currentY = 40;
+        }
+
+        // Header do vendedor
+        currentY = drawVendedorHeader(currentY, vendedor, clientesVendedor.length);
+
+        // Header da tabela
+        currentY = drawTableHeader(currentY);
+
+        clientesVendedor.forEach((cliente) => {
+            // Verificar se precisa nova página
+            if (currentY + rowHeight > pageHeight - 50) {
+                doc.addPage();
+                currentY = 40;
+                // Repetir header do vendedor e tabela na nova página
+                currentY = drawVendedorHeader(currentY, vendedor + ' (cont.)', clientesVendedor.length);
+                currentY = drawTableHeader(currentY);
+            }
+
+            // Alternar cor de fundo
+            if (rowIndex % 2 === 0) {
+                doc.rect(startX, currentY, tableWidth, rowHeight).fill('#F8FAFC');
+            }
+
+            doc.moveTo(startX, currentY + rowHeight).lineTo(startX + tableWidth, currentY + rowHeight).strokeColor('#E5E7EB').lineWidth(0.5).stroke();
+
+            // Montar endereço completo
+            const enderecoPartes = [];
+            if (cliente.endereco) {
+                let rua = cliente.endereco;
+                if (cliente.numero) rua += `, ${cliente.numero}`;
+                if (cliente.complemento) rua += ` - ${cliente.complemento}`;
+                enderecoPartes.push(rua);
+            }
+            const cidadeUf = [cliente.cidade, cliente.estado].filter(Boolean).join('/');
+            if (cidadeUf) enderecoPartes.push(cidadeUf);
+            if (cliente.cep) enderecoPartes.push(`CEP ${cliente.cep}`);
+            const enderecoCompleto = enderecoPartes.join(' - ') || '-';
+
+            const totalPedidos = parseInt(cliente.total_pedidos) || 0;
+
+            const valores = [
+                cliente.nome || '-',
+                cliente.contato_nome || '-',
+                cliente.telefone || '-',
+                enderecoCompleto,
+                String(totalPedidos)
+            ];
+
+            let xPos = startX;
+            valores.forEach((valor, i) => {
+                // Texto preto para todos os campos
+                if (i === 0) {
+                    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(8);
+                } else if (i === 4) {
+                    // Coluna Pedidos (última)
+                    doc.fillColor(totalPedidos > 0 ? '#166534' : '#6B7280').font('Helvetica-Bold').fontSize(8);
+                } else {
+                    doc.fillColor('#1F2937').font('Helvetica').fontSize(8);
+                }
+
+                doc.text(String(valor), xPos + 4, currentY + 6, { width: colWidths[i] - 8, align: colAligns[i], lineBreak: false });
+                xPos += colWidths[i];
+            });
+
+            currentY += rowHeight;
+            rowIndex++;
+        });
+
+        // Espaço entre grupos
+        currentY += 8;
+    });
+
+    // ===== TOTAIS =====
+    if (currentY + 30 > pageHeight - 60) {
+        doc.addPage();
+        currentY = 40;
+    }
+
+    doc.moveTo(startX, currentY).lineTo(startX + tableWidth, currentY).strokeColor('#374151').lineWidth(1).stroke();
+
+    currentY += 4;
+    doc.rect(startX, currentY, tableWidth, 24).fill('#1F2937');
+
+    const totalPedidosGeral = clientes.reduce((acc, c) => acc + (parseInt(c.total_pedidos) || 0), 0);
+
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(9);
+    doc.text(`${clientes.length} Clientes`, startX + 4, currentY + 7);
+    doc.text(`${totalPedidosGeral} Pedidos`, startX + tableWidth - 80, currentY + 7, { width: 70, align: 'right' });
+
+    // ===== RODAPÉ EM TODAS AS PÁGINAS =====
+    const range = doc.bufferedPageRange();
+    const totalPages = range.count;
+
+    for (let i = 0; i < totalPages; i++) {
+        doc.switchToPage(i);
+
+        doc.moveTo(margin, footerY - 8).lineTo(pageWidth - margin, footerY - 8).strokeColor('#E5E7EB').lineWidth(0.5).stroke();
+
+        doc.fillColor('#9CA3AF').font('Helvetica').fontSize(7);
+        doc.text('Desenvolvido por', margin, footerY + 2, { continued: false, lineBreak: false });
+        drawBureauLogo(doc, margin + 58, footerY - 5, 0.18);
+
+        doc.fillColor('#6B7280').fontSize(8);
+        const paginacaoTexto = `Página ${i + 1} de ${totalPages}`;
+        const paginacaoWidth = doc.widthOfString(paginacaoTexto);
+        doc.text(paginacaoTexto, (pageWidth - paginacaoWidth) / 2, footerY + 2, { continued: false, lineBreak: false });
+
+        const dataTexto = `Quatrelati - ${dataGeracao}`;
+        const dataWidth = doc.widthOfString(dataTexto);
+        doc.text(dataTexto, pageWidth - margin - dataWidth, footerY + 2, { continued: false, lineBreak: false });
+    }
+
+    doc.end();
+}
+
 module.exports = {
     exportarPedidosPDF,
     exportarPedidosExcel,
     exportarPedidoIndividualPDF,
+    exportarClientesPDF,
     fetchImage
 };

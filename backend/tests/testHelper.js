@@ -48,7 +48,7 @@ const generateTestToken = (payload = {}) => {
     const jwt = require('jsonwebtoken');
     const defaultPayload = {
         id: 1,
-        email: 'test@test.com',
+        email: 'test@bureau-it.com',
         nivel: 'admin',
         ...payload
     };
@@ -77,7 +77,7 @@ const testData = {
         {
             id: 1,
             nome: 'Admin Test',
-            email: 'admin@test.com',
+            email: 'admin@bureau-it.com',
             nivel: 'admin',
             ativo: true,
             pode_visualizar_todos: true,
@@ -86,7 +86,7 @@ const testData = {
         {
             id: 2,
             nome: 'User Test',
-            email: 'user@test.com',
+            email: 'user@bureau-it.com',
             nivel: 'user',
             ativo: true,
             pode_visualizar_todos: false,
@@ -99,7 +99,7 @@ const testData = {
             nome: 'Cliente Teste',
             cnpj_cpf: '12345678901234',
             telefone: '11999999999',
-            email: 'cliente@test.com',
+            email: 'cliente@bureau-it.com',
             ativo: true
         }
     ],

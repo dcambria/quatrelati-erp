@@ -3,14 +3,11 @@
 // =====================================================
 
 const { test, expect } = require('@playwright/test');
+const { BASE_URL, TEST_USER, validateCredentials } = require('./test-config');
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const API_URL = 'http://localhost:3001';
 
-const TEST_USER = {
-  email: 'daniel.cambria@bureau-it.com',
-  password: 'srxwdjedi',
-};
+validateCredentials();
 
 test.describe('Download de PDF', () => {
   test('deve baixar PDF de pedidos via botao', async ({ page }) => {

@@ -444,6 +444,7 @@ export default function ProdutosPage() {
           <Input
             label="Nome"
             error={errors.nome?.message}
+            required
             {...register('nome')}
           />
 
@@ -463,6 +464,7 @@ export default function ProdutosPage() {
               label="Peso por Caixa (kg)"
               placeholder="0,000"
               error={errors.peso_caixa_kg?.message}
+              required
               value={watch('peso_caixa_kg') || ''}
               onChange={(e) => setValue('peso_caixa_kg', mascaraPeso(e.target.value))}
             />

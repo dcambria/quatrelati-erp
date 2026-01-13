@@ -1,15 +1,23 @@
 // =====================================================
 // Helpers compartilhados para testes Playwright
-// v1.1.0 - Melhorar resiliência do irParaPedidos
+// v1.2.0 - Credenciais via variáveis de ambiente
 // =====================================================
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-const API_URL = 'http://localhost:3001';
+require('dotenv').config({ path: '.env.local' });
+
+const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
+const API_URL = process.env.TEST_API_URL || 'http://localhost:3001';
 
 const TEST_USER = {
-  email: 'daniel.cambria@bureau-it.com',
-  password: 'srxwdjedi',
+  email: process.env.TEST_USER_EMAIL || '',
+  password: process.env.TEST_USER_PASSWORD || '',
 };
+
+// Validar credenciais
+if (!TEST_USER.email || !TEST_USER.password) {
+  console.error('❌ Credenciais de teste não configuradas!');
+  console.error('   Configure TEST_USER_EMAIL e TEST_USER_PASSWORD no .env.local');
+}
 
 /**
  * Aguardar servidor estar pronto

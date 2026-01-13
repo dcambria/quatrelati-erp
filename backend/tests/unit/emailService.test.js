@@ -32,7 +32,7 @@ describe('Email Service', () => {
             });
 
             const result = await emailService.sendMagicLinkEmail(
-                'user@test.com',
+                'user@bureau-it.com',
                 'John Doe',
                 'https://quatrelati.com/magic-link?token=abc123'
             );
@@ -47,7 +47,7 @@ describe('Email Service', () => {
             });
 
             await emailService.sendMagicLinkEmail(
-                'user@test.com',
+                'user@bureau-it.com',
                 'Maria Silva Santos',
                 'https://example.com/link'
             );
@@ -64,7 +64,7 @@ describe('Email Service', () => {
             const magicLink = 'https://quatrelati.com/magic-link?token=unique-token-123';
 
             await emailService.sendMagicLinkEmail(
-                'user@test.com',
+                'user@bureau-it.com',
                 'Test User',
                 magicLink
             );
@@ -80,7 +80,7 @@ describe('Email Service', () => {
             });
 
             await emailService.sendMagicLinkEmail(
-                'user@test.com',
+                'user@bureau-it.com',
                 'Test User',
                 'https://example.com/link'
             );
@@ -94,7 +94,7 @@ describe('Email Service', () => {
 
             await expect(
                 emailService.sendMagicLinkEmail(
-                    'user@test.com',
+                    'user@bureau-it.com',
                     'Test User',
                     'https://example.com/link'
                 )
@@ -109,7 +109,7 @@ describe('Email Service', () => {
             });
 
             const result = await emailService.sendInviteEmail(
-                'newuser@test.com',
+                'newuser@bureau-it.com',
                 'New User',
                 'https://quatrelati.com/magic-link?token=invite-token'
             );
@@ -124,7 +124,7 @@ describe('Email Service', () => {
             });
 
             await emailService.sendInviteEmail(
-                'user@test.com',
+                'user@bureau-it.com',
                 'Carlos Alberto Silva',
                 'https://example.com/invite'
             );
@@ -142,7 +142,7 @@ describe('Email Service', () => {
             const inviteLink = 'https://quatrelati.com/magic-link?token=invite-unique-123';
 
             await emailService.sendInviteEmail(
-                'user@test.com',
+                'user@bureau-it.com',
                 'Test User',
                 inviteLink
             );
@@ -158,7 +158,7 @@ describe('Email Service', () => {
             });
 
             await emailService.sendInviteEmail(
-                'user@test.com',
+                'user@bureau-it.com',
                 'Test User',
                 'https://example.com/invite'
             );
@@ -173,7 +173,7 @@ describe('Email Service', () => {
             });
 
             await emailService.sendInviteEmail(
-                'user@test.com',
+                'user@bureau-it.com',
                 'Test User',
                 'https://example.com/invite'
             );
@@ -188,7 +188,7 @@ describe('Email Service', () => {
 
             await expect(
                 emailService.sendInviteEmail(
-                    'user@test.com',
+                    'user@bureau-it.com',
                     'Test User',
                     'https://example.com/invite'
                 )

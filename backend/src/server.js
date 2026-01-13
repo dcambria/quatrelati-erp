@@ -1,6 +1,6 @@
 // =====================================================
 // Sistema de Gestão de Pedidos - Laticínio Quatrelati
-// Backend API Server v1.2.0
+// Backend API Server v1.3.0 - Error Logging
 // =====================================================
 
 require('dotenv').config();
@@ -9,6 +9,9 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const { Pool } = require('pg');
+
+// Importar middlewares
+const { errorLogMiddleware, globalErrorHandler } = require('./middleware/errorLog');
 
 // Importar rotas
 const authRoutes = require('./routes/auth');
@@ -37,6 +40,9 @@ app.use((req, res, next) => {
     req.db = pool;
     next();
 });
+
+// Middleware de log de erros (deve vir antes das rotas)
+app.use(errorLogMiddleware());
 
 // Middlewares de segurança e parsing
 app.use(helmet());
@@ -83,20 +89,14 @@ app.use((req, res, next) => {
     });
 });
 
-// Middleware de tratamento de erros gerais
-app.use((err, req, res, next) => {
-    console.error('Erro:', err);
-    res.status(err.status || 500).json({
-        error: err.message || 'Erro interno do servidor',
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-    });
-});
+// Middleware de tratamento de erros gerais (com logging)
+app.use(globalErrorHandler);
 
 // Iniciar servidor
 app.listen(PORT, async () => {
     console.log('=====================================================');
     console.log('  Sistema de Gestão de Pedidos - Laticínio Quatrelati');
-    console.log('  API Server v1.2.0');
+    console.log('  API Server v1.3.0');
     console.log('=====================================================');
     console.log(`  Servidor rodando em http://localhost:${PORT}`);
     console.log(`  Ambiente: ${process.env.NODE_ENV || 'development'}`);

@@ -5,6 +5,7 @@
 /* =====================================================
    Sistema de Gestão de Pedidos - Laticínio Quatrelati
    Design System: Tema Light (Blue) / Dark
+   v1.4.0 - Limpeza de animações não utilizadas
    ===================================================== */
 
 @layer base {
@@ -398,6 +399,16 @@
 
   .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background-color: rgba(75,85,99,0.7);
+  }
+
+  /* Esconder scrollbar mantendo funcionalidade */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 
   /* Gradiente de texto */

@@ -63,13 +63,8 @@ npm run dev
 
 ## Credenciais de Acesso
 
-### Super Administrador
-- **Email:** daniel.cambria@bureau-it.com
-- **Senha:** Quatrelati@2026
-
-### Administrador
-- **Email:** wilson@laticinioquatrelati.com.br
-- **Senha:** Quatrelati@2026
+As credenciais de acesso estão no arquivo `.env.local` (não versionado).
+Solicite ao administrador do sistema.
 
 ## Funcionalidades
 
@@ -94,6 +89,12 @@ npm run dev
 - CRUD completo
 - Histórico de pedidos
 - Estatísticas por cliente
+- Visualização em Cards / Lista / Mapa
+- Mapa Leaflet com clientes por cidade
+- Criação de rotas Google Maps (seleção múltipla)
+- Exportação PDF da lista
+- Ordenação por todas as colunas
+- Telefone e email clicáveis (tel: / mailto:)
 
 ### Produtos
 - CRUD completo
@@ -190,6 +191,41 @@ quatrelati/
 ├── docker-compose.yml
 └── README.md
 ```
+
+## Testes E2E (Playwright)
+
+Os testes E2E utilizam Playwright e requerem configuração de credenciais via variáveis de ambiente.
+
+### Configuração
+
+1. Crie o arquivo `frontend/.env.local`:
+```bash
+# Credenciais de teste (NUNCA commitar!)
+TEST_BASE_URL=http://localhost:3002
+TEST_USER_EMAIL=seu@email.com
+TEST_USER_PASSWORD=suasenha
+```
+
+2. Execute os testes:
+```bash
+cd frontend
+
+# Rodar todos os testes
+npx playwright test
+
+# Rodar com interface visual
+npx playwright test --headed
+
+# Rodar teste específico
+npx playwright test tests/clientes-debug.spec.js --headed
+```
+
+### Arquivos de Teste
+- `tests/helpers.js` - Funções compartilhadas
+- `tests/test-config.js` - Configuração centralizada
+- `tests/*.spec.js` - Testes E2E
+
+> **Importante:** As credenciais são carregadas do `.env.local` que está no `.gitignore`. Nunca commite senhas no repositório.
 
 ## Comandos Úteis
 

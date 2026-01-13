@@ -1,31 +1,12 @@
 // =====================================================
 // Rotas do Dashboard
-// v1.1.0 - Suporte a filtro global por vendedor
+// v1.1.1 - Usando vendedorFilter middleware centralizado
 // =====================================================
 
 const express = require('express');
 const router = express.Router();
 const { authMiddleware } = require('../middleware/auth');
-
-// Helper para verificar permissões e obter filtro de vendedor
-async function getVendedorFilter(req) {
-    const { vendedor_id } = req.query;
-
-    const userResult = await req.db.query(
-        'SELECT nivel, pode_visualizar_todos FROM usuarios WHERE id = $1',
-        [req.userId]
-    );
-    const userNivel = userResult.rows[0]?.nivel;
-    const podeVisualizarTodos = userResult.rows[0]?.pode_visualizar_todos;
-    const canViewAll = ['superadmin', 'admin'].includes(userNivel) || podeVisualizarTodos;
-
-    if (!canViewAll) {
-        return { vendedorId: req.userId, canViewAll: false };
-    } else if (vendedor_id) {
-        return { vendedorId: parseInt(vendedor_id), canViewAll: true };
-    }
-    return { vendedorId: null, canViewAll: true };
-}
+const { vendedorFilterMiddleware } = require('../middleware/vendedorFilter');
 
 // Todas as rotas requerem autenticação
 router.use(authMiddleware);
@@ -34,33 +15,22 @@ router.use(authMiddleware);
  * GET /api/dashboard/resumo
  * Resumo do mês atual (filtrado por vendedor se necessário)
  */
-router.get('/resumo', async (req, res) => {
+router.get('/resumo', vendedorFilterMiddleware, async (req, res) => {
     try {
         const { mes, ano, vendedor_id } = req.query;
         const mesAtual = mes || new Date().getMonth() + 1;
         const anoAtual = ano || new Date().getFullYear();
 
-        // Verificar nível do usuário
-        const userResult = await req.db.query(
-            'SELECT nivel, pode_visualizar_todos FROM usuarios WHERE id = $1',
-            [req.userId]
-        );
-        const userNivel = userResult.rows[0]?.nivel;
-        const podeVisualizarTodos = userResult.rows[0]?.pode_visualizar_todos;
-        const canViewAll = ['superadmin', 'admin'].includes(userNivel) || podeVisualizarTodos;
+        // Usar middleware para filtro de vendedor
+        const filteredVendedorId = req.getVendedorId(vendedor_id);
 
         // Definir filtro de vendedor
         let vendedorFilter = '';
         let params = [mesAtual, anoAtual];
 
-        if (!canViewAll) {
-            // Vendedor só vê seus próprios dados
+        if (filteredVendedorId) {
             vendedorFilter = ' AND created_by = $3';
-            params.push(req.userId);
-        } else if (vendedor_id) {
-            // Admin pode filtrar por vendedor específico
-            vendedorFilter = ' AND created_by = $3';
-            params.push(parseInt(vendedor_id));
+            params.push(filteredVendedorId);
         }
 
         const result = await req.db.query(`
@@ -163,10 +133,10 @@ router.get('/stats', async (req, res) => {
  * GET /api/dashboard/top-clientes
  * Top 5 clientes por valor de pedidos
  */
-router.get('/top-clientes', async (req, res) => {
+router.get('/top-clientes', vendedorFilterMiddleware, async (req, res) => {
     try {
-        const { mes, ano } = req.query;
-        const { vendedorId } = await getVendedorFilter(req);
+        const { mes, ano, vendedor_id } = req.query;
+        const vendedorId = req.getVendedorId(vendedor_id);
 
         let whereConditions = [];
         let params = [];
@@ -212,10 +182,10 @@ router.get('/top-clientes', async (req, res) => {
  * GET /api/dashboard/top-produtos
  * Top 5 produtos mais vendidos
  */
-router.get('/top-produtos', async (req, res) => {
+router.get('/top-produtos', vendedorFilterMiddleware, async (req, res) => {
     try {
-        const { mes, ano } = req.query;
-        const { vendedorId } = await getVendedorFilter(req);
+        const { mes, ano, vendedor_id } = req.query;
+        const vendedorId = req.getVendedorId(vendedor_id);
 
         let whereConditions = [];
         let params = [];
@@ -262,9 +232,10 @@ router.get('/top-produtos', async (req, res) => {
  * GET /api/dashboard/evolucao
  * Evolução mensal (últimos 6 meses)
  */
-router.get('/evolucao', async (req, res) => {
+router.get('/evolucao', vendedorFilterMiddleware, async (req, res) => {
     try {
-        const { vendedorId } = await getVendedorFilter(req);
+        const { vendedor_id } = req.query;
+        const vendedorId = req.getVendedorId(vendedor_id);
 
         let vendedorFilter = '';
         let params = [];
@@ -312,9 +283,10 @@ router.get('/evolucao', async (req, res) => {
  * GET /api/dashboard/proximas-entregas
  * Entregas nos próximos 7 dias
  */
-router.get('/proximas-entregas', async (req, res) => {
+router.get('/proximas-entregas', vendedorFilterMiddleware, async (req, res) => {
     try {
-        const { vendedorId } = await getVendedorFilter(req);
+        const { vendedor_id } = req.query;
+        const vendedorId = req.getVendedorId(vendedor_id);
 
         let vendedorFilter = '';
         let params = [];
@@ -351,9 +323,10 @@ router.get('/proximas-entregas', async (req, res) => {
  * GET /api/dashboard/entregas-atrasadas
  * Pedidos com entrega atrasada
  */
-router.get('/entregas-atrasadas', async (req, res) => {
+router.get('/entregas-atrasadas', vendedorFilterMiddleware, async (req, res) => {
     try {
-        const { vendedorId } = await getVendedorFilter(req);
+        const { vendedor_id } = req.query;
+        const vendedorId = req.getVendedorId(vendedor_id);
 
         let vendedorFilter = '';
         let params = [];

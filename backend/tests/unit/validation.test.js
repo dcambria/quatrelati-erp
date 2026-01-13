@@ -261,7 +261,7 @@ describe('Validation Middleware Integration', () => {
 
             const response = await request(app)
                 .post('/test')
-                .send({ email: 'test@test.com', password: '123456' });
+                .send({ email: 'test@bureau-it.com', password: '123456' });
 
             expect(response.status).toBe(200);
         });

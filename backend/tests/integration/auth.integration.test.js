@@ -26,7 +26,7 @@ describe('Auth Routes Integration', () => {
                 rows: [{
                     id: 1,
                     nome: 'Test User',
-                    email: 'test@test.com',
+                    email: 'test@bureau-it.com',
                     nivel: 'admin',
                     ativo: true,
                     pode_visualizar_todos: true,
@@ -41,14 +41,14 @@ describe('Auth Routes Integration', () => {
             const response = await request(app)
                 .post('/api/auth/login')
                 .send({
-                    email: 'test@test.com',
+                    email: 'test@bureau-it.com',
                     password: 'password123'
                 });
 
             expect(response.status).toBe(200);
             expect(response.body).toHaveProperty('accessToken');
             expect(response.body).toHaveProperty('refreshToken');
-            expect(response.body.user).toHaveProperty('email', 'test@test.com');
+            expect(response.body.user).toHaveProperty('email', 'test@bureau-it.com');
         });
 
         it('deve rejeitar credenciais inválidas', async () => {
@@ -57,7 +57,7 @@ describe('Auth Routes Integration', () => {
             const response = await request(app)
                 .post('/api/auth/login')
                 .send({
-                    email: 'invalid@test.com',
+                    email: 'invalid@bureau-it.com',
                     password: 'wrongpassword'
                 });
 
@@ -71,7 +71,7 @@ describe('Auth Routes Integration', () => {
                 rows: [{
                     id: 1,
                     nome: 'Test User',
-                    email: 'test@test.com',
+                    email: 'test@bureau-it.com',
                     nivel: 'admin',
                     ativo: false,
                     senha_hash: hashedPassword
@@ -82,7 +82,7 @@ describe('Auth Routes Integration', () => {
             const response = await request(app)
                 .post('/api/auth/login')
                 .send({
-                    email: 'test@test.com',
+                    email: 'test@bureau-it.com',
                     password: 'password123'
                 });
 
@@ -116,7 +116,7 @@ describe('Auth Routes Integration', () => {
                     token: refreshToken,
                     expires_at: new Date(Date.now() + 86400000),
                     nome: 'Test User',
-                    email: 'test@test.com',
+                    email: 'test@bureau-it.com',
                     nivel: 'admin',
                     ativo: true
                 }],
@@ -164,7 +164,7 @@ describe('Auth Routes Integration', () => {
                 rows: [{
                     id: 1,
                     nome: 'Test User',
-                    email: 'test@test.com',
+                    email: 'test@bureau-it.com',
                     nivel: 'admin',
                     pode_visualizar_todos: true
                 }],
@@ -202,7 +202,7 @@ describe('Auth Routes Integration', () => {
                 rows: [{
                     id: 1,
                     nome: 'Updated Name',
-                    email: 'test@test.com',
+                    email: 'test@bureau-it.com',
                     nivel: 'admin',
                     telefone: '11999999999',
                     ativo: true,
@@ -233,7 +233,7 @@ describe('Auth Routes Integration', () => {
 
             // Mock for SELECT user with senha_hash
             mockPool.query.mockResolvedValueOnce({
-                rows: [{ nome: 'Test', email: 'test@test.com', nivel: 'admin', senha_hash: hashedPassword }],
+                rows: [{ nome: 'Test', email: 'test@bureau-it.com', nivel: 'admin', senha_hash: hashedPassword }],
                 rowCount: 1
             });
 
@@ -262,7 +262,7 @@ describe('Auth Routes Integration', () => {
             const hashedPassword = await bcrypt.hash('oldpassword', 10);
 
             mockPool.query.mockResolvedValueOnce({
-                rows: [{ nome: 'Test', email: 'test@test.com', nivel: 'admin', senha_hash: hashedPassword }],
+                rows: [{ nome: 'Test', email: 'test@bureau-it.com', nivel: 'admin', senha_hash: hashedPassword }],
                 rowCount: 1
             });
 
@@ -282,7 +282,7 @@ describe('Auth Routes Integration', () => {
     describe('POST /api/auth/forgot-password', () => {
         it('deve enviar email de recuperação para usuário existente', async () => {
             mockPool.query.mockResolvedValueOnce({
-                rows: [{ id: 1, nome: 'Test User', email: 'test@test.com' }],
+                rows: [{ id: 1, nome: 'Test User', email: 'test@bureau-it.com' }],
                 rowCount: 1
             });
 
@@ -293,7 +293,7 @@ describe('Auth Routes Integration', () => {
 
             const response = await request(app)
                 .post('/api/auth/forgot-password')
-                .send({ email: 'test@test.com' });
+                .send({ email: 'test@bureau-it.com' });
 
             expect(response.status).toBe(200);
         });
@@ -303,7 +303,7 @@ describe('Auth Routes Integration', () => {
 
             const response = await request(app)
                 .post('/api/auth/forgot-password')
-                .send({ email: 'nonexistent@test.com' });
+                .send({ email: 'nonexistent@bureau-it.com' });
 
             expect(response.status).toBe(200);
         });
@@ -326,7 +326,7 @@ describe('Auth Routes Integration', () => {
                 rows: [{
                     id: 1,
                     nome: 'Test User',
-                    email: 'test@test.com',
+                    email: 'test@bureau-it.com',
                     nivel: 'admin',
                     pode_visualizar_todos: true
                 }],
@@ -457,7 +457,7 @@ describe('Auth Routes Integration', () => {
                     user_id: 1,
                     token: '123456',
                     nome: 'Test User',
-                    email: 'test@test.com',
+                    email: 'test@bureau-it.com',
                     nivel: 'admin'
                 }],
                 rowCount: 1
@@ -469,7 +469,7 @@ describe('Auth Routes Integration', () => {
 
             const response = await request(app)
                 .post('/api/auth/verify-whatsapp-code')
-                .send({ email: 'test@test.com', code: '123456' });
+                .send({ email: 'test@bureau-it.com', code: '123456' });
 
             expect(response.status).toBe(200);
             expect(response.body).toHaveProperty('resetToken');
@@ -480,7 +480,7 @@ describe('Auth Routes Integration', () => {
 
             const response = await request(app)
                 .post('/api/auth/verify-whatsapp-code')
-                .send({ email: 'test@test.com', code: '000000' });
+                .send({ email: 'test@bureau-it.com', code: '000000' });
 
             expect(response.status).toBe(400);
         });
@@ -488,7 +488,7 @@ describe('Auth Routes Integration', () => {
         it('deve rejeitar requisição sem email ou código', async () => {
             const response = await request(app)
                 .post('/api/auth/verify-whatsapp-code')
-                .send({ email: 'test@test.com' });
+                .send({ email: 'test@bureau-it.com' });
 
             expect(response.status).toBe(400);
         });
@@ -498,7 +498,7 @@ describe('Auth Routes Integration', () => {
 
             const response = await request(app)
                 .post('/api/auth/verify-whatsapp-code')
-                .send({ email: 'test@test.com', code: '123456' });
+                .send({ email: 'test@bureau-it.com', code: '123456' });
 
             expect(response.status).toBe(500);
         });
@@ -527,7 +527,7 @@ describe('Auth Routes Integration', () => {
 
             const response = await request(app)
                 .post('/api/auth/forgot-password')
-                .send({ email: 'test@test.com' });
+                .send({ email: 'test@bureau-it.com' });
 
             expect(response.status).toBe(500);
         });
@@ -540,7 +540,7 @@ describe('Auth Routes Integration', () => {
                 rows: [{
                     id: 1,
                     nome: 'Test User',
-                    email: 'test@test.com',
+                    email: 'test@bureau-it.com',
                     nivel: 'admin',
                     ativo: true,
                     senha_hash: hashedPassword
@@ -551,7 +551,7 @@ describe('Auth Routes Integration', () => {
             const response = await request(app)
                 .post('/api/auth/login')
                 .send({
-                    email: 'test@test.com',
+                    email: 'test@bureau-it.com',
                     password: 'wrongpassword'
                 });
 
@@ -565,7 +565,7 @@ describe('Auth Routes Integration', () => {
             const response = await request(app)
                 .post('/api/auth/login')
                 .send({
-                    email: 'test@test.com',
+                    email: 'test@bureau-it.com',
                     password: 'password123'
                 });
 
@@ -591,7 +591,7 @@ describe('Auth Routes Integration', () => {
                     token: 'some-token',
                     expires_at: new Date(Date.now() + 86400000),
                     nome: 'Test User',
-                    email: 'test@test.com',
+                    email: 'test@bureau-it.com',
                     nivel: 'admin',
                     ativo: false
                 }],
@@ -639,7 +639,7 @@ describe('Auth Routes Integration', () => {
             const token = generateTestToken({ id: 1 });
             // Mock para buscar usuário - retorna usuário
             mockPool.query.mockResolvedValueOnce({
-                rows: [{ id: 1, nome: 'Test User', email: 'test@test.com', nivel: 'admin' }],
+                rows: [{ id: 1, nome: 'Test User', email: 'test@bureau-it.com', nivel: 'admin' }],
                 rowCount: 1
             });
             // Mock para deletar refresh token

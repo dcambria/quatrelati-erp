@@ -4,14 +4,15 @@ import { clsx } from 'clsx';
 import { forwardRef } from 'react';
 
 const Input = forwardRef(function Input(
-  { label, error, className = '', ...props },
+  { label, error, required, className = '', ...props },
   ref
 ) {
   return (
     <div className="space-y-2">
       {label && (
-        <label className="block text-sm font-semibold text-gray-600">
+        <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300">
           {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
       <input

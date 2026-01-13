@@ -1,6 +1,66 @@
+// =====================================================
+// Componentes Card e StatCard
+// v1.2.0 - Formatação compacta para valores grandes
+//          R$ 2,17M | 111,4 t | Tooltip com valor completo
+// =====================================================
 'use client';
 
 import { clsx } from 'clsx';
+import { useState } from 'react';
+
+/**
+ * Formata valores grandes de forma abreviada e compacta
+ * R$ 2.169.611,50 → R$ 2,17M
+ * 111.350,5 kg → 111,4 t (toneladas)
+ */
+function formatCompactValue(value) {
+  if (typeof value !== 'string') return { display: value, full: value };
+
+  const original = value;
+
+  // Detectar se é moeda (R$)
+  const currencyMatch = value.match(/^R\$\s*([\d.,]+)/);
+  if (currencyMatch) {
+    const numStr = currencyMatch[1].replace(/\./g, '').replace(',', '.');
+    const num = parseFloat(numStr);
+    if (!isNaN(num)) {
+      if (num >= 1000000) {
+        const formatted = (num / 1000000).toLocaleString('pt-BR', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+        return { display: `R$ ${formatted}M`, full: original };
+      }
+      if (num >= 10000) {
+        const formatted = (num / 1000).toLocaleString('pt-BR', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 1
+        });
+        return { display: `R$ ${formatted}K`, full: original };
+      }
+    }
+  }
+
+  // Detectar se é peso (kg) - converter para toneladas se grande
+  const weightMatch = value.match(/^([\d.,]+)\s*kg/i);
+  if (weightMatch) {
+    const numStr = weightMatch[1].replace(/\./g, '').replace(',', '.');
+    const num = parseFloat(numStr);
+    if (!isNaN(num)) {
+      if (num >= 1000) {
+        // Converter para toneladas
+        const tons = num / 1000;
+        const formatted = tons.toLocaleString('pt-BR', {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1
+        });
+        return { display: `${formatted} t`, full: original };
+      }
+    }
+  }
+
+  return { display: value, full: value };
+}
 
 export default function Card({ children, className = '', hover = true, ...props }) {
   return (
@@ -19,6 +79,8 @@ export default function Card({ children, className = '', hover = true, ...props 
 }
 
 export function StatCard({ title, value, subtitle, icon: Icon, variant = 'gold' }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
   const variants = {
     gold: 'stat-card-gold',
     blue: 'stat-card-blue',
@@ -43,21 +105,42 @@ export function StatCard({ title, value, subtitle, icon: Icon, variant = 'gold' 
     },
   };
 
+  // Formatar valor de forma compacta
+  const { display, full } = formatCompactValue(value);
+  const isAbbreviated = display !== full;
+
   return (
-    <div className={variants[variant]}>
+    <div className={clsx(variants[variant], 'min-w-0')}>
       <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent rounded-3xl" />
-      <div className="relative z-10">
-        <div className="flex items-center justify-between">
-          <p className={clsx('text-sm font-medium', textColors[variant].title)}>
+      <div className="relative z-10 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <p className={clsx('text-sm font-medium whitespace-nowrap', textColors[variant].title)}>
             {title}
           </p>
-          {Icon && <Icon className="w-5 h-5 text-white/70" />}
+          {Icon && <Icon className="w-5 h-5 text-white/70 flex-shrink-0" />}
         </div>
-        <p className={clsx('text-4xl font-bold mt-2', textColors[variant].value)}>
-          {value}
-        </p>
+        <div
+          className="mt-2 relative"
+          onMouseEnter={() => isAbbreviated && setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+        >
+          <p className={clsx(
+            'text-3xl sm:text-4xl font-bold whitespace-nowrap',
+            isAbbreviated && 'cursor-help',
+            textColors[variant].value
+          )}>
+            {display}
+          </p>
+          {/* Tooltip com valor completo */}
+          {showTooltip && isAbbreviated && (
+            <div className="absolute left-0 -bottom-8 z-50 px-3 py-1.5 bg-gray-900 text-white text-sm font-medium rounded-lg shadow-lg whitespace-nowrap">
+              {full}
+              <div className="absolute -top-1 left-4 w-2 h-2 bg-gray-900 rotate-45" />
+            </div>
+          )}
+        </div>
         {subtitle && (
-          <p className={clsx('text-sm mt-1', textColors[variant].subtitle)}>
+          <p className={clsx('text-sm mt-1 whitespace-nowrap', textColors[variant].subtitle)}>
             {subtitle}
           </p>
         )}

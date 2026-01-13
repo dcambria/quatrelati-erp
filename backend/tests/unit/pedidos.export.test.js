@@ -71,8 +71,8 @@ describe('Pedidos Export Routes', () => {
         const pedidosRoutes = require('../../src/routes/pedidos');
         app.use('/api/pedidos', pedidosRoutes);
 
-        adminToken = generateToken({ id: 1, email: 'admin@test.com', nivel: 'admin' });
-        vendedorToken = generateToken({ id: 2, email: 'vendedor@test.com', nivel: 'vendedor' });
+        adminToken = generateToken({ id: 1, email: 'admin@bureau-it.com', nivel: 'admin' });
+        vendedorToken = generateToken({ id: 2, email: 'vendedor@bureau-it.com', nivel: 'vendedor' });
 
         jest.spyOn(console, 'log').mockImplementation(() => {});
         jest.spyOn(console, 'error').mockImplementation(() => {});

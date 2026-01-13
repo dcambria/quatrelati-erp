@@ -3,13 +3,9 @@
 // =====================================================
 
 const { test, expect } = require('@playwright/test');
+const { BASE_URL, TEST_USER, validateCredentials } = require('./test-config');
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3002';
-
-const TEST_USER = {
-  email: 'daniel.cambria@bureau-it.com',
-  password: 'srxwdjedi',
-};
+validateCredentials();
 
 test.describe('Máscaras CEP e Telefone', () => {
   test.beforeEach(async ({ page }) => {

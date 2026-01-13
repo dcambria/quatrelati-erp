@@ -1,6 +1,12 @@
 'use client';
 
+// =====================================================
+// Dashboard - Página Principal
+// v1.1.0 - Elementos clicáveis com navegação
+// =====================================================
+
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -17,6 +23,7 @@ import {
   Users,
   ShoppingCart,
   CalendarDays,
+  ExternalLink,
 } from 'lucide-react';
 import {
   LineChart,
@@ -50,6 +57,7 @@ const MESES = [
 const PIE_COLORS = ['#22C55E', '#D4A017'];
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { vendedorId } = useVendedorFilter();
   const [loading, setLoading] = useState(true);
   const [mes, setMes] = useState(new Date().getMonth() + 1);
@@ -119,6 +127,22 @@ export default function DashboardPage() {
     return mes === hoje.getMonth() + 1 && ano === hoje.getFullYear();
   };
 
+  // Funções de navegação
+  const navegarParaPedidos = (filtros = {}) => {
+    const params = new URLSearchParams();
+    if (filtros.mes) params.set('mes', filtros.mes);
+    if (filtros.ano) params.set('ano', filtros.ano);
+    if (filtros.status) params.set('status', filtros.status);
+    if (filtros.cliente_id) params.set('cliente_id', filtros.cliente_id);
+    if (filtros.produto_id) params.set('produto_id', filtros.produto_id);
+    if (filtros.pedido_id) params.set('pedido_id', filtros.pedido_id);
+    router.push(`/pedidos${params.toString() ? '?' + params.toString() : ''}`);
+  };
+
+  const navegarParaCliente = (clienteId) => {
+    router.push(`/clientes?detalhe=${clienteId}`);
+  };
+
   const pieData = resumo ? [
     { name: 'Entregues', value: resumo.resumo.entregues },
     { name: 'Pendentes', value: resumo.resumo.pendentes },
@@ -175,40 +199,60 @@ export default function DashboardPage() {
 
       {/* Estatísticas principais */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total de Pedidos"
-          value={resumo?.resumo.total_pedidos || 0}
-          subtitle={resumo?.comparativo.pedidos_variacao > 0
-            ? `+${resumo.comparativo.pedidos_variacao}% vs mês anterior`
-            : `${resumo?.comparativo.pedidos_variacao || 0}% vs mês anterior`
-          }
-          icon={ShoppingCart}
-          variant="gold"
-        />
-        <StatCard
-          title="Valor Total"
-          value={formatCurrency(resumo?.resumo.valor_total || 0)}
-          subtitle={resumo?.comparativo.valor_variacao > 0
-            ? `+${resumo.comparativo.valor_variacao}% vs mês anterior`
-            : `${resumo?.comparativo.valor_variacao || 0}% vs mês anterior`
-          }
-          icon={DollarSign}
-          variant="blue"
-        />
-        <StatCard
-          title="Peso Total"
-          value={`${formatNumber(resumo?.resumo.peso_total || 0)} kg`}
-          subtitle={`${formatNumber(resumo?.resumo.total_caixas || 0)} caixas`}
-          icon={Weight}
-          variant="gold"
-        />
-        <StatCard
-          title="Taxa de Entrega"
-          value={`${resumo?.resumo.taxa_entrega || 0}%`}
-          subtitle={`${resumo?.resumo.entregues || 0} de ${resumo?.resumo.total_pedidos || 0} entregues`}
-          icon={Truck}
-          variant="green"
-        />
+        <div
+          onClick={() => navegarParaPedidos({ mes, ano })}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <StatCard
+            title="Total de Pedidos"
+            value={resumo?.resumo.total_pedidos || 0}
+            subtitle={resumo?.comparativo.pedidos_variacao > 0
+              ? `+${resumo.comparativo.pedidos_variacao}% vs mês anterior`
+              : `${resumo?.comparativo.pedidos_variacao || 0}% vs mês anterior`
+            }
+            icon={ShoppingCart}
+            variant="gold"
+          />
+        </div>
+        <div
+          onClick={() => navegarParaPedidos({ mes, ano })}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <StatCard
+            title="Valor Total"
+            value={formatCurrency(resumo?.resumo.valor_total || 0)}
+            subtitle={resumo?.comparativo.valor_variacao > 0
+              ? `+${resumo.comparativo.valor_variacao}% vs mês anterior`
+              : `${resumo?.comparativo.valor_variacao || 0}% vs mês anterior`
+            }
+            icon={DollarSign}
+            variant="blue"
+          />
+        </div>
+        <div
+          onClick={() => navegarParaPedidos({ mes, ano })}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <StatCard
+            title="Peso Total"
+            value={`${formatNumber(resumo?.resumo.peso_total || 0)} kg`}
+            subtitle={`${formatNumber(resumo?.resumo.total_caixas || 0)} caixas`}
+            icon={Weight}
+            variant="gold"
+          />
+        </div>
+        <div
+          onClick={() => navegarParaPedidos({ mes, ano, status: 'pendente' })}
+          className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <StatCard
+            title="Taxa de Entrega"
+            value={`${resumo?.resumo.taxa_entrega || 0}%`}
+            subtitle={`${resumo?.resumo.entregues || 0} de ${resumo?.resumo.total_pedidos || 0} entregues`}
+            icon={Truck}
+            variant="green"
+          />
+        </div>
       </div>
 
       {/* Gráficos e listas */}
@@ -229,9 +273,18 @@ export default function DashboardPage() {
                   outerRadius={90}
                   paddingAngle={5}
                   dataKey="value"
+                  onClick={(data) => {
+                    const status = data.name === 'Entregues' ? 'entregue' : 'pendente';
+                    navegarParaPedidos({ mes, ano, status });
+                  }}
+                  style={{ cursor: 'pointer' }}
                 >
                   {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={PIE_COLORS[index]}
+                      style={{ cursor: 'pointer' }}
+                    />
                   ))}
                 </Pie>
                 <Tooltip
@@ -246,6 +299,7 @@ export default function DashboardPage() {
               </PieChart>
             </ResponsiveContainer>
           </div>
+          <p className="text-xs text-gray-400 text-center mt-2">Clique nas fatias para filtrar</p>
         </Card>
 
         {/* Evolução Mensal */}
@@ -312,14 +366,15 @@ export default function DashboardPage() {
               topClientes.map((cliente, index) => (
                 <div
                   key={cliente.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/30"
+                  onClick={() => navegarParaCliente(cliente.id)}
+                  className="flex items-center justify-between p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/30 cursor-pointer hover:bg-gray-100/80 dark:hover:bg-gray-700/50 transition-colors group"
                 >
                   <div className="flex items-center gap-3">
                     <span className="w-8 h-8 flex items-center justify-center rounded-full bg-quatrelati-gold-500/20 text-quatrelati-gold-600 dark:text-quatrelati-gold-400 font-semibold text-sm">
                       {index + 1}
                     </span>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
+                      <p className="font-medium text-gray-900 dark:text-white group-hover:text-quatrelati-gold-600 dark:group-hover:text-quatrelati-gold-400 transition-colors">
                         {cliente.nome}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -327,9 +382,12 @@ export default function DashboardPage() {
                       </p>
                     </div>
                   </div>
-                  <p className="font-semibold text-quatrelati-gold-600 dark:text-quatrelati-gold-400">
-                    {formatCurrency(cliente.valor_total)}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-quatrelati-gold-600 dark:text-quatrelati-gold-400">
+                      {formatCurrency(cliente.valor_total)}
+                    </p>
+                    <ExternalLink className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
                 </div>
               ))
             )}
@@ -353,14 +411,15 @@ export default function DashboardPage() {
               topProdutos.map((produto, index) => (
                 <div
                   key={produto.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/30"
+                  onClick={() => navegarParaPedidos({ mes, ano, produto_id: produto.id })}
+                  className="flex items-center justify-between p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/30 cursor-pointer hover:bg-gray-100/80 dark:hover:bg-gray-700/50 transition-colors group"
                 >
                   <div className="flex items-center gap-3">
                     <span className="w-8 h-8 flex items-center justify-center rounded-full bg-quatrelati-blue-500/20 text-quatrelati-blue-600 dark:text-quatrelati-blue-400 font-semibold text-sm">
                       {index + 1}
                     </span>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white text-sm">
+                      <p className="font-medium text-gray-900 dark:text-white text-sm group-hover:text-quatrelati-blue-600 dark:group-hover:text-quatrelati-blue-400 transition-colors">
                         {produto.nome}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -368,9 +427,12 @@ export default function DashboardPage() {
                       </p>
                     </div>
                   </div>
-                  <p className="font-semibold text-quatrelati-blue-600 dark:text-quatrelati-blue-400">
-                    {formatCurrency(produto.valor_total)}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-quatrelati-blue-600 dark:text-quatrelati-blue-400">
+                      {formatCurrency(produto.valor_total)}
+                    </p>
+                    <ExternalLink className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
                 </div>
               ))
             )}
@@ -398,23 +460,27 @@ export default function DashboardPage() {
               proximasEntregas.map((pedido) => (
                 <div
                   key={pedido.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/30"
+                  onClick={() => navegarParaPedidos({ pedido_id: pedido.id })}
+                  className="flex items-center justify-between p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/30 cursor-pointer hover:bg-gray-100/80 dark:hover:bg-gray-700/50 transition-colors group"
                 >
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="font-medium text-gray-900 dark:text-white group-hover:text-quatrelati-blue-600 dark:group-hover:text-quatrelati-blue-400 transition-colors">
                       {pedido.numero_pedido} - {pedido.cliente_nome}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {pedido.produto_nome}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <Badge variant="info">
-                      {format(new Date(pedido.data_entrega), 'dd/MM', { locale: ptBR })}
-                    </Badge>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {formatNumber(pedido.peso_kg)} kg
-                    </p>
+                  <div className="text-right flex items-center gap-2">
+                    <div>
+                      <Badge variant="info">
+                        {format(new Date(pedido.data_entrega), 'dd/MM', { locale: ptBR })}
+                      </Badge>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {formatNumber(pedido.peso_kg)} kg
+                      </p>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 </div>
               ))
@@ -440,23 +506,27 @@ export default function DashboardPage() {
               atrasados.map((pedido) => (
                 <div
                   key={pedido.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-red-50/50 dark:bg-red-900/10 border border-red-200/50 dark:border-red-800/30"
+                  onClick={() => navegarParaPedidos({ pedido_id: pedido.id })}
+                  className="flex items-center justify-between p-3 rounded-xl bg-red-50/50 dark:bg-red-900/10 border border-red-200/50 dark:border-red-800/30 cursor-pointer hover:bg-red-100/80 dark:hover:bg-red-900/20 transition-colors group"
                 >
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="font-medium text-gray-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
                       {pedido.numero_pedido} - {pedido.cliente_nome}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {pedido.produto_nome}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <Badge variant="error" dot>
-                      {pedido.dias_atraso} dias
-                    </Badge>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {format(new Date(pedido.data_entrega), 'dd/MM', { locale: ptBR })}
-                    </p>
+                  <div className="text-right flex items-center gap-2">
+                    <div>
+                      <Badge variant="error" dot>
+                        {pedido.dias_atraso} dias
+                      </Badge>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {format(new Date(pedido.data_entrega), 'dd/MM', { locale: ptBR })}
+                      </p>
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 </div>
               ))

@@ -1,7 +1,7 @@
 'use client';
 // =====================================================
 // Modal de Primeiro Acesso
-// v1.0.0 - Solicita atualização de dados no primeiro login
+// v1.0.1 - Corrige ordem de chamadas (senha antes do perfil)
 // =====================================================
 
 import { useState } from 'react';
@@ -65,16 +65,16 @@ export default function FirstAccessModal({ isOpen, onComplete }) {
   const onSubmit = async (data) => {
     setSaving(true);
     try {
+      // IMPORTANTE: Definir senha PRIMEIRO (antes de atualizar perfil)
+      // O endpoint /profile define primeiro_acesso = false
+      await api.post('/auth/set-initial-password', {
+        newPassword: data.senha,
+      });
+
       // Atualizar perfil (nome e telefone)
       const profileRes = await api.put('/auth/profile', {
         nome: data.nome,
         telefone: data.telefone || null,
-      });
-
-      // Atualizar senha
-      // Para primeiro acesso, não precisa da senha atual
-      await api.post('/auth/set-initial-password', {
-        newPassword: data.senha,
       });
 
       // Atualizar contexto do usuário
@@ -89,31 +89,7 @@ export default function FirstAccessModal({ isOpen, onComplete }) {
       onComplete?.();
     } catch (error) {
       console.error('Erro ao salvar dados:', error);
-
-      // Se o endpoint de senha inicial não existir, tentar criar a senha de outra forma
-      if (error.response?.status === 404) {
-        try {
-          // Fallback: atualizar apenas o perfil
-          const profileRes = await api.put('/auth/profile', {
-            nome: data.nome,
-            telefone: data.telefone || null,
-          });
-
-          if (setUser && profileRes.data.user) {
-            setUser({
-              ...profileRes.data.user,
-              primeiro_acesso: false,
-            });
-          }
-
-          toast.success('Perfil atualizado! Configure sua senha na página de perfil.');
-          onComplete?.();
-        } catch (profileError) {
-          toast.error(profileError.message || 'Erro ao salvar dados');
-        }
-      } else {
-        toast.error(error.message || 'Erro ao salvar dados');
-      }
+      toast.error(error.response?.data?.error || error.message || 'Erro ao salvar dados');
     } finally {
       setSaving(false);
     }

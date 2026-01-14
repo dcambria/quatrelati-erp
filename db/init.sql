@@ -19,6 +19,7 @@ CREATE TABLE usuarios (
     nivel VARCHAR(20) DEFAULT 'user' CHECK (nivel IN ('superadmin', 'admin', 'user')),
     ativo BOOLEAN DEFAULT true,
     pode_visualizar_todos BOOLEAN DEFAULT false,
+    primeiro_acesso BOOLEAN DEFAULT true,
     telefone VARCHAR(20),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -33,10 +34,17 @@ CREATE TABLE clientes (
     telefone VARCHAR(20),
     email VARCHAR(100),
     endereco TEXT,
-    endereco_entrega TEXT,
+    numero VARCHAR(20),
+    complemento VARCHAR(100),
     cidade VARCHAR(100),
     estado VARCHAR(2),
     cep VARCHAR(10),
+    endereco_entrega TEXT,
+    numero_entrega VARCHAR(20),
+    complemento_entrega VARCHAR(100),
+    cidade_entrega VARCHAR(100),
+    estado_entrega VARCHAR(2),
+    cep_entrega VARCHAR(10),
     contato_nome VARCHAR(100),
     observacoes TEXT,
     logo_url VARCHAR(500),
@@ -79,6 +87,18 @@ CREATE TABLE pedidos (
     created_by INTEGER REFERENCES usuarios(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Itens de Pedido (múltiplos produtos por pedido)
+CREATE TABLE pedido_itens (
+    id SERIAL PRIMARY KEY,
+    pedido_id INTEGER REFERENCES pedidos(id) ON DELETE CASCADE,
+    produto_id INTEGER REFERENCES produtos(id),
+    quantidade_caixas INTEGER NOT NULL,
+    peso_kg DECIMAL(12,3) NOT NULL,
+    preco_unitario DECIMAL(10,2) NOT NULL,
+    subtotal DECIMAL(14,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Refresh Tokens
@@ -146,6 +166,8 @@ CREATE INDEX idx_activity_logs_user_id ON activity_logs(user_id);
 CREATE INDEX idx_activity_logs_entity ON activity_logs(entity, entity_id);
 CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at DESC);
 CREATE INDEX idx_magic_links_token ON magic_links(token);
+CREATE INDEX idx_pedido_itens_pedido ON pedido_itens(pedido_id);
+CREATE INDEX idx_pedido_itens_produto ON pedido_itens(produto_id);
 
 -- =====================================================
 -- FUNÇÕES E TRIGGERS
@@ -180,9 +202,9 @@ CREATE TRIGGER update_pedidos_updated_at BEFORE UPDATE ON pedidos
 -- Hash gerado com bcryptjs (10 rounds)
 -- Para gerar novo hash: node backend/src/utils/generateHash.js
 
-INSERT INTO usuarios (nome, email, senha_hash, nivel, ativo) VALUES
-('Daniel Cambria', 'daniel.cambria@bureau-it.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'superadmin', true),
-('Wilson', 'wilson@laticinioquatrelati.com.br', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', true);
+INSERT INTO usuarios (nome, email, senha_hash, nivel, ativo, primeiro_acesso) VALUES
+('Daniel Cambria', 'daniel.cambria@bureau-it.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'superadmin', true, false),
+('Wilson', 'wilson@laticinioquatrelati.com.br', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', true, false);
 
 -- =====================================================
 -- SEEDS - PRODUTOS (Manteigas)

@@ -1,6 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+// =====================================================
+// Layout do Dashboard
+// v1.1.0 - Adiciona modal de primeiro acesso
+// =====================================================
+
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,6 +15,7 @@ import { VendedorFilterProvider } from '../contexts/VendedorFilterContext';
 import Sidebar from '../components/layout/Sidebar';
 import BureauLogo from '../components/common/BureauLogo';
 import { LoadingPage } from '../components/ui/Loading';
+import FirstAccessModal from '../components/ui/FirstAccessModal';
 import { Menu } from 'lucide-react';
 
 function MobileHeader() {
@@ -41,6 +47,20 @@ function MobileHeader() {
 
 function DashboardContent({ children }) {
   const { isCollapsed, isMobile } = useSidebar();
+  const { user, setUser } = useAuth();
+  const [showFirstAccessModal, setShowFirstAccessModal] = useState(false);
+
+  // Verificar primeiro acesso quando user estiver disponível
+  useEffect(() => {
+    if (user?.primeiro_acesso) {
+      setShowFirstAccessModal(true);
+    }
+  }, [user]);
+
+  const handleFirstAccessComplete = () => {
+    setShowFirstAccessModal(false);
+    // O user já foi atualizado pelo modal
+  };
 
   const mainMargin = isMobile ? 'ml-0 pt-16' : (isCollapsed ? 'ml-20' : 'ml-72');
 
@@ -54,6 +74,12 @@ function DashboardContent({ children }) {
         </div>
         <BureauLogo />
       </main>
+
+      {/* Modal de primeiro acesso */}
+      <FirstAccessModal
+        isOpen={showFirstAccessModal}
+        onComplete={handleFirstAccessComplete}
+      />
     </div>
   );
 }

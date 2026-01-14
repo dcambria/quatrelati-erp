@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Autenticação
-// v1.5.1 - Removido import duplicado de crypto
+// v1.6.0 - Suporte a primeiro acesso
 // =====================================================
 
 const express = require('express');
@@ -48,7 +48,7 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
 
         // Buscar usuário
         const result = await req.db.query(
-            'SELECT id, nome, email, senha_hash, nivel, ativo, pode_visualizar_todos FROM usuarios WHERE email = $1',
+            'SELECT id, nome, email, senha_hash, nivel, ativo, pode_visualizar_todos, primeiro_acesso FROM usuarios WHERE email = $1',
             [email]
         );
 
@@ -111,7 +111,8 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
                 nome: user.nome,
                 email: user.email,
                 nivel: user.nivel,
-                pode_visualizar_todos: user.pode_visualizar_todos || false
+                pode_visualizar_todos: user.pode_visualizar_todos || false,
+                primeiro_acesso: user.primeiro_acesso || false
             },
             accessToken,
             refreshToken,
@@ -221,7 +222,7 @@ router.post('/logout', authMiddleware, async (req, res) => {
 router.get('/me', authMiddleware, async (req, res) => {
     try {
         const result = await req.db.query(
-            'SELECT id, nome, email, telefone, nivel, ativo, pode_visualizar_todos, created_at FROM usuarios WHERE id = $1',
+            'SELECT id, nome, email, telefone, nivel, ativo, pode_visualizar_todos, primeiro_acesso, created_at FROM usuarios WHERE id = $1',
             [req.userId]
         );
 
@@ -256,9 +257,9 @@ router.put('/profile', authMiddleware, async (req, res) => {
 
         const result = await req.db.query(`
             UPDATE usuarios
-            SET nome = $1, telefone = $2
+            SET nome = $1, telefone = $2, primeiro_acesso = false
             WHERE id = $3
-            RETURNING id, nome, email, telefone, nivel, ativo, created_at
+            RETURNING id, nome, email, telefone, nivel, ativo, primeiro_acesso, created_at
         `, [nome.trim(), telefone || null, req.userId]);
 
         if (result.rows.length === 0) {
@@ -366,7 +367,7 @@ router.post('/verify-magic-link', verifyLimiter, async (req, res) => {
 
         // Buscar magic link válido
         const result = await req.db.query(
-            `SELECT ml.*, u.id as user_id, u.nome, u.email, u.nivel
+            `SELECT ml.*, u.id as user_id, u.nome, u.email, u.nivel, u.primeiro_acesso
              FROM magic_links ml
              JOIN usuarios u ON ml.user_id = u.id
              WHERE ml.token = $1
@@ -416,7 +417,8 @@ router.post('/verify-magic-link', verifyLimiter, async (req, res) => {
                 id: magicLink.user_id,
                 nome: magicLink.nome,
                 email: magicLink.email,
-                nivel: magicLink.nivel
+                nivel: magicLink.nivel,
+                primeiro_acesso: magicLink.primeiro_acesso || false
             },
             accessToken,
             refreshToken,
@@ -425,6 +427,70 @@ router.post('/verify-magic-link', verifyLimiter, async (req, res) => {
     } catch (error) {
         console.error('Erro ao validar magic link:', error);
         res.status(500).json({ error: 'Erro ao validar link' });
+    }
+});
+
+/**
+ * POST /api/auth/set-initial-password
+ * Define senha inicial no primeiro acesso (não requer senha atual)
+ */
+router.post('/set-initial-password', authMiddleware, async (req, res) => {
+    try {
+        const { newPassword } = req.body;
+
+        if (!newPassword) {
+            return res.status(400).json({ error: 'Nova senha é obrigatória' });
+        }
+
+        if (newPassword.length < 8) {
+            return res.status(400).json({ error: 'Senha deve ter no mínimo 8 caracteres' });
+        }
+
+        // Verificar se é primeiro acesso
+        const userResult = await req.db.query(
+            'SELECT nome, email, nivel, primeiro_acesso FROM usuarios WHERE id = $1',
+            [req.userId]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+
+        const user = userResult.rows[0];
+
+        // Permitir apenas se for primeiro acesso
+        if (!user.primeiro_acesso) {
+            return res.status(403).json({
+                error: 'Esta função só está disponível no primeiro acesso. Use a alteração de senha normal.'
+            });
+        }
+
+        // Hash da nova senha
+        const novaSenhaHash = await bcrypt.hash(newPassword, 10);
+
+        // Atualizar senha e marcar que não é mais primeiro acesso
+        await req.db.query(
+            'UPDATE usuarios SET senha_hash = $1, primeiro_acesso = false WHERE id = $2',
+            [novaSenhaHash, req.userId]
+        );
+
+        // Registrar no activity log
+        await logActivity(req.db, {
+            userId: req.userId,
+            userNome: user.nome,
+            userNivel: user.nivel,
+            action: 'definir_senha_inicial',
+            entity: 'auth',
+            entityId: req.userId,
+            entityName: user.email,
+            ipAddress: req.ip || req.connection?.remoteAddress,
+            userAgent: req.get('User-Agent'),
+        });
+
+        res.json({ message: 'Senha definida com sucesso' });
+    } catch (error) {
+        console.error('Erro ao definir senha inicial:', error);
+        res.status(500).json({ error: 'Erro ao definir senha' });
     }
 });
 

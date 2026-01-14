@@ -1,7 +1,7 @@
 'use client';
 // =====================================================
 // Pagina de Gestao de Pedidos
-// v2.2.0 - Indicador visual de filtros ativos
+// v2.3.0 - Passa usuário atual para formulário de pedido
 // =====================================================
 
 import { useState, useEffect } from 'react';
@@ -33,7 +33,7 @@ import { MESES, isCurrentMonth } from './utils';
 
 export default function PedidosPage() {
   const searchParams = useSearchParams();
-  const { canEdit, canViewAll } = useAuth();
+  const { canEdit, canViewAll, user } = useAuth();
   const { vendedorId: vendedorGlobal } = useVendedorFilter();
 
   // Ler parâmetros da URL (vindos do dashboard)
@@ -517,6 +517,7 @@ export default function PedidosPage() {
         clientes={clientes}
         produtos={produtos}
         usuarios={usuarios}
+        currentUser={user}
         canEdit={canEdit}
         onSave={salvarPedido}
         carregarPedidoCompleto={carregarPedidoCompleto}

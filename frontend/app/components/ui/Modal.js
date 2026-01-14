@@ -1,5 +1,10 @@
 'use client';
 
+// =====================================================
+// Modal - Componente de modal com suporte a footer sticky
+// v1.1.0 - Adiciona footer sticky para botões de ação
+// =====================================================
+
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -9,6 +14,7 @@ export default function Modal({
   onClose,
   title,
   children,
+  footer,
   size = 'md',
   showClose = true,
 }) {
@@ -66,9 +72,14 @@ export default function Modal({
             </button>
           )}
         </div>
-        <div className="overflow-y-auto flex-1">
+        <div className="overflow-y-auto flex-1 min-h-0">
           {children}
         </div>
+        {footer && (
+          <div className="flex-shrink-0 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky bottom-0">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

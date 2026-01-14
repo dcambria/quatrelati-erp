@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Clientes
-// v2.13.0 - Header consistente com Pedidos
+// v2.14.0 - Footer sticky no modal de formulário
 // =====================================================
 
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
@@ -1398,10 +1398,18 @@ export default function ClientesPage() {
         onClose={fecharModal}
         title={editingCliente ? 'Editar Cliente' : 'Novo Cliente'}
         size="lg"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="ghost" type="button" onClick={fecharModal}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="cliente-form" loading={saving}>
+              {editingCliente ? 'Salvar' : 'Criar Cliente'}
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full">
-          {/* Área scrollável */}
-          <div className="flex-1 overflow-y-auto space-y-5 pr-2 -mr-2 max-h-[calc(80vh-140px)]">
+        <form id="cliente-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Header: Logo + Status + Nome */}
             <div className="flex gap-4 items-start p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
               {/* Upload de Logo */}
@@ -1713,27 +1721,16 @@ export default function ClientesPage() {
           </div>
 
           {/* Observações */}
-            <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Observações
-              </label>
-              <textarea
-                className="input-glass resize-none w-full"
-                rows={3}
-                placeholder="Anotações sobre o cliente..."
-                {...register('observacoes')}
-              />
-            </div>
-          </div>
-
-          {/* Botões fixos no rodapé */}
-          <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky bottom-0">
-            <Button variant="ghost" type="button" onClick={fecharModal}>
-              Cancelar
-            </Button>
-            <Button type="submit" loading={saving}>
-              {editingCliente ? 'Salvar' : 'Criar Cliente'}
-            </Button>
+          <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Observações
+            </label>
+            <textarea
+              className="input-glass resize-none w-full"
+              rows={3}
+              placeholder="Anotações sobre o cliente..."
+              {...register('observacoes')}
+            />
           </div>
         </form>
       </Modal>

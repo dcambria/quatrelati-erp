@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Produtos
-// v1.3.0 - Header consistente com Pedidos
+// v1.4.0 - Footer sticky no modal de formulário
 // =====================================================
 
 import { useState, useEffect, useRef } from 'react';
@@ -388,8 +388,18 @@ export default function ProdutosPage() {
         onClose={fecharModal}
         title={editingProduto ? 'Editar Produto' : 'Novo Produto'}
         size="md"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="ghost" type="button" onClick={fecharModal}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="produto-form" loading={saving}>
+              {editingProduto ? 'Salvar' : 'Criar Produto'}
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form id="produto-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Upload de Imagem */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -454,7 +464,7 @@ export default function ProdutosPage() {
               Descrição
             </label>
             <textarea
-              className="input-glass resize-none"
+              className="input-glass resize-none w-full"
               rows={3}
               {...register('descricao')}
             />
@@ -475,15 +485,6 @@ export default function ProdutosPage() {
               value={watch('preco_padrao') || ''}
               onChange={(e) => setValue('preco_padrao', mascaraMoeda(e.target.value))}
             />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <Button variant="ghost" type="button" onClick={fecharModal}>
-              Cancelar
-            </Button>
-            <Button type="submit" loading={saving}>
-              {editingProduto ? 'Salvar' : 'Criar Produto'}
-            </Button>
           </div>
         </form>
       </Modal>

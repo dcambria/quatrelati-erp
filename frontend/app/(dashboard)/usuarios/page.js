@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Usuários
-// v1.3.0 - Admin pode gerenciar usuários (exceto superadmin)
+// v1.4.0 - Footer sticky no modal de formulário
 // =====================================================
 
 import { useState, useEffect } from 'react';
@@ -402,8 +402,32 @@ export default function UsuariosPage() {
         onClose={fecharModal}
         title={editingUsuario ? 'Editar Usuário' : 'Novo Usuário'}
         size="md"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="ghost" type="button" onClick={fecharModal}>
+              Cancelar
+            </Button>
+            {!editingUsuario && (
+              <Button
+                type="button"
+                variant="outline"
+                loading={sendingInvite}
+                onClick={handleSubmit(enviarConvite)}
+                className="text-quatrelati-blue-600 border-quatrelati-blue-300 hover:bg-quatrelati-blue-50"
+              >
+                <Send className="w-4 h-4 mr-1" />
+                Enviar Convite
+              </Button>
+            )}
+            {editingUsuario && (
+              <Button type="submit" form="usuario-form" loading={saving}>
+                Salvar
+              </Button>
+            )}
+          </div>
+        }
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form id="usuario-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <Input
             label="Nome"
             error={errors.nome?.message}
@@ -460,29 +484,6 @@ export default function UsuariosPage() {
               .map(n => ({ value: n.value, label: n.label }))}
             {...register('nivel')}
           />
-
-          <div className="flex justify-end gap-3 pt-4">
-            <Button variant="ghost" type="button" onClick={fecharModal}>
-              Cancelar
-            </Button>
-            {!editingUsuario && (
-              <Button
-                type="button"
-                variant="outline"
-                loading={sendingInvite}
-                onClick={handleSubmit(enviarConvite)}
-                className="text-quatrelati-blue-600 border-quatrelati-blue-300 hover:bg-quatrelati-blue-50"
-              >
-                <Send className="w-4 h-4 mr-1" />
-                Enviar Convite
-              </Button>
-            )}
-            {editingUsuario && (
-              <Button type="submit" loading={saving}>
-                Salvar
-              </Button>
-            )}
-          </div>
         </form>
       </Modal>
 

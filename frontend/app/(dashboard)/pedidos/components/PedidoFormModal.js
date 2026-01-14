@@ -1,12 +1,12 @@
 // =====================================================
 // Modal de Formulário de Pedido
-// v1.4.0 - Corrige horário de recebimento e botão salvar
+// v1.6.0 - Vendedor atual selecionado por padrão
 // =====================================================
 
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, X } from 'lucide-react';
@@ -15,8 +15,9 @@ import Modal from '../../../components/ui/Modal';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Button from '../../../components/ui/Button';
+import HorarioRecebimentoPicker from '../../../components/ui/HorarioRecebimentoPicker';
 import { formatCurrency, calcularTotalPedido } from '../utils';
-import { horarioSchema, precoPositivoSchema, mascaraHorario } from '../../../lib/validations';
+import { precoPositivoSchema } from '../../../lib/validations';
 
 const pedidoSchema = z.object({
   data_pedido: z.string().min(1, 'Data é obrigatória'),
@@ -25,7 +26,7 @@ const pedidoSchema = z.object({
   nf: z.string().optional(),
   observacoes: z.string().optional(),
   preco_descarga_pallet: precoPositivoSchema,
-  horario_recebimento: horarioSchema,
+  horario_recebimento: z.string().optional(),
 }).refine((data) => {
   // Se data_entrega foi preenchida, deve ser >= data_pedido
   if (data.data_entrega && data.data_pedido) {
@@ -44,6 +45,7 @@ export default function PedidoFormModal({
   clientes,
   produtos,
   usuarios,
+  currentUser,
   canEdit,
   onSave,
   carregarPedidoCompleto,
@@ -58,6 +60,7 @@ export default function PedidoFormModal({
     reset,
     watch,
     setValue,
+    control,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(pedidoSchema),
@@ -132,7 +135,8 @@ export default function PedidoFormModal({
   };
 
   const resetForm = () => {
-    setVendedorSelecionado('');
+    // Seleciona o usuário atual como vendedor padrão ao criar novo pedido
+    setVendedorSelecionado(currentUser?.id?.toString() || '');
     reset({
       data_pedido: new Date().toISOString().split('T')[0],
       cliente_id: '',
@@ -219,14 +223,26 @@ export default function PedidoFormModal({
     }
   };
 
+  const footerButtons = (
+    <div className="flex justify-end gap-3">
+      <Button variant="ghost" type="button" onClick={fecharModal}>
+        Cancelar
+      </Button>
+      <Button type="submit" form="pedido-form" loading={saving}>
+        {editingPedido ? 'Salvar' : 'Criar Pedido'}
+      </Button>
+    </div>
+  );
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={fecharModal}
       title={editingPedido ? 'Editar Pedido' : 'Novo Pedido'}
       size="xl"
+      footer={footerButtons}
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <form id="pedido-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Linha 1: Datas */}
         <div className="grid grid-cols-2 gap-3">
           <Input
@@ -279,16 +295,16 @@ export default function PedidoFormModal({
             Entrega
           </h4>
           <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Horário de Recebimento"
-              placeholder="Ex: 08:00 às 17:00"
-              error={errors.horario_recebimento?.message}
-              {...register('horario_recebimento', {
-                onChange: (e) => {
-                  const masked = mascaraHorario(e.target.value);
-                  e.target.value = masked;
-                }
-              })}
+            <Controller
+              name="horario_recebimento"
+              control={control}
+              render={({ field }) => (
+                <HorarioRecebimentoPicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.horario_recebimento?.message}
+                />
+              )}
             />
             <Input
               label="Preço Descarga Pallet (R$)"
@@ -392,14 +408,6 @@ export default function PedidoFormModal({
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <Button variant="ghost" type="button" onClick={fecharModal}>
-            Cancelar
-          </Button>
-          <Button type="submit" loading={saving}>
-            {editingPedido ? 'Salvar' : 'Criar Pedido'}
-          </Button>
-        </div>
       </form>
     </Modal>
   );

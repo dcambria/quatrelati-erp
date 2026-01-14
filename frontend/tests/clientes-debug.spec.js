@@ -1,8 +1,8 @@
 // Test de debug para página de clientes
 const { test, expect } = require('@playwright/test');
-const { BASE_URL, TEST_USER, validateCredentials } = require('./test-config');
+const { BASE_URL, TEST_USER, hasCredentials, isCI } = require('./test-config');
 
-validateCredentials();
+test.skip(!hasCredentials, 'Credenciais não configuradas');
 
 test.describe('Debug Clientes', () => {
   test('verificar página de clientes e botões', async ({ page }) => {

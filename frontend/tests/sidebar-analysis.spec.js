@@ -3,9 +3,9 @@
 // v1.0.1 - Usar porta 3002
 // =====================================================
 const { test, expect } = require('@playwright/test');
-const { BASE_URL, TEST_USER, validateCredentials } = require('./test-config');
+const { BASE_URL, TEST_USER, hasCredentials, isCI } = require('./test-config');
 
-validateCredentials();
+test.skip(!hasCredentials, 'Credenciais não configuradas');
 
 async function loginDirect(page) {
   await page.goto(`${BASE_URL}/login`);

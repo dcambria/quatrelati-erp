@@ -3,11 +3,11 @@
 // =====================================================
 
 const { test, expect } = require('@playwright/test');
-const { BASE_URL, TEST_USER, validateCredentials } = require('./test-config');
+const { BASE_URL, TEST_USER, hasCredentials, isCI } = require('./test-config');
 
 const API_URL = 'http://localhost:3001';
 
-validateCredentials();
+test.skip(!hasCredentials, 'Credenciais não configuradas');
 
 test.describe('Download de PDF', () => {
   test('deve baixar PDF de pedidos via botao', async ({ page }) => {

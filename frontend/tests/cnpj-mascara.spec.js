@@ -3,9 +3,9 @@
 // =====================================================
 
 const { test, expect } = require('@playwright/test');
-const { BASE_URL, TEST_USER, validateCredentials } = require('./test-config');
+const { BASE_URL, TEST_USER, hasCredentials, isCI } = require('./test-config');
 
-validateCredentials();
+test.skip(!hasCredentials, 'Credenciais não configuradas');
 
 test.describe('Máscaras CEP e Telefone', () => {
   test.beforeEach(async ({ page }) => {

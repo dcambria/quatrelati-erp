@@ -1,11 +1,12 @@
 // =====================================================
 // Teste de Escala Automática dos StatCards
-// v1.1.0 - Verificar fonte adaptativa para valores grandes
+// v1.2.0 - Resiliente para CI/CD
 // =====================================================
 const { test, expect } = require('@playwright/test');
-const { BASE_URL, TEST_USER, validateCredentials } = require('./test-config');
+const { BASE_URL, TEST_USER, hasCredentials, isCI } = require('./test-config');
 
-validateCredentials();
+// Skip se não houver credenciais
+test.skip(!hasCredentials, 'Credenciais de teste não configuradas');
 
 async function loginDirect(page) {
   await page.goto(`${BASE_URL}/login`);

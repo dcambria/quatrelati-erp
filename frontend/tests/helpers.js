@@ -1,11 +1,16 @@
 // =====================================================
 // Helpers compartilhados para testes Playwright
-// v1.2.0 - Credenciais via variáveis de ambiente
+// v1.3.0 - Suporte a CI/CD
 // =====================================================
 
-require('dotenv').config({ path: '.env.local' });
+// Tentar carregar .env.local (silencioso se não existir)
+try {
+  require('dotenv').config({ path: '.env.local' });
+} catch {
+  // Ignorar
+}
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3002';
+const BASE_URL = process.env.TEST_BASE_URL || process.env.BASE_URL || 'http://localhost:3000';
 const API_URL = process.env.TEST_API_URL || 'http://localhost:3001';
 
 const TEST_USER = {
@@ -13,10 +18,12 @@ const TEST_USER = {
   password: process.env.TEST_USER_PASSWORD || '',
 };
 
-// Validar credenciais
-if (!TEST_USER.email || !TEST_USER.password) {
-  console.error('❌ Credenciais de teste não configuradas!');
-  console.error('   Configure TEST_USER_EMAIL e TEST_USER_PASSWORD no .env.local');
+const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+const hasCredentials = !!(TEST_USER.email && TEST_USER.password);
+
+// Avisar sobre credenciais apenas se não estiver em CI
+if (!hasCredentials && !isCI) {
+  console.warn('⚠️ Credenciais de teste não configuradas');
 }
 
 /**
@@ -136,6 +143,8 @@ module.exports = {
   BASE_URL,
   API_URL,
   TEST_USER,
+  isCI,
+  hasCredentials,
   waitForServer,
   login,
   irParaPedidos,

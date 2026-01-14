@@ -1,6 +1,6 @@
 // =====================================================
 // Modal de Formulário de Pedido
-// v1.7.0 - Layout compacto + mini agenda otimizada
+// v1.9.0 - Mini agenda inline + foto vendedor
 // =====================================================
 
 'use client';
@@ -9,12 +9,13 @@ import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, X, User } from 'lucide-react';
+import { Plus, X, User, ChevronDown } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Modal from '../../../components/ui/Modal';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Button from '../../../components/ui/Button';
+import Gravatar from '../../../components/ui/Gravatar';
 import HorarioRecebimentoPicker from '../../../components/ui/HorarioRecebimentoPicker';
 import { formatCurrency, calcularTotalPedido } from '../utils';
 import { precoPositivoSchema } from '../../../lib/validations';
@@ -223,28 +224,38 @@ export default function PedidoFormModal({
     }
   };
 
-  // Encontrar nome do vendedor selecionado
-  const vendedorNome = usuarios.find(u => u.id === parseInt(vendedorSelecionado))?.nome;
+  // Encontrar vendedor selecionado
+  const vendedorSelecionadoObj = usuarios.find(u => u.id === parseInt(vendedorSelecionado));
 
   const footerButtons = (
     <div className="flex items-center justify-between">
-      {/* Vendedor discreto no footer (apenas edição) */}
+      {/* Vendedor com foto no footer (apenas edição) */}
       <div className="flex items-center gap-2">
         {editingPedido && canEdit && (
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-            <User className="w-4 h-4" />
-            <select
-              value={vendedorSelecionado}
-              onChange={(e) => setVendedorSelecionado(e.target.value)}
-              className="bg-transparent border-none text-sm text-gray-600 dark:text-gray-400 focus:ring-0 cursor-pointer hover:text-gray-900 dark:hover:text-white pr-6"
-            >
-              <option value="">Vendedor...</option>
-              {usuarios.map(u => (
-                <option key={u.id} value={u.id}>
-                  {u.nome}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center gap-2">
+            {vendedorSelecionadoObj && (
+              <Gravatar
+                email={vendedorSelecionadoObj.email}
+                name={vendedorSelecionadoObj.nome}
+                size={28}
+                className="ring-2 ring-gray-200 dark:ring-gray-600"
+              />
+            )}
+            <div className="relative">
+              <select
+                value={vendedorSelecionado}
+                onChange={(e) => setVendedorSelecionado(e.target.value)}
+                className="appearance-none bg-transparent text-sm text-gray-600 dark:text-gray-400 focus:outline-none cursor-pointer hover:text-gray-900 dark:hover:text-white pr-5"
+              >
+                <option value="">Vendedor...</option>
+                {usuarios.map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.nome}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            </div>
           </div>
         )}
       </div>
@@ -373,32 +384,35 @@ export default function PedidoFormModal({
 
         {/* Seção: Entrega */}
         <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-            Entrega
-          </h4>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Controller
-              name="horario_recebimento"
-              control={control}
-              render={({ field }) => (
-                <HorarioRecebimentoPicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  error={errors.horario_recebimento?.message}
-                />
-              )}
-            />
-            <Input
-              label="Descarga Pallet (R$)"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0,00"
-              error={errors.preco_descarga_pallet?.message}
-              {...register('preco_descarga_pallet')}
-            />
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+              Entrega
+            </h4>
+            <div className="w-32">
+              <Input
+                label=""
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Descarga R$"
+                error={errors.preco_descarga_pallet?.message}
+                {...register('preco_descarga_pallet')}
+              />
+            </div>
           </div>
+
+          <Controller
+            name="horario_recebimento"
+            control={control}
+            render={({ field }) => (
+              <HorarioRecebimentoPicker
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.horario_recebimento?.message}
+                label=""
+              />
+            )}
+          />
         </div>
 
         {/* Observações */}

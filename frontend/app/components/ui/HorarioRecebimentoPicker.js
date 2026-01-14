@@ -2,11 +2,11 @@
 
 // =====================================================
 // HorarioRecebimentoPicker - Seletor de dias e horários
-// v1.1.0 - Dropdown abre para cima quando necessário
+// v1.3.0 - Modo inline (sempre visível)
 // =====================================================
 
-import { useState, useEffect, useRef, forwardRef } from 'react';
-import { Clock, Calendar, X, Check } from 'lucide-react';
+import { useState, useEffect, forwardRef } from 'react';
+import { Clock } from 'lucide-react';
 
 const DIAS_SEMANA = [
   { id: 'seg', label: 'Seg', full: 'Segunda' },
@@ -24,24 +24,10 @@ const HORARIOS_PREDEFINIDOS = [
   { id: 'integral', label: 'Integral', inicio: '06:00', fim: '22:00' },
 ];
 
-const HorarioRecebimentoPicker = forwardRef(({ value, onChange, error, compact = false }, ref) => {
-  const [isOpen, setIsOpen] = useState(false);
+const HorarioRecebimentoPicker = forwardRef(({ value, onChange, error, label = 'Horário de Recebimento' }, ref) => {
   const [diasSelecionados, setDiasSelecionados] = useState([]);
   const [horarioInicio, setHorarioInicio] = useState('08:00');
   const [horarioFim, setHorarioFim] = useState('18:00');
-  const [openUpward, setOpenUpward] = useState(false);
-  const containerRef = useRef(null);
-  const buttonRef = useRef(null);
-
-  // Detecta se deve abrir para cima
-  const checkPosition = () => {
-    if (buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const dropdownHeight = compact ? 280 : 380;
-      setOpenUpward(spaceBelow < dropdownHeight);
-    }
-  };
 
   // Parse do valor inicial
   useEffect(() => {
@@ -51,17 +37,12 @@ const HorarioRecebimentoPicker = forwardRef(({ value, onChange, error, compact =
   }, []);
 
   const parseValue = (val) => {
-    // Tenta fazer parse de formatos como:
-    // "Seg-Sex 08:00-18:00"
-    // "Segunda a Sexta, 08:00 às 18:00"
-    // "08:00 às 17:00"
     const match = val.match(/(\d{2}:\d{2})\s*(?:às|a|-)\s*(\d{2}:\d{2})/i);
     if (match) {
       setHorarioInicio(match[1]);
       setHorarioFim(match[2]);
     }
 
-    // Verifica dias mencionados
     const diasEncontrados = [];
     if (/seg|segunda/i.test(val)) diasEncontrados.push('seg');
     if (/ter|terça/i.test(val)) diasEncontrados.push('ter');
@@ -77,53 +58,69 @@ const HorarioRecebimentoPicker = forwardRef(({ value, onChange, error, compact =
 
   const toggleDia = (diaId) => {
     setDiasSelecionados(prev => {
-      if (prev.includes(diaId)) {
-        return prev.filter(d => d !== diaId);
-      }
-      return [...prev, diaId];
+      const novosDias = prev.includes(diaId)
+        ? prev.filter(d => d !== diaId)
+        : [...prev, diaId];
+
+      // Atualiza o valor automaticamente
+      setTimeout(() => atualizarValor(novosDias, horarioInicio, horarioFim), 0);
+      return novosDias;
     });
   };
 
   const selecionarTodosDiasUteis = () => {
-    setDiasSelecionados(['seg', 'ter', 'qua', 'qui', 'sex']);
+    const novosDias = ['seg', 'ter', 'qua', 'qui', 'sex'];
+    setDiasSelecionados(novosDias);
+    atualizarValor(novosDias, horarioInicio, horarioFim);
   };
 
   const aplicarHorarioPredefinido = (preset) => {
     setHorarioInicio(preset.inicio);
     setHorarioFim(preset.fim);
+    atualizarValor(diasSelecionados, preset.inicio, preset.fim);
   };
 
-  const formatarValor = () => {
-    if (diasSelecionados.length === 0) {
-      return `${horarioInicio} às ${horarioFim}`;
+  const handleHorarioInicioChange = (e) => {
+    const novoInicio = e.target.value;
+    setHorarioInicio(novoInicio);
+    atualizarValor(diasSelecionados, novoInicio, horarioFim);
+  };
+
+  const handleHorarioFimChange = (e) => {
+    const novoFim = e.target.value;
+    setHorarioFim(novoFim);
+    atualizarValor(diasSelecionados, horarioInicio, novoFim);
+  };
+
+  const formatarValor = (dias, inicio, fim) => {
+    if (dias.length === 0) {
+      return `${inicio} às ${fim}`;
     }
 
     const diasOrdenados = DIAS_SEMANA
-      .filter(d => diasSelecionados.includes(d.id))
+      .filter(d => dias.includes(d.id))
       .map(d => d.label);
 
-    // Verifica se são dias consecutivos
-    const indices = diasSelecionados.map(d => DIAS_SEMANA.findIndex(dia => dia.id === d)).sort((a, b) => a - b);
+    const indices = dias.map(d => DIAS_SEMANA.findIndex(dia => dia.id === d)).sort((a, b) => a - b);
     const saoConsecutivos = indices.every((val, i, arr) => i === 0 || val === arr[i - 1] + 1);
 
     let diasStr;
-    if (diasSelecionados.length === 5 && !diasSelecionados.includes('sab')) {
+    if (dias.length === 5 && !dias.includes('sab')) {
       diasStr = 'Seg-Sex';
-    } else if (diasSelecionados.length === 6) {
+    } else if (dias.length === 6) {
       diasStr = 'Seg-Sáb';
-    } else if (saoConsecutivos && diasSelecionados.length > 2) {
+    } else if (saoConsecutivos && dias.length > 2) {
       diasStr = `${diasOrdenados[0]}-${diasOrdenados[diasOrdenados.length - 1]}`;
     } else {
       diasStr = diasOrdenados.join(', ');
     }
 
-    return `${diasStr} ${horarioInicio}-${horarioFim}`;
+    return `${diasStr} ${inicio}-${fim}`;
   };
 
-  const confirmar = () => {
-    const novoValor = formatarValor();
+  const atualizarValor = (dias, inicio, fim) => {
+    const novoValor = formatarValor(dias, inicio, fim);
     onChange?.(novoValor);
-    setIsOpen(false);
   };
 
   const limpar = () => {
@@ -131,168 +128,118 @@ const HorarioRecebimentoPicker = forwardRef(({ value, onChange, error, compact =
     setHorarioInicio('08:00');
     setHorarioFim('18:00');
     onChange?.('');
-    setIsOpen(false);
-  };
-
-  const handleToggle = () => {
-    if (!isOpen) {
-      checkPosition();
-    }
-    setIsOpen(!isOpen);
   };
 
   return (
-    <div className="relative" ref={containerRef}>
-      {!compact && (
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Horário de Recebimento
+    <div ref={ref} className="space-y-4">
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          {label}
         </label>
       )}
 
-      {/* Campo de input */}
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={handleToggle}
-        className={`w-full px-3 py-2 text-left rounded-xl border transition-all duration-200
-          ${error
-            ? 'border-red-500 focus:ring-red-500'
-            : 'border-gray-200 dark:border-gray-700 focus:ring-quatrelati-blue-500'
-          }
-          bg-white dark:bg-gray-800 text-gray-900 dark:text-white
-          hover:border-quatrelati-blue-400 dark:hover:border-quatrelati-gold-600
-          focus:outline-none focus:ring-2
-          ${compact ? 'text-sm' : ''}`}
-      >
-        <div className="flex items-center gap-2">
-          <Calendar className={`${compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-gray-400 flex-shrink-0`} />
-          <span className={`truncate ${value ? 'text-gray-900 dark:text-white' : 'text-gray-400'} ${compact ? 'text-sm' : ''}`}>
-            {value || (compact ? 'Horário...' : 'Selecionar dias e horários')}
-          </span>
-        </div>
-      </button>
-
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-
-      {/* Dropdown da mini agenda */}
-      {isOpen && (
-        <div className={`absolute z-50 w-full sm:w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 animate-in fade-in duration-200
-          ${openUpward
-            ? 'bottom-full mb-2 slide-in-from-bottom-2'
-            : 'top-full mt-2 slide-in-from-top-2'
-          }
-          ${compact ? 'left-0' : ''}`}>
-          {/* Dias da semana */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                Dias da Semana
-              </span>
+      {/* Card da mini agenda */}
+      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-4 border border-gray-200 dark:border-gray-700">
+        {/* Dias da semana */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+              Dias
+            </span>
+            <button
+              type="button"
+              onClick={selecionarTodosDiasUteis}
+              className="text-xs text-quatrelati-blue-600 dark:text-quatrelati-gold-400 hover:underline"
+            >
+              Seg-Sex
+            </button>
+          </div>
+          <div className="flex gap-1.5">
+            {DIAS_SEMANA.map((dia) => (
               <button
+                key={dia.id}
                 type="button"
-                onClick={selecionarTodosDiasUteis}
-                className="text-xs text-quatrelati-blue-600 dark:text-quatrelati-gold-400 hover:underline"
+                onClick={() => toggleDia(dia.id)}
+                className={`flex-1 py-2 px-1 text-xs font-medium rounded-lg transition-all duration-200
+                  ${diasSelecionados.includes(dia.id)
+                    ? 'bg-quatrelati-blue-500 dark:bg-quatrelati-gold-500 text-white dark:text-gray-900 shadow-sm'
+                    : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
+                  }`}
+                title={dia.full}
               >
-                Seg-Sex
+                {dia.label}
               </button>
-            </div>
-            <div className="flex gap-1">
-              {DIAS_SEMANA.map((dia) => (
-                <button
-                  key={dia.id}
-                  type="button"
-                  onClick={() => toggleDia(dia.id)}
-                  className={`flex-1 py-2 px-1 text-xs font-medium rounded-lg transition-all duration-200
-                    ${diasSelecionados.includes(dia.id)
-                      ? 'bg-quatrelati-blue-500 dark:bg-quatrelati-gold-500 text-white dark:text-gray-900'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                  title={dia.full}
-                >
-                  {dia.label}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
+        </div>
 
-          {/* Horários predefinidos */}
-          <div className="mb-4">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase block mb-2">
-              Horário Rápido
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              {HORARIOS_PREDEFINIDOS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => aplicarHorarioPredefinido(preset)}
-                  className={`py-1.5 px-3 text-xs rounded-lg border transition-all duration-200
-                    ${horarioInicio === preset.inicio && horarioFim === preset.fim
-                      ? 'border-quatrelati-blue-500 dark:border-quatrelati-gold-500 bg-quatrelati-blue-50 dark:bg-quatrelati-gold-900/20 text-quatrelati-blue-700 dark:text-quatrelati-gold-300'
-                      : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
-                    }`}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
+        {/* Horários predefinidos */}
+        <div>
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase block mb-2">
+            Horário
+          </span>
+          <div className="grid grid-cols-4 gap-2">
+            {HORARIOS_PREDEFINIDOS.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => aplicarHorarioPredefinido(preset)}
+                className={`py-2 px-2 text-xs rounded-lg border transition-all duration-200
+                  ${horarioInicio === preset.inicio && horarioFim === preset.fim
+                    ? 'border-quatrelati-blue-500 dark:border-quatrelati-gold-500 bg-quatrelati-blue-50 dark:bg-quatrelati-gold-900/20 text-quatrelati-blue-700 dark:text-quatrelati-gold-300 font-medium'
+                    : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
+                  }`}
+              >
+                {preset.label}
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* Horário personalizado */}
-          <div className="mb-4">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase block mb-2">
-              Horário Personalizado
-            </span>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <input
-                  type="time"
-                  value={horarioInicio}
-                  onChange={(e) => setHorarioInicio(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-quatrelati-blue-500"
-                />
-              </div>
-              <span className="text-gray-400">às</span>
-              <div className="flex-1">
-                <input
-                  type="time"
-                  value={horarioFim}
-                  onChange={(e) => setHorarioFim(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-quatrelati-blue-500"
-                />
-              </div>
-            </div>
+        {/* Horário personalizado */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 relative">
+            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-quatrelati-blue-500 dark:text-quatrelati-gold-400" />
+            <input
+              type="time"
+              value={horarioInicio}
+              onChange={handleHorarioInicioChange}
+              className="w-full pl-10 pr-3 py-2.5 text-sm font-medium rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-quatrelati-blue-500 dark:focus:ring-quatrelati-gold-500"
+            />
           </div>
-
-          {/* Preview */}
-          <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Resultado:</span>
-            <span className="text-sm font-medium text-gray-900 dark:text-white">
-              {formatarValor() || 'Selecione os dias e horários'}
-            </span>
+          <span className="text-gray-400 font-medium text-sm">às</span>
+          <div className="flex-1 relative">
+            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-quatrelati-blue-500 dark:text-quatrelati-gold-400" />
+            <input
+              type="time"
+              value={horarioFim}
+              onChange={handleHorarioFimChange}
+              className="w-full pl-10 pr-3 py-2.5 text-sm font-medium rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-quatrelati-blue-500 dark:focus:ring-quatrelati-gold-500"
+            />
           </div>
-
-          {/* Botões de ação */}
-          <div className="flex gap-2">
+          {value && (
             <button
               type="button"
               onClick={limpar}
-              className="flex-1 py-2 px-3 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+              title="Limpar"
             >
-              <X className="w-4 h-4 inline mr-1" />
-              Limpar
+              <span className="text-xs">Limpar</span>
             </button>
-            <button
-              type="button"
-              onClick={confirmar}
-              className="flex-1 py-2 px-3 text-sm font-medium rounded-lg bg-quatrelati-blue-500 dark:bg-quatrelati-gold-500 text-white dark:text-gray-900 hover:bg-quatrelati-blue-600 dark:hover:bg-quatrelati-gold-600 transition-colors"
-            >
-              <Check className="w-4 h-4 inline mr-1" />
-              Confirmar
-            </button>
-          </div>
+          )}
         </div>
-      )}
+
+        {/* Resultado */}
+        {value && (
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+            <span className="text-sm font-medium text-gray-900 dark:text-white">
+              {value}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {error && <p className="text-red-500 text-xs">{error}</p>}
     </div>
   );
 });

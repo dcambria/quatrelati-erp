@@ -94,6 +94,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         user,
+        setUser, // Expõe setUser para atualização do estado (ex: FirstAccessModal)
         loading,
         login,
         logout,

@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Autenticação
-// v1.6.0 - Suporte a primeiro acesso
+// v1.7.0 - Corrige race condition no primeiro acesso
 // =====================================================
 
 const express = require('express');
@@ -255,9 +255,12 @@ router.put('/profile', authMiddleware, async (req, res) => {
             [req.userId]
         );
 
+        // NOTA: NÃO atualizar primeiro_acesso aqui
+        // Apenas /auth/set-initial-password deve marcar primeiro_acesso = false
+        // Isso evita race condition quando o modal chama profile antes de set-initial-password
         const result = await req.db.query(`
             UPDATE usuarios
-            SET nome = $1, telefone = $2, primeiro_acesso = false
+            SET nome = $1, telefone = $2
             WHERE id = $3
             RETURNING id, nome, email, telefone, nivel, ativo, primeiro_acesso, created_at
         `, [nome.trim(), telefone || null, req.userId]);

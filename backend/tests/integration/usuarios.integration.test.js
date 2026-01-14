@@ -6,6 +6,13 @@ const request = require('supertest');
 const bcrypt = require('bcryptjs');
 const { createTestApp, createMockPool, generateTestToken, testData } = require('../testHelper');
 
+// Mock do emailService - deve vir ANTES de importar as rotas
+jest.mock('../../src/services/emailService', () => ({
+    sendMagicLinkEmail: jest.fn().mockResolvedValue({ messageId: 'test-message-id' }),
+    sendPasswordResetEmail: jest.fn().mockResolvedValue({ messageId: 'test-message-id' }),
+    sendInviteEmail: jest.fn().mockResolvedValue({ messageId: 'test-message-id' }),
+}));
+
 const usuariosRoutes = require('../../src/routes/usuarios');
 
 describe('Usuarios Routes Integration', () => {

@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Usuários
-// v1.1.0 - Adicionar validação de senha forte
+// v1.2.0 - Indicador visual de força de senha
 // =====================================================
 
 import { useState, useEffect } from 'react';
@@ -35,6 +35,7 @@ import Modal from '../../components/ui/Modal';
 import Loading from '../../components/ui/Loading';
 import Gravatar from '../../components/ui/Gravatar';
 import PhoneInput from '../../components/ui/PhoneInput';
+import PasswordStrength from '../../components/ui/PasswordStrength';
 import { senhaForteOpcionalSchema } from '../../lib/validations';
 
 const usuarioSchema = z.object({
@@ -67,10 +68,13 @@ export default function UsuariosPage() {
     handleSubmit,
     reset,
     control,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(usuarioSchema),
   });
+
+  const watchedPassword = watch('senha', '');
 
   useEffect(() => {
     if (!isSuperAdmin) {
@@ -398,12 +402,15 @@ export default function UsuariosPage() {
           />
 
           {editingUsuario && (
-            <Input
-              label="Nova Senha (deixe em branco para manter)"
-              type="password"
-              error={errors.senha?.message}
-              {...register('senha')}
-            />
+            <div>
+              <Input
+                label="Nova Senha (deixe em branco para manter)"
+                type="password"
+                error={errors.senha?.message}
+                {...register('senha')}
+              />
+              <PasswordStrength password={watchedPassword} />
+            </div>
           )}
 
           {!editingUsuario && (

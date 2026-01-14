@@ -7,12 +7,10 @@
  */
 
 const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
-const { fromIni } = require('@aws-sdk/credential-provider-ini');
 
-// Configurar cliente SES com profile default
+// Configurar cliente SES (usa IAM role automaticamente em EC2/Docker)
 const sesClient = new SESClient({
     region: process.env.AWS_REGION || 'us-east-1',
-    credentials: fromIni({ profile: 'default' }),
 });
 
 // Email remetente (deve estar verificado no SES)

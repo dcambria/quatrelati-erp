@@ -1,5 +1,67 @@
 # Sistema de Pedidos - Laticínio Quatrelati
 
+## Ambiente de Produção
+
+**URL:** https://erp.laticinioquatrelati.com.br
+**Servidor:** Plesk (EC2 AWS us-east-1)
+**SSH:** `ssh cloud`
+**Diretório:** `/var/www/vhosts/laticinioquatrelati.com.br/erp.laticinioquatrelati.com.br/`
+
+---
+
+## Stack de Produção
+
+| Componente | Tecnologia |
+|------------|------------|
+| Containers | Docker Compose |
+| Banco | PostgreSQL 15 Alpine |
+| Backend | Node.js 22 + Express.js 5 |
+| Frontend | Next.js 15 (standalone) |
+| Proxy | Nginx (Plesk) |
+| CDN/WAF | Cloudflare |
+| Email | AWS SES |
+
+---
+
+## Comandos de Deploy
+
+```bash
+# Conectar ao servidor
+ssh cloud
+
+# Diretório do projeto
+cd /var/www/vhosts/laticinioquatrelati.com.br/erp.laticinioquatrelati.com.br
+
+# Ver logs
+sudo docker compose -f docker-compose.plesk.yml --env-file .env.prod logs -f
+
+# Rebuild e restart
+sudo docker compose -f docker-compose.plesk.yml --env-file .env.prod build
+sudo docker compose -f docker-compose.plesk.yml --env-file .env.prod up -d
+
+# Backup do banco
+sudo docker exec quatrelati-db pg_dump -U quatrelati quatrelati_pedidos > backup.sql
+```
+
+---
+
+## AWS
+
+- **IAM Role:** IAM_Plesk
+- **SES Region:** us-east-1
+- **Domínios verificados SES:** bit-bpo.com
+- **Emails verificados:** daniel.cambria@bureau-it.com, noreply@bit-bpo.com
+
+---
+
+## Arquivos de Produção
+
+- `docker-compose.plesk.yml` - Compose para deploy em Plesk
+- `.env.prod` (no servidor) - Variáveis de ambiente de produção
+- `/etc/nginx/conf.d/99-erp-quatrelati.conf` - Config nginx customizada
+
+---
+
 ## Agente de Desenvolvimento Contínuo
 
 ### Regras do Agente

@@ -1,6 +1,6 @@
 // =====================================================
 // Modal de Formulário de Pedido
-// v1.6.0 - Vendedor atual selecionado por padrão
+// v1.7.0 - Layout compacto + mini agenda otimizada
 // =====================================================
 
 'use client';
@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, User } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Modal from '../../../components/ui/Modal';
 import Input from '../../../components/ui/Input';
@@ -223,14 +223,39 @@ export default function PedidoFormModal({
     }
   };
 
+  // Encontrar nome do vendedor selecionado
+  const vendedorNome = usuarios.find(u => u.id === parseInt(vendedorSelecionado))?.nome;
+
   const footerButtons = (
-    <div className="flex justify-end gap-3">
-      <Button variant="ghost" type="button" onClick={fecharModal}>
-        Cancelar
-      </Button>
-      <Button type="submit" form="pedido-form" loading={saving}>
-        {editingPedido ? 'Salvar' : 'Criar Pedido'}
-      </Button>
+    <div className="flex items-center justify-between">
+      {/* Vendedor discreto no footer (apenas edição) */}
+      <div className="flex items-center gap-2">
+        {editingPedido && canEdit && (
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <User className="w-4 h-4" />
+            <select
+              value={vendedorSelecionado}
+              onChange={(e) => setVendedorSelecionado(e.target.value)}
+              className="bg-transparent border-none text-sm text-gray-600 dark:text-gray-400 focus:ring-0 cursor-pointer hover:text-gray-900 dark:hover:text-white pr-6"
+            >
+              <option value="">Vendedor...</option>
+              {usuarios.map(u => (
+                <option key={u.id} value={u.id}>
+                  {u.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+      <div className="flex gap-3">
+        <Button variant="ghost" type="button" onClick={fecharModal}>
+          Cancelar
+        </Button>
+        <Button type="submit" form="pedido-form" loading={saving}>
+          {editingPedido ? 'Salvar' : 'Criar Pedido'}
+        </Button>
+      </div>
     </div>
   );
 
@@ -239,130 +264,66 @@ export default function PedidoFormModal({
       isOpen={isOpen}
       onClose={fecharModal}
       title={editingPedido ? 'Editar Pedido' : 'Novo Pedido'}
-      size="xl"
+      size="lg"
       footer={footerButtons}
     >
-      <form id="pedido-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        {/* Linha 1: Datas */}
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Data do Pedido"
-            type="date"
-            error={errors.data_pedido?.message}
-            {...register('data_pedido')}
+      <form id="pedido-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6 px-1">
+        {/* Seção: Dados do Pedido */}
+        <div className="space-y-4">
+          {/* Cliente */}
+          <Select
+            label="Cliente"
+            error={errors.cliente_id?.message}
+            options={clientes.map(c => ({ value: c.id, label: c.nome }))}
+            {...register('cliente_id')}
           />
-          <Input
-            label="Data de Entrega"
-            type="date"
-            error={errors.data_entrega?.message}
-            {...register('data_entrega')}
-          />
-        </div>
 
-        {/* Linha 2: Cliente e NF */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="col-span-2">
-            <Select
-              label="Cliente"
-              error={errors.cliente_id?.message}
-              options={clientes.map(c => ({ value: c.id, label: c.nome }))}
-              {...register('cliente_id')}
-            />
-          </div>
-          <Input
-            label="N.F."
-            placeholder="Opcional"
-            {...register('nf')}
-          />
-        </div>
-
-        {/* Linha 3: Observações */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Observações
-          </label>
-          <input
-            type="text"
-            placeholder="Observações do pedido (opcional)"
-            className="input-glass w-full"
-            {...register('observacoes')}
-          />
-        </div>
-
-        {/* Seção Entrega */}
-        <div className="space-y-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-            Entrega
-          </h4>
-          <div className="grid grid-cols-2 gap-3">
-            <Controller
-              name="horario_recebimento"
-              control={control}
-              render={({ field }) => (
-                <HorarioRecebimentoPicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  error={errors.horario_recebimento?.message}
-                />
-              )}
+          {/* Datas e NF em linha */}
+          <div className="grid grid-cols-3 gap-4">
+            <Input
+              label="Data Pedido"
+              type="date"
+              error={errors.data_pedido?.message}
+              {...register('data_pedido')}
             />
             <Input
-              label="Preço Descarga Pallet (R$)"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0,00"
-              error={errors.preco_descarga_pallet?.message}
-              {...register('preco_descarga_pallet')}
+              label="Data Entrega"
+              type="date"
+              error={errors.data_entrega?.message}
+              {...register('data_entrega')}
+            />
+            <Input
+              label="N.F."
+              placeholder="Opcional"
+              {...register('nf')}
             />
           </div>
         </div>
 
-        {/* Vendedor (apenas na edição e para admins que podem editar) */}
-        {editingPedido && canEdit && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Vendedor
-            </label>
-            <select
-              value={vendedorSelecionado}
-              onChange={(e) => setVendedorSelecionado(e.target.value)}
-              className="input-glass w-full"
-            >
-              <option value="">Selecione o vendedor</option>
-              {usuarios.map(u => (
-                <option key={u.id} value={u.id}>
-                  {u.nome} ({u.nivel})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Seção de Produtos */}
-        <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+        {/* Seção: Produtos */}
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
               Produtos
-            </label>
+            </h4>
             <button
               type="button"
               onClick={adicionarItem}
-              className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-1"
+              className="text-xs text-quatrelati-blue-600 hover:text-quatrelati-blue-700 dark:text-quatrelati-gold-400 flex items-center gap-1"
             >
               <Plus className="w-3 h-3" /> Adicionar
             </button>
           </div>
 
-          <div className="space-y-2 max-h-[200px] overflow-y-auto">
+          <div className="space-y-2 max-h-[180px] overflow-y-auto">
             {itens.map((item, index) => (
-              <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+              <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
                 <select
                   value={item.produto_id}
                   onChange={(e) => atualizarItem(index, 'produto_id', e.target.value)}
                   className="input-glass text-sm flex-1"
                 >
-                  <option value="">Produto</option>
+                  <option value="">Selecione o produto</option>
                   {produtos.map(p => (
                     <option key={p.id} value={p.id}>
                       {p.nome} ({p.peso_caixa_kg}kg)
@@ -374,7 +335,7 @@ export default function PedidoFormModal({
                   min="1"
                   value={item.quantidade_caixas}
                   onChange={(e) => atualizarItem(index, 'quantidade_caixas', e.target.value)}
-                  placeholder="Cx"
+                  placeholder="Qtd"
                   className="input-glass text-sm w-20 text-center"
                 />
                 <input
@@ -390,7 +351,7 @@ export default function PedidoFormModal({
                   <button
                     type="button"
                     onClick={() => removerItem(index)}
-                    className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                    className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -399,15 +360,59 @@ export default function PedidoFormModal({
             ))}
           </div>
 
-          {/* Total estimado */}
-          <div className="text-right text-sm pt-1">
-            <span className="text-gray-500 dark:text-gray-400">Total: </span>
-            <span className="font-semibold text-quatrelati-gold-600">
-              {formatCurrency(calcularTotalPedido(itens, produtos))}
-            </span>
+          {/* Total */}
+          <div className="flex justify-end pt-2">
+            <div className="bg-quatrelati-gold-50 dark:bg-quatrelati-gold-900/20 px-4 py-2 rounded-xl">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Total: </span>
+              <span className="text-lg font-bold text-quatrelati-gold-600">
+                {formatCurrency(calcularTotalPedido(itens, produtos))}
+              </span>
+            </div>
           </div>
         </div>
 
+        {/* Seção: Entrega */}
+        <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+            Entrega
+          </h4>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Controller
+              name="horario_recebimento"
+              control={control}
+              render={({ field }) => (
+                <HorarioRecebimentoPicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.horario_recebimento?.message}
+                />
+              )}
+            />
+            <Input
+              label="Descarga Pallet (R$)"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0,00"
+              error={errors.preco_descarga_pallet?.message}
+              {...register('preco_descarga_pallet')}
+            />
+          </div>
+        </div>
+
+        {/* Observações */}
+        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Observações
+          </label>
+          <textarea
+            placeholder="Observações do pedido (opcional)"
+            className="input-glass w-full resize-none"
+            rows={2}
+            {...register('observacoes')}
+          />
+        </div>
       </form>
     </Modal>
   );

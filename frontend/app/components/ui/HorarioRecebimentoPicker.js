@@ -2,10 +2,10 @@
 
 // =====================================================
 // HorarioRecebimentoPicker - Seletor de dias e horários
-// v1.0.0 - Mini agenda para horário de recebimento
+// v1.1.0 - Dropdown abre para cima quando necessário
 // =====================================================
 
-import { useState, useEffect, forwardRef } from 'react';
+import { useState, useEffect, useRef, forwardRef } from 'react';
 import { Clock, Calendar, X, Check } from 'lucide-react';
 
 const DIAS_SEMANA = [
@@ -24,11 +24,24 @@ const HORARIOS_PREDEFINIDOS = [
   { id: 'integral', label: 'Integral', inicio: '06:00', fim: '22:00' },
 ];
 
-const HorarioRecebimentoPicker = forwardRef(({ value, onChange, error }, ref) => {
+const HorarioRecebimentoPicker = forwardRef(({ value, onChange, error, compact = false }, ref) => {
   const [isOpen, setIsOpen] = useState(false);
   const [diasSelecionados, setDiasSelecionados] = useState([]);
   const [horarioInicio, setHorarioInicio] = useState('08:00');
   const [horarioFim, setHorarioFim] = useState('18:00');
+  const [openUpward, setOpenUpward] = useState(false);
+  const containerRef = useRef(null);
+  const buttonRef = useRef(null);
+
+  // Detecta se deve abrir para cima
+  const checkPosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropdownHeight = compact ? 280 : 380;
+      setOpenUpward(spaceBelow < dropdownHeight);
+    }
+  };
 
   // Parse do valor inicial
   useEffect(() => {
@@ -121,29 +134,40 @@ const HorarioRecebimentoPicker = forwardRef(({ value, onChange, error }, ref) =>
     setIsOpen(false);
   };
 
+  const handleToggle = () => {
+    if (!isOpen) {
+      checkPosition();
+    }
+    setIsOpen(!isOpen);
+  };
+
   return (
-    <div className="relative" ref={ref}>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        Horário de Recebimento
-      </label>
+    <div className="relative" ref={containerRef}>
+      {!compact && (
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Horário de Recebimento
+        </label>
+      )}
 
       {/* Campo de input */}
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-full px-4 py-2.5 text-left rounded-xl border transition-all duration-200
+        onClick={handleToggle}
+        className={`w-full px-3 py-2 text-left rounded-xl border transition-all duration-200
           ${error
             ? 'border-red-500 focus:ring-red-500'
             : 'border-gray-200 dark:border-gray-700 focus:ring-quatrelati-blue-500'
           }
           bg-white dark:bg-gray-800 text-gray-900 dark:text-white
           hover:border-quatrelati-blue-400 dark:hover:border-quatrelati-gold-600
-          focus:outline-none focus:ring-2`}
+          focus:outline-none focus:ring-2
+          ${compact ? 'text-sm' : ''}`}
       >
         <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gray-400" />
-          <span className={value ? 'text-gray-900 dark:text-white' : 'text-gray-400'}>
-            {value || 'Selecionar dias e horários'}
+          <Calendar className={`${compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-gray-400 flex-shrink-0`} />
+          <span className={`truncate ${value ? 'text-gray-900 dark:text-white' : 'text-gray-400'} ${compact ? 'text-sm' : ''}`}>
+            {value || (compact ? 'Horário...' : 'Selecionar dias e horários')}
           </span>
         </div>
       </button>
@@ -152,7 +176,12 @@ const HorarioRecebimentoPicker = forwardRef(({ value, onChange, error }, ref) =>
 
       {/* Dropdown da mini agenda */}
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full sm:w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className={`absolute z-50 w-full sm:w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 animate-in fade-in duration-200
+          ${openUpward
+            ? 'bottom-full mb-2 slide-in-from-bottom-2'
+            : 'top-full mt-2 slide-in-from-top-2'
+          }
+          ${compact ? 'left-0' : ''}`}>
           {/* Dias da semana */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">

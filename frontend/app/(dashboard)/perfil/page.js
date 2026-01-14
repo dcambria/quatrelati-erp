@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Perfil do Usuário
-// v1.2.0 - Adiciona alteração de senha
+// v1.3.0 - Refatora seção de alteração de senha
 // =====================================================
 
 import { useState, useEffect } from 'react';
@@ -162,7 +162,6 @@ const profileSchema = z.object({
 });
 
 const passwordSchema = z.object({
-  senhaAtual: z.string().min(1, 'Senha atual é obrigatória'),
   novaSenha: z.string()
     .min(8, 'Senha deve ter no mínimo 8 caracteres')
     .regex(/[A-Z]/, 'Senha deve ter ao menos uma letra maiúscula')
@@ -179,6 +178,7 @@ export default function PerfilPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [paisSelecionado, setPaisSelecionado] = useState(PAISES[0]);
   const [telefoneLocal, setTelefoneLocal] = useState('');
 
@@ -281,12 +281,12 @@ export default function PerfilPage() {
     setSavingPassword(true);
     try {
       await api.put('/auth/change-password', {
-        currentPassword: data.senhaAtual,
         newPassword: data.novaSenha,
       });
 
       toast.success('Senha alterada com sucesso');
       resetPassword();
+      setShowPasswordForm(false);
     } catch (error) {
       console.error('Erro ao alterar senha:', error);
       toast.error(error.response?.data?.error || 'Erro ao alterar senha');
@@ -482,26 +482,26 @@ export default function PerfilPage() {
 
       {/* Card de alteração de senha */}
       <Card className="p-6 max-w-4xl mx-auto">
-        <form onSubmit={handleSubmitPassword(onSubmitPassword)} className="space-y-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <Key className="w-5 h-5 text-quatrelati-blue-500" />
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Key className="w-5 h-5 text-quatrelati-blue-500" />
+            Seguranca
+          </h3>
+
+          {!showPasswordForm && (
+            <Button
+              variant="outline"
+              onClick={() => setShowPasswordForm(true)}
+            >
+              <Lock className="w-4 h-4" />
               Alterar Senha
-            </h3>
+            </Button>
+          )}
+        </div>
 
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Para alterar sua senha, informe a senha atual e a nova senha.
-            </p>
-
+        {showPasswordForm && (
+          <form onSubmit={handleSubmitPassword(onSubmitPassword)} className="mt-6 space-y-6">
             <div className="space-y-4 max-w-md">
-              <Input
-                label="Senha Atual"
-                type="password"
-                placeholder="Digite sua senha atual"
-                error={errorsPassword.senhaAtual?.message}
-                {...registerPassword('senhaAtual')}
-              />
-
               <div>
                 <Input
                   label="Nova Senha"
@@ -521,15 +521,25 @@ export default function PerfilPage() {
                 {...registerPassword('confirmarSenha')}
               />
             </div>
-          </div>
 
-          <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Button type="submit" loading={savingPassword}>
-              <Lock className="w-4 h-4" />
-              Alterar Senha
-            </Button>
-          </div>
-        </form>
+            <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowPasswordForm(false);
+                  resetPassword();
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" loading={savingPassword}>
+                <Lock className="w-4 h-4" />
+                Salvar Nova Senha
+              </Button>
+            </div>
+          </form>
+        )}
       </Card>
     </div>
   );

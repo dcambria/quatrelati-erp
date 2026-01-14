@@ -503,10 +503,10 @@ router.post('/set-initial-password', authMiddleware, async (req, res) => {
  */
 router.put('/change-password', authMiddleware, async (req, res) => {
     try {
-        const { currentPassword, newPassword } = req.body;
+        const { newPassword } = req.body;
 
-        if (!currentPassword || !newPassword) {
-            return res.status(400).json({ error: 'Senhas são obrigatórias' });
+        if (!newPassword) {
+            return res.status(400).json({ error: 'Nova senha é obrigatória' });
         }
 
         if (newPassword.length < 8) {
@@ -515,7 +515,7 @@ router.put('/change-password', authMiddleware, async (req, res) => {
 
         // Buscar usuário
         const result = await req.db.query(
-            'SELECT nome, email, nivel, senha_hash FROM usuarios WHERE id = $1',
+            'SELECT nome, email, nivel FROM usuarios WHERE id = $1',
             [req.userId]
         );
 
@@ -524,12 +524,6 @@ router.put('/change-password', authMiddleware, async (req, res) => {
         }
 
         const user = result.rows[0];
-
-        // Verificar senha atual
-        const senhaValida = await bcrypt.compare(currentPassword, user.senha_hash);
-        if (!senhaValida) {
-            return res.status(401).json({ error: 'Senha atual incorreta' });
-        }
 
         // Hash da nova senha
         const novaSenhaHash = await bcrypt.hash(newPassword, 10);

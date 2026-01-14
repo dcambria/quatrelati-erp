@@ -2,7 +2,7 @@
  * ===========================================
  * Quatrelati - Email Service
  * Envio de emails via AWS SES
- * v2.2.0
+ * v2.3.0 - Adiciona skip de envio para emails de teste
  * ===========================================
  */
 
@@ -17,10 +17,28 @@ const sesClient = new SESClient({
 const FROM_EMAIL = process.env.SES_FROM_EMAIL || 'daniel.cambria@bureau-it.com';
 const FROM_NAME = 'Quatrelati';
 
+// Dominios de teste que nao devem receber emails reais
+const TEST_DOMAINS = ['teste.local', 'test.local', 'exemplo.local', 'example.local'];
+
+/**
+ * Verifica se o email eh de teste e deve ser pulado
+ */
+function isTestEmail(email) {
+    if (!email) return false;
+    const domain = email.split('@')[1]?.toLowerCase();
+    return TEST_DOMAINS.some(testDomain => domain?.endsWith(testDomain));
+}
+
 /**
  * Envia email de Magic Link via AWS SES
  */
 async function sendMagicLinkEmail(to, userName, magicLinkUrl) {
+    // Pular envio para emails de teste
+    if (isTestEmail(to)) {
+        console.log(`[EMAIL] Pulando envio de magic link para email de teste: ${to}`);
+        return { skipped: true, reason: 'test_email' };
+    }
+
     const firstName = userName.split(' ')[0];
 
     const htmlBody = `
@@ -174,6 +192,12 @@ Fabricando Manteiga para Industria e Food Service
  * Envia email de convite para novo usuário via AWS SES
  */
 async function sendInviteEmail(to, userName, inviteLinkUrl) {
+    // Pular envio para emails de teste
+    if (isTestEmail(to)) {
+        console.log(`[EMAIL] Pulando envio de convite para email de teste: ${to}`);
+        return { skipped: true, reason: 'test_email' };
+    }
+
     const firstName = userName.split(' ')[0];
 
     const htmlBody = `

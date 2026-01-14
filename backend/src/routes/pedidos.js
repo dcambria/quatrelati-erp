@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Pedidos
-// v2.0.3 - Query do PDF usa colunas completas do cliente
+// v2.0.4 - Corrige ordem das rotas (exportar antes de :id)
 // =====================================================
 
 const express = require('express');
@@ -178,6 +178,246 @@ router.get('/', pedidosQueryValidation, vendedorFilterMiddleware, async (req, re
     } catch (error) {
         console.error('Erro ao listar pedidos:', error);
         res.status(500).json({ error: 'Erro ao listar pedidos' });
+    }
+});
+
+/**
+ * GET /api/pedidos/exportar/pdf
+ * Exportar pedidos filtrados para PDF
+ * IMPORTANTE: Esta rota deve vir ANTES de /:id
+ */
+router.get('/exportar/pdf', pedidosQueryValidation, vendedorFilterMiddleware, async (req, res) => {
+    try {
+        let { mes, ano, cliente_id, produto_id, status, vendedor_id } = req.query;
+
+        const filteredVendedorId = req.getVendedorId(vendedor_id);
+
+        let whereConditions = [];
+        let params = [];
+        let paramIndex = 1;
+
+        if (mes && ano) {
+            whereConditions.push(`EXTRACT(MONTH FROM p.data_entrega) = $${paramIndex} AND EXTRACT(YEAR FROM p.data_entrega) = $${paramIndex + 1}`);
+            params.push(parseInt(mes), parseInt(ano));
+            paramIndex += 2;
+        } else if (ano) {
+            whereConditions.push(`EXTRACT(YEAR FROM p.data_entrega) = $${paramIndex}`);
+            params.push(parseInt(ano));
+            paramIndex++;
+        }
+
+        if (cliente_id) {
+            whereConditions.push(`p.cliente_id = $${paramIndex}`);
+            params.push(parseInt(cliente_id));
+            paramIndex++;
+        }
+
+        if (produto_id) {
+            whereConditions.push(`EXISTS (SELECT 1 FROM pedido_itens pi WHERE pi.pedido_id = p.id AND pi.produto_id = $${paramIndex})`);
+            params.push(parseInt(produto_id));
+            paramIndex++;
+        }
+
+        if (status && status !== 'todos') {
+            whereConditions.push(`p.entregue = $${paramIndex}`);
+            params.push(status === 'entregue');
+            paramIndex++;
+        }
+
+        if (filteredVendedorId) {
+            whereConditions.push(`p.created_by = $${paramIndex}`);
+            params.push(filteredVendedorId);
+            paramIndex++;
+        }
+
+        const whereClause = whereConditions.length > 0
+            ? `WHERE ${whereConditions.join(' AND ')}`
+            : '';
+
+        let nomeVendedor = null;
+        if (filteredVendedorId) {
+            const vendedorResult = await req.db.query('SELECT nome FROM usuarios WHERE id = $1', [filteredVendedorId]);
+            nomeVendedor = vendedorResult.rows[0]?.nome;
+        }
+
+        const result = await req.db.query(`
+            SELECT p.*, c.nome as cliente_nome, u.nome as vendedor_nome
+            FROM pedidos p
+            LEFT JOIN clientes c ON p.cliente_id = c.id
+            LEFT JOIN usuarios u ON p.created_by = u.id
+            ${whereClause}
+            ORDER BY p.data_entrega ASC, p.numero_pedido ASC
+        `, params);
+
+        const totaisQuery = `
+            SELECT
+                COALESCE(SUM(CASE WHEN NOT p.entregue THEN p.peso_kg ELSE 0 END), 0) as peso_pendente,
+                COALESCE(SUM(CASE WHEN NOT p.entregue THEN p.quantidade_caixas ELSE 0 END), 0) as unidades_pendente,
+                COALESCE(SUM(CASE WHEN NOT p.entregue THEN p.total ELSE 0 END), 0) as valor_pendente,
+                COUNT(CASE WHEN NOT p.entregue THEN 1 END) as pedidos_pendentes,
+                COALESCE(SUM(CASE WHEN p.entregue THEN p.peso_kg ELSE 0 END), 0) as peso_entregue,
+                COALESCE(SUM(CASE WHEN p.entregue THEN p.quantidade_caixas ELSE 0 END), 0) as unidades_entregue,
+                COALESCE(SUM(CASE WHEN p.entregue THEN p.total ELSE 0 END), 0) as valor_entregue,
+                COUNT(CASE WHEN p.entregue THEN 1 END) as pedidos_entregues
+            FROM pedidos p
+            ${whereClause}
+        `;
+        const totaisResult = await req.db.query(totaisQuery, params);
+        const totais = totaisResult.rows[0];
+
+        const pedidoIds = result.rows.map(p => p.id);
+        let itensPorPedido = {};
+
+        if (pedidoIds.length > 0) {
+            const itensResult = await req.db.query(`
+                SELECT pi.pedido_id, pi.quantidade_caixas, pi.peso_kg, pi.preco_unitario, pi.subtotal, pr.nome as produto_nome
+                FROM pedido_itens pi
+                LEFT JOIN produtos pr ON pi.produto_id = pr.id
+                WHERE pi.pedido_id = ANY($1)
+                ORDER BY pi.id
+            `, [pedidoIds]);
+
+            itensResult.rows.forEach(item => {
+                if (!itensPorPedido[item.pedido_id]) {
+                    itensPorPedido[item.pedido_id] = [];
+                }
+                itensPorPedido[item.pedido_id].push(item);
+            });
+        }
+
+        await exportarPedidosPDF(res, {
+            pedidos: result.rows,
+            totais,
+            itensPorPedido,
+            mes,
+            ano,
+            nomeVendedor
+        });
+    } catch (error) {
+        console.error('Erro ao exportar PDF:', error);
+        res.status(500).json({ error: 'Erro ao gerar PDF' });
+    }
+});
+
+/**
+ * GET /api/pedidos/exportar/excel
+ * Exportar pedidos para Excel
+ * IMPORTANTE: Esta rota deve vir ANTES de /:id
+ */
+router.get('/exportar/excel', pedidosQueryValidation, vendedorFilterMiddleware, async (req, res) => {
+    try {
+        let { mes, ano, cliente_id, produto_id, status, vendedor_id } = req.query;
+
+        const filteredVendedorId = req.getVendedorId(vendedor_id);
+
+        let query = `
+            SELECT
+                p.id, p.numero_pedido, p.data_pedido, p.data_entrega, p.nf, p.entregue,
+                c.nome as cliente_nome, c.cidade as cliente_cidade, c.estado as cliente_estado,
+                u.nome as vendedor_nome,
+                pi.quantidade_caixas, pi.preco_unitario,
+                pr.nome as produto_nome, pr.peso_caixa_kg
+            FROM pedidos p
+            JOIN clientes c ON p.cliente_id = c.id
+            LEFT JOIN usuarios u ON p.created_by = u.id
+            LEFT JOIN pedido_itens pi ON p.id = pi.pedido_id
+            LEFT JOIN produtos pr ON pi.produto_id = pr.id
+            WHERE 1=1
+        `;
+
+        const params = [];
+        let paramIndex = 1;
+
+        if (mes && ano) {
+            query += ` AND EXTRACT(MONTH FROM p.data_entrega) = $${paramIndex++} AND EXTRACT(YEAR FROM p.data_entrega) = $${paramIndex++}`;
+            params.push(parseInt(mes), parseInt(ano));
+        } else if (ano) {
+            query += ` AND EXTRACT(YEAR FROM p.data_entrega) = $${paramIndex++}`;
+            params.push(parseInt(ano));
+        }
+
+        if (cliente_id) {
+            query += ` AND p.cliente_id = $${paramIndex++}`;
+            params.push(parseInt(cliente_id));
+        }
+
+        if (produto_id) {
+            query += ` AND pi.produto_id = $${paramIndex++}`;
+            params.push(parseInt(produto_id));
+        }
+
+        if (status === 'pendente') {
+            query += ` AND p.entregue = false`;
+        } else if (status === 'entregue') {
+            query += ` AND p.entregue = true`;
+        }
+
+        if (filteredVendedorId) {
+            query += ` AND p.created_by = $${paramIndex++}`;
+            params.push(filteredVendedorId);
+        }
+
+        query += ` ORDER BY p.data_entrega DESC, p.numero_pedido DESC`;
+
+        const result = await req.db.query(query, params);
+
+        await exportarPedidosExcel(res, { pedidos: result.rows, mes, ano });
+    } catch (error) {
+        console.error('Erro ao exportar Excel:', error);
+        res.status(500).json({ error: 'Erro ao gerar Excel' });
+    }
+});
+
+/**
+ * GET /api/pedidos/:id/pdf
+ * Exportar pedido individual para PDF
+ * IMPORTANTE: Esta rota deve vir ANTES de /:id genérico
+ */
+router.get('/:id/pdf', idValidation, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const pedidoResult = await req.db.query(`
+            SELECT p.*,
+                c.nome as cliente_nome,
+                COALESCE(c.razao_social, c.nome) as cliente_razao_social,
+                c.cnpj_cpf as cliente_cnpj,
+                c.telefone as cliente_telefone,
+                c.email as cliente_email,
+                c.endereco as cliente_endereco,
+                COALESCE(c.endereco_entrega, c.endereco) as cliente_endereco_entrega,
+                c.cidade as cliente_cidade,
+                c.estado as cliente_estado,
+                c.cep as cliente_cep,
+                c.contato_nome as cliente_contato,
+                c.observacoes as cliente_observacoes,
+                u.nome as vendedor_nome,
+                u.telefone as vendedor_telefone,
+                u.email as vendedor_email
+            FROM pedidos p
+            LEFT JOIN clientes c ON p.cliente_id = c.id
+            LEFT JOIN usuarios u ON p.created_by = u.id
+            WHERE p.id = $1
+        `, [id]);
+
+        if (pedidoResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Pedido não encontrado' });
+        }
+
+        const pedido = pedidoResult.rows[0];
+
+        const itensResult = await req.db.query(`
+            SELECT pi.*, pr.nome as produto_nome, pr.peso_caixa_kg
+            FROM pedido_itens pi
+            LEFT JOIN produtos pr ON pi.produto_id = pr.id
+            WHERE pi.pedido_id = $1
+            ORDER BY pi.id
+        `, [id]);
+
+        await exportarPedidoIndividualPDF(res, { pedido, itens: itensResult.rows });
+    } catch (error) {
+        console.error('Erro ao exportar PDF do pedido:', error);
+        res.status(500).json({ error: 'Erro ao gerar PDF' });
     }
 });
 
@@ -673,257 +913,6 @@ router.patch('/:id/reverter-entrega', idValidation, activityLogMiddleware('rever
     } catch (error) {
         console.error('Erro ao reverter entrega:', error);
         res.status(500).json({ error: 'Erro ao reverter entrega' });
-    }
-});
-
-/**
- * GET /api/pedidos/exportar/pdf
- * Exportar pedidos filtrados para PDF
- * Filtros: mes, ano, cliente_id, produto_id, status, vendedor_id
- */
-router.get('/exportar/pdf', pedidosQueryValidation, vendedorFilterMiddleware, async (req, res) => {
-    try {
-        let { mes, ano, cliente_id, produto_id, status, vendedor_id } = req.query;
-
-        // Usar middleware para filtro de vendedor
-        const filteredVendedorId = req.getVendedorId(vendedor_id);
-
-        let whereConditions = [];
-        let params = [];
-        let paramIndex = 1;
-
-        if (mes && ano) {
-            whereConditions.push(`EXTRACT(MONTH FROM p.data_entrega) = $${paramIndex} AND EXTRACT(YEAR FROM p.data_entrega) = $${paramIndex + 1}`);
-            params.push(parseInt(mes), parseInt(ano));
-            paramIndex += 2;
-        } else if (ano) {
-            whereConditions.push(`EXTRACT(YEAR FROM p.data_entrega) = $${paramIndex}`);
-            params.push(parseInt(ano));
-            paramIndex++;
-        }
-
-        if (cliente_id) {
-            whereConditions.push(`p.cliente_id = $${paramIndex}`);
-            params.push(parseInt(cliente_id));
-            paramIndex++;
-        }
-
-        if (produto_id) {
-            whereConditions.push(`EXISTS (SELECT 1 FROM pedido_itens pi WHERE pi.pedido_id = p.id AND pi.produto_id = $${paramIndex})`);
-            params.push(parseInt(produto_id));
-            paramIndex++;
-        }
-
-        if (status && status !== 'todos') {
-            whereConditions.push(`p.entregue = $${paramIndex}`);
-            params.push(status === 'entregue');
-            paramIndex++;
-        }
-
-        if (filteredVendedorId) {
-            whereConditions.push(`p.created_by = $${paramIndex}`);
-            params.push(filteredVendedorId);
-            paramIndex++;
-        }
-
-        const whereClause = whereConditions.length > 0
-            ? `WHERE ${whereConditions.join(' AND ')}`
-            : '';
-
-        // Buscar nome do vendedor se filtrado
-        let nomeVendedor = null;
-        if (filteredVendedorId) {
-            const vendedorResult = await req.db.query('SELECT nome FROM usuarios WHERE id = $1', [filteredVendedorId]);
-            nomeVendedor = vendedorResult.rows[0]?.nome;
-        }
-
-        // Query com dados do vendedor
-        const result = await req.db.query(`
-            SELECT p.*, c.nome as cliente_nome, u.nome as vendedor_nome
-            FROM pedidos p
-            LEFT JOIN clientes c ON p.cliente_id = c.id
-            LEFT JOIN usuarios u ON p.created_by = u.id
-            ${whereClause}
-            ORDER BY p.data_entrega ASC, p.numero_pedido ASC
-        `, params);
-
-        // Buscar totais por status
-        const totaisQuery = `
-            SELECT
-                COALESCE(SUM(CASE WHEN NOT p.entregue THEN p.peso_kg ELSE 0 END), 0) as peso_pendente,
-                COALESCE(SUM(CASE WHEN NOT p.entregue THEN p.quantidade_caixas ELSE 0 END), 0) as unidades_pendente,
-                COALESCE(SUM(CASE WHEN NOT p.entregue THEN p.total ELSE 0 END), 0) as valor_pendente,
-                COUNT(CASE WHEN NOT p.entregue THEN 1 END) as pedidos_pendentes,
-                COALESCE(SUM(CASE WHEN p.entregue THEN p.peso_kg ELSE 0 END), 0) as peso_entregue,
-                COALESCE(SUM(CASE WHEN p.entregue THEN p.quantidade_caixas ELSE 0 END), 0) as unidades_entregue,
-                COALESCE(SUM(CASE WHEN p.entregue THEN p.total ELSE 0 END), 0) as valor_entregue,
-                COUNT(CASE WHEN p.entregue THEN 1 END) as pedidos_entregues
-            FROM pedidos p
-            ${whereClause}
-        `;
-        const totaisResult = await req.db.query(totaisQuery, params);
-        const totais = totaisResult.rows[0];
-
-        // Buscar itens dos pedidos
-        const pedidoIds = result.rows.map(p => p.id);
-        let itensPorPedido = {};
-
-        if (pedidoIds.length > 0) {
-            const itensResult = await req.db.query(`
-                SELECT pi.pedido_id, pi.quantidade_caixas, pi.peso_kg, pi.preco_unitario, pi.subtotal, pr.nome as produto_nome
-                FROM pedido_itens pi
-                LEFT JOIN produtos pr ON pi.produto_id = pr.id
-                WHERE pi.pedido_id = ANY($1)
-                ORDER BY pi.id
-            `, [pedidoIds]);
-
-            itensResult.rows.forEach(item => {
-                if (!itensPorPedido[item.pedido_id]) {
-                    itensPorPedido[item.pedido_id] = [];
-                }
-                itensPorPedido[item.pedido_id].push(item);
-            });
-        }
-
-        // Delegar geração do PDF ao serviço
-        await exportarPedidosPDF(res, {
-            pedidos: result.rows,
-            totais,
-            itensPorPedido,
-            mes,
-            ano,
-            nomeVendedor
-        });
-    } catch (error) {
-        console.error('Erro ao exportar PDF:', error);
-        res.status(500).json({ error: 'Erro ao gerar PDF' });
-    }
-});
-
-/**
- * GET /api/pedidos/exportar/excel
- * Exportar pedidos para Excel
- * Filtros: mes, ano, cliente_id, produto_id, status, vendedor_id
- */
-router.get('/exportar/excel', pedidosQueryValidation, vendedorFilterMiddleware, async (req, res) => {
-    try {
-        let { mes, ano, cliente_id, produto_id, status, vendedor_id } = req.query;
-
-        // Usar middleware para filtro de vendedor
-        const filteredVendedorId = req.getVendedorId(vendedor_id);
-
-        // Query base
-        let query = `
-            SELECT
-                p.id, p.numero_pedido, p.data_pedido, p.data_entrega, p.nf, p.entregue,
-                c.nome as cliente_nome, c.cidade as cliente_cidade, c.estado as cliente_estado,
-                u.nome as vendedor_nome,
-                pi.quantidade_caixas, pi.preco_unitario,
-                pr.nome as produto_nome, pr.peso_caixa_kg
-            FROM pedidos p
-            JOIN clientes c ON p.cliente_id = c.id
-            LEFT JOIN usuarios u ON p.created_by = u.id
-            LEFT JOIN pedido_itens pi ON p.id = pi.pedido_id
-            LEFT JOIN produtos pr ON pi.produto_id = pr.id
-            WHERE 1=1
-        `;
-
-        const params = [];
-        let paramIndex = 1;
-
-        if (mes && ano) {
-            query += ` AND EXTRACT(MONTH FROM p.data_entrega) = $${paramIndex++} AND EXTRACT(YEAR FROM p.data_entrega) = $${paramIndex++}`;
-            params.push(parseInt(mes), parseInt(ano));
-        } else if (ano) {
-            query += ` AND EXTRACT(YEAR FROM p.data_entrega) = $${paramIndex++}`;
-            params.push(parseInt(ano));
-        }
-
-        if (cliente_id) {
-            query += ` AND p.cliente_id = $${paramIndex++}`;
-            params.push(parseInt(cliente_id));
-        }
-
-        if (produto_id) {
-            query += ` AND pi.produto_id = $${paramIndex++}`;
-            params.push(parseInt(produto_id));
-        }
-
-        if (status === 'pendente') {
-            query += ` AND p.entregue = false`;
-        } else if (status === 'entregue') {
-            query += ` AND p.entregue = true`;
-        }
-
-        if (filteredVendedorId) {
-            query += ` AND p.created_by = $${paramIndex++}`;
-            params.push(filteredVendedorId);
-        }
-
-        query += ` ORDER BY p.data_entrega DESC, p.numero_pedido DESC`;
-
-        const result = await req.db.query(query, params);
-
-        // Delegar geração do Excel ao serviço
-        await exportarPedidosExcel(res, { pedidos: result.rows, mes, ano });
-    } catch (error) {
-        console.error('Erro ao exportar Excel:', error);
-        res.status(500).json({ error: 'Erro ao gerar Excel' });
-    }
-});
-
-/**
- * GET /api/pedidos/:id/pdf
- * Exportar pedido individual para PDF (estilo Pedido de Vendas)
- */
-router.get('/:id/pdf', idValidation, async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        // Buscar pedido completo com todas as colunas do cliente
-        const pedidoResult = await req.db.query(`
-            SELECT p.*,
-                c.nome as cliente_nome,
-                COALESCE(c.razao_social, c.nome) as cliente_razao_social,
-                c.cnpj_cpf as cliente_cnpj,
-                c.telefone as cliente_telefone,
-                c.email as cliente_email,
-                c.endereco as cliente_endereco,
-                COALESCE(c.endereco_entrega, c.endereco) as cliente_endereco_entrega,
-                c.cidade as cliente_cidade,
-                c.estado as cliente_estado,
-                c.cep as cliente_cep,
-                c.contato_nome as cliente_contato,
-                c.observacoes as cliente_observacoes,
-                u.nome as vendedor_nome,
-                u.telefone as vendedor_telefone,
-                u.email as vendedor_email
-            FROM pedidos p
-            LEFT JOIN clientes c ON p.cliente_id = c.id
-            LEFT JOIN usuarios u ON p.created_by = u.id
-            WHERE p.id = $1
-        `, [id]);
-
-        if (pedidoResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Pedido não encontrado' });
-        }
-
-        const pedido = pedidoResult.rows[0];
-
-        // Buscar itens do pedido
-        const itensResult = await req.db.query(`
-            SELECT pi.*, pr.nome as produto_nome, pr.peso_caixa_kg
-            FROM pedido_itens pi
-            LEFT JOIN produtos pr ON pi.produto_id = pr.id
-            WHERE pi.pedido_id = $1
-            ORDER BY pi.id
-        `, [id]);
-
-        // Delegar geração do PDF ao serviço
-        await exportarPedidoIndividualPDF(res, { pedido, itens: itensResult.rows });
-    } catch (error) {
-        console.error('Erro ao exportar PDF do pedido:', error);
-        res.status(500).json({ error: 'Erro ao gerar PDF' });
     }
 });
 

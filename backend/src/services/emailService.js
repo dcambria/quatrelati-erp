@@ -2,7 +2,7 @@
  * ===========================================
  * Quatrelati - Email Service
  * Envio de emails via AWS SES
- * v2.3.0 - Adiciona skip de envio para emails de teste
+ * v2.3.1 - Corrige botão em branco no email de convite (dark mode)
  * ===========================================
  */
 
@@ -242,10 +242,17 @@ async function sendInviteEmail(to, userName, inviteLinkUrl) {
                             <table role="presentation" style="width: 100%; border-collapse: collapse;">
                                 <tr>
                                     <td align="center">
-                                        <a href="${inviteLinkUrl}"
-                                           style="display: inline-block; padding: 14px 40px; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35);">
-                                            Configurar meu Acesso
-                                        </a>
+                                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td align="center" bgcolor="#059669" style="background-color: #059669; border-radius: 8px;">
+                                                    <a href="${inviteLinkUrl}"
+                                                       target="_blank"
+                                                       style="display: inline-block; padding: 14px 40px; background-color: #059669; color: #ffffff !important; text-decoration: none; font-size: 15px; font-weight: 600; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+                                                        <span style="color: #ffffff !important;">Configurar meu Acesso</span>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </table>
                                     </td>
                                 </tr>
                             </table>

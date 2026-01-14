@@ -1,6 +1,6 @@
 // =====================================================
 // Modal de Formulário de Pedido
-// v1.3.0 - Máscara horário com intervalo
+// v1.4.0 - Corrige horário de recebimento e botão salvar
 // =====================================================
 
 'use client';
@@ -10,6 +10,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, X } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import Modal from '../../../components/ui/Modal';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
@@ -182,6 +183,7 @@ export default function PedidoFormModal({
     );
 
     if (itensValidos.length === 0) {
+      toast.error('Adicione pelo menos um produto ao pedido');
       return;
     }
 
@@ -209,6 +211,9 @@ export default function PedidoFormModal({
 
       await onSave(payload, editingPedido?.id);
       fecharModal();
+    } catch (error) {
+      console.error('Erro ao salvar pedido:', error);
+      toast.error(error.message || 'Erro ao salvar pedido');
     } finally {
       setSaving(false);
     }
@@ -274,37 +279,26 @@ export default function PedidoFormModal({
             Entrega
           </h4>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Horário de Recebimento
-              </label>
-              <input
-                type="text"
-                placeholder="Ex: 08:00 às 17:00"
-                className={`input-glass w-full ${errors.horario_recebimento ? 'border-red-500' : ''}`}
-                value={watch('horario_recebimento') || ''}
-                onChange={(e) => setValue('horario_recebimento', mascaraHorario(e.target.value))}
-              />
-              {errors.horario_recebimento && (
-                <p className="text-red-500 text-xs mt-1">{errors.horario_recebimento.message}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Preço Descarga Pallet (R$)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0,00"
-                className={`input-glass w-full ${errors.preco_descarga_pallet ? 'border-red-500' : ''}`}
-                {...register('preco_descarga_pallet')}
-              />
-              {errors.preco_descarga_pallet && (
-                <p className="text-red-500 text-xs mt-1">{errors.preco_descarga_pallet.message}</p>
-              )}
-            </div>
+            <Input
+              label="Horário de Recebimento"
+              placeholder="Ex: 08:00 às 17:00"
+              error={errors.horario_recebimento?.message}
+              {...register('horario_recebimento', {
+                onChange: (e) => {
+                  const masked = mascaraHorario(e.target.value);
+                  e.target.value = masked;
+                }
+              })}
+            />
+            <Input
+              label="Preço Descarga Pallet (R$)"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0,00"
+              error={errors.preco_descarga_pallet?.message}
+              {...register('preco_descarga_pallet')}
+            />
           </div>
         </div>
 

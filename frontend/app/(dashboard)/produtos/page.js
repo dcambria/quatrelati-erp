@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Produtos
-// v1.2.0 - Máscaras Peso e Moeda formato BR
+// v1.3.0 - Header consistente com Pedidos
 // =====================================================
 
 import { useState, useEffect, useRef } from 'react';
@@ -229,12 +229,13 @@ export default function ProdutosPage() {
     <div className="p-6 space-y-6">
       <Header
         title="Produtos"
-        subtitle={`${produtos.length} produtos cadastrados`}
         actions={
-          <Button onClick={() => abrirModal()}>
-            <Plus className="w-4 h-4" />
-            Novo Produto
-          </Button>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <Button onClick={() => abrirModal()} className="!px-2 sm:!px-4">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline ml-1">Novo Produto</span>
+            </Button>
+          </div>
         }
       />
 

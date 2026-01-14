@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Clientes
-// v2.12.3 - Header colunas sem bordas laterais
+// v2.13.0 - Header consistente com Pedidos
 // =====================================================
 
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
@@ -48,7 +48,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useVendedorFilter } from '../../contexts/VendedorFilterContext';
 import api from '../../lib/api';
 import { useCidadesIBGE } from '../../lib/useCidadesIBGE';
-// Header não usado - header customizado inline no sticky
+import Header from '../../components/layout/Header';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -795,31 +795,30 @@ export default function ClientesPage() {
   };
 
   return (
-    <div className="p-6 space-y-4">
-      {/* Header Unificado Sticky */}
-      <div className="sticky top-0 z-40 -mx-6 px-6 pb-4 pt-0 backdrop-blur-sm bg-white/95 dark:bg-gray-900/95 shadow-sm space-y-4">
-        {/* Título e Ações */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Clientes</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{clientes.length} clientes cadastrados</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={exportarPdf} disabled={exportingPdf || clientes.length === 0}>
+    <div className="p-6 space-y-6">
+      {/* Header usando componente padrão */}
+      <Header
+        title="Clientes"
+        actions={
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <Button variant="secondary" onClick={exportarPdf} disabled={exportingPdf || clientes.length === 0} className="!px-2 sm:!px-4">
               {exportingPdf ? (
                 <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
               ) : (
                 <FileText className="w-4 h-4" />
               )}
-              PDF
+              <span className="hidden sm:inline ml-1">PDF</span>
             </Button>
-            <Button onClick={() => abrirModal()}>
+            <Button onClick={() => abrirModal()} className="!px-2 sm:!px-4">
               <Plus className="w-4 h-4" />
-              Novo Cliente
+              <span className="hidden sm:inline ml-1">Novo Cliente</span>
             </Button>
           </div>
-        </div>
+        }
+      />
 
+      {/* Filtros Sticky */}
+      <div className="sticky top-0 z-40 -mx-6 px-6 pb-4 pt-0 backdrop-blur-sm bg-white/95 dark:bg-gray-900/95 shadow-sm space-y-4">
         {/* Filtros e Busca */}
         <form onSubmit={buscar} className="flex flex-wrap gap-3 items-center bg-gray-50/50 dark:bg-gray-800/30 rounded-lg p-2">
           {/* Campo de Busca */}

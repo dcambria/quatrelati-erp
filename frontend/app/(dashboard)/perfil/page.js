@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Perfil do Usuário
-// v1.1.0 - Adiciona máscara Telefone BR
+// v1.2.0 - Adiciona alteração de senha
 // =====================================================
 
 import { useState, useEffect } from 'react';
@@ -18,6 +18,8 @@ import {
   Save,
   ExternalLink,
   Info,
+  Lock,
+  Key,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -27,6 +29,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Gravatar from '../../components/ui/Gravatar';
+import PasswordStrength from '../../components/ui/PasswordStrength';
 
 // Lista completa de paises com bandeiras e codigos
 const PAISES = [
@@ -158,10 +161,24 @@ const profileSchema = z.object({
   telefone: z.string().optional(),
 });
 
+const passwordSchema = z.object({
+  senhaAtual: z.string().min(1, 'Senha atual é obrigatória'),
+  novaSenha: z.string()
+    .min(8, 'Senha deve ter no mínimo 8 caracteres')
+    .regex(/[A-Z]/, 'Senha deve ter ao menos uma letra maiúscula')
+    .regex(/[a-z]/, 'Senha deve ter ao menos uma letra minúscula')
+    .regex(/[0-9]/, 'Senha deve ter ao menos um número'),
+  confirmarSenha: z.string(),
+}).refine((data) => data.novaSenha === data.confirmarSenha, {
+  message: 'As senhas não conferem',
+  path: ['confirmarSenha'],
+});
+
 export default function PerfilPage() {
   const { user, setUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
   const [paisSelecionado, setPaisSelecionado] = useState(PAISES[0]);
   const [telefoneLocal, setTelefoneLocal] = useState('');
 
@@ -173,6 +190,18 @@ export default function PerfilPage() {
   } = useForm({
     resolver: zodResolver(profileSchema),
   });
+
+  const {
+    register: registerPassword,
+    handleSubmit: handleSubmitPassword,
+    reset: resetPassword,
+    watch: watchPassword,
+    formState: { errors: errorsPassword },
+  } = useForm({
+    resolver: zodResolver(passwordSchema),
+  });
+
+  const watchedNovaSenha = watchPassword('novaSenha', '');
 
   useEffect(() => {
     carregarPerfil();
@@ -245,6 +274,24 @@ export default function PerfilPage() {
       toast.error(error.message || 'Erro ao salvar perfil');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const onSubmitPassword = async (data) => {
+    setSavingPassword(true);
+    try {
+      await api.put('/auth/change-password', {
+        currentPassword: data.senhaAtual,
+        newPassword: data.novaSenha,
+      });
+
+      toast.success('Senha alterada com sucesso');
+      resetPassword();
+    } catch (error) {
+      console.error('Erro ao alterar senha:', error);
+      toast.error(error.response?.data?.error || 'Erro ao alterar senha');
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -432,6 +479,58 @@ export default function PerfilPage() {
           </form>
         </Card>
       </div>
+
+      {/* Card de alteração de senha */}
+      <Card className="p-6 max-w-4xl mx-auto">
+        <form onSubmit={handleSubmitPassword(onSubmitPassword)} className="space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Key className="w-5 h-5 text-quatrelati-blue-500" />
+              Alterar Senha
+            </h3>
+
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Para alterar sua senha, informe a senha atual e a nova senha.
+            </p>
+
+            <div className="space-y-4 max-w-md">
+              <Input
+                label="Senha Atual"
+                type="password"
+                placeholder="Digite sua senha atual"
+                error={errorsPassword.senhaAtual?.message}
+                {...registerPassword('senhaAtual')}
+              />
+
+              <div>
+                <Input
+                  label="Nova Senha"
+                  type="password"
+                  placeholder="Digite a nova senha"
+                  error={errorsPassword.novaSenha?.message}
+                  {...registerPassword('novaSenha')}
+                />
+                <PasswordStrength password={watchedNovaSenha} />
+              </div>
+
+              <Input
+                label="Confirmar Nova Senha"
+                type="password"
+                placeholder="Confirme a nova senha"
+                error={errorsPassword.confirmarSenha?.message}
+                {...registerPassword('confirmarSenha')}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+            <Button type="submit" loading={savingPassword}>
+              <Lock className="w-4 h-4" />
+              Alterar Senha
+            </Button>
+          </div>
+        </form>
+      </Card>
     </div>
   );
 }

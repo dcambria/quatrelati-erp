@@ -2,7 +2,7 @@
 
 // =====================================================
 // Layout do Dashboard
-// v1.1.0 - Adiciona modal de primeiro acesso
+// v1.2.0 - Adiciona tour guiada após primeiro acesso
 // =====================================================
 
 import { useState, useEffect } from 'react';
@@ -16,6 +16,7 @@ import Sidebar from '../components/layout/Sidebar';
 import BureauLogo from '../components/common/BureauLogo';
 import { LoadingPage } from '../components/ui/Loading';
 import FirstAccessModal from '../components/ui/FirstAccessModal';
+import GuidedTour, { useShouldShowTour } from '../components/ui/GuidedTour';
 import { Menu } from 'lucide-react';
 
 function MobileHeader() {
@@ -49,6 +50,8 @@ function DashboardContent({ children }) {
   const { isCollapsed, isMobile } = useSidebar();
   const { user, setUser } = useAuth();
   const [showFirstAccessModal, setShowFirstAccessModal] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+  const { shouldShow: shouldShowTour } = useShouldShowTour();
 
   // Verificar primeiro acesso quando user estiver disponível
   useEffect(() => {
@@ -59,7 +62,17 @@ function DashboardContent({ children }) {
 
   const handleFirstAccessComplete = () => {
     setShowFirstAccessModal(false);
-    // O user já foi atualizado pelo modal
+    // Iniciar tour guiada após primeiro acesso
+    // Pequeno delay para o modal fechar suavemente
+    setTimeout(() => {
+      if (shouldShowTour) {
+        setShowTour(true);
+      }
+    }, 500);
+  };
+
+  const handleTourComplete = () => {
+    setShowTour(false);
   };
 
   const mainMargin = isMobile ? 'ml-0 pt-16' : (isCollapsed ? 'ml-20' : 'ml-72');
@@ -79,6 +92,12 @@ function DashboardContent({ children }) {
       <FirstAccessModal
         isOpen={showFirstAccessModal}
         onComplete={handleFirstAccessComplete}
+      />
+
+      {/* Tour guiada */}
+      <GuidedTour
+        isOpen={showTour}
+        onComplete={handleTourComplete}
       />
     </div>
   );

@@ -198,7 +198,7 @@ export default function DashboardPage() {
       />
 
       {/* Estatísticas principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-tour="dashboard-stats">
         <div
           onClick={() => navegarParaPedidos({ mes, ano })}
           className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]"

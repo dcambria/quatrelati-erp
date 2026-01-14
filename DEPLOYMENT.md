@@ -4,7 +4,7 @@
 
 - Docker 20.10+
 - Docker Compose 2.0+
-- Node.js 18+ (for local development)
+- Node.js 22+ (for local development)
 - Git
 
 ## Quick Start (Development)
@@ -45,24 +45,71 @@ JWT_SECRET=your-super-secure-jwt-secret-minimum-32-characters
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 
-# Email (optional)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-EMAIL_FROM=noreply@quatrelati.com
+# AWS SES (production)
+AWS_REGION=us-east-1
+SES_FROM_EMAIL=noreply@bit-bpo.com
 
-# WhatsApp/Twilio (optional)
-TWILIO_ACCOUNT_SID=your-account-sid
-TWILIO_AUTH_TOKEN=your-auth-token
-TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+# Frontend URL (for magic links)
+FRONTEND_URL=http://localhost:3000
 ```
 
 ### Frontend (.env.local)
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3001/api
+
+# Test credentials (for E2E tests)
+TEST_BASE_URL=http://localhost:3000
+TEST_USER_EMAIL=your@email.com
+TEST_USER_PASSWORD=yourpassword
 ```
+
+## Production Deployment (Plesk)
+
+### Server Info
+
+- **URL:** https://erp.laticinioquatrelati.com.br
+- **Server:** AWS EC2 (Plesk)
+- **SSH:** `ssh cloud`
+- **Directory:** `/var/www/vhosts/laticinioquatrelati.com.br/erp.laticinioquatrelati.com.br/`
+
+### Deploy Commands
+
+```bash
+# Connect to server
+ssh cloud
+
+# Navigate to project
+cd /var/www/vhosts/laticinioquatrelati.com.br/erp.laticinioquatrelati.com.br
+
+# View logs
+sudo docker compose -f docker-compose.plesk.yml --env-file .env.prod logs -f
+
+# Rebuild and restart
+sudo docker compose -f docker-compose.plesk.yml --env-file .env.prod build --no-cache
+sudo docker compose -f docker-compose.plesk.yml --env-file .env.prod up -d
+
+# Rebuild specific service
+sudo docker compose -f docker-compose.plesk.yml --env-file .env.prod build backend
+sudo docker compose -f docker-compose.plesk.yml --env-file .env.prod up -d backend
+```
+
+### Production Files
+
+| File | Description |
+|------|-------------|
+| `docker-compose.plesk.yml` | Docker Compose for Plesk deployment |
+| `.env.prod` (on server) | Production environment variables |
+| `/etc/nginx/conf.d/99-erp-quatrelati.conf` | Custom nginx configuration |
+
+### AWS Configuration
+
+| Service | Configuration |
+|---------|---------------|
+| IAM Role | IAM_Plesk |
+| SES Region | us-east-1 |
+| Verified Domains | bit-bpo.com |
+| Verified Emails | daniel.cambria@bureau-it.com, noreply@bit-bpo.com |
 
 ## Docker Deployment
 
@@ -83,176 +130,27 @@ docker-compose down -v
 docker-compose up -d
 ```
 
-### Production
+### Production Containers
 
-Create `docker-compose.prod.yml`:
-
-```yaml
-version: '3.8'
-
-services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: quatrelati-postgres
-    restart: always
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - quatrelati-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.prod
-    container_name: quatrelati-backend
-    restart: always
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
-      JWT_SECRET: ${JWT_SECRET}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - quatrelati-network
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.prod
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-    container_name: quatrelati-frontend
-    restart: always
-    depends_on:
-      - backend
-    networks:
-      - quatrelati-network
-
-  nginx:
-    image: nginx:alpine
-    container_name: quatrelati-nginx
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/ssl:/etc/nginx/ssl
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - quatrelati-network
-
-volumes:
-  postgres_data:
-
-networks:
-  quatrelati-network:
-    driver: bridge
-```
-
-### Production Dockerfiles
-
-**backend/Dockerfile.prod:**
-```dockerfile
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-
-FROM node:18-alpine
-WORKDIR /app
-COPY --from=builder /app/node_modules ./node_modules
-COPY . .
-USER node
-EXPOSE 3001
-CMD ["node", "src/server.js"]
-```
-
-**frontend/Dockerfile.prod:**
-```dockerfile
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-RUN npm run build
-
-FROM node:18-alpine
-WORKDIR /app
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
-USER node
-EXPOSE 3000
-CMD ["node", "server.js"]
-```
-
-### Nginx Configuration
-
-**nginx/nginx.conf:**
-```nginx
-events {
-    worker_connections 1024;
-}
-
-http {
-    upstream frontend {
-        server frontend:3000;
-    }
-
-    upstream backend {
-        server backend:3001;
-    }
-
-    server {
-        listen 80;
-        server_name yourdomain.com;
-
-        location / {
-            proxy_pass http://frontend;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection 'upgrade';
-            proxy_set_header Host $host;
-            proxy_cache_bypass $http_upgrade;
-        }
-
-        location /api {
-            proxy_pass http://backend;
-            proxy_http_version 1.1;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        }
-    }
-}
-```
+| Container | Port | Description |
+|-----------|------|-------------|
+| quatrelati-db | 5432 (internal) | PostgreSQL 15 Alpine |
+| quatrelati-backend | 3001 (internal) | Node.js 22 + Express |
+| quatrelati-frontend | 3000 (internal) | Next.js 15 Standalone |
 
 ## Database Management
 
 ### Backup
 
 ```bash
-# Manual backup
-docker exec quatrelati-postgres pg_dump -U quatrelati quatrelati > backup_$(date +%Y%m%d).sql
+# Production backup
+sudo docker exec quatrelati-db pg_dump -U quatrelati quatrelati_pedidos > backup_$(date +%Y%m%d).sql
+
+# Development backup
+docker exec quatrelati-postgres pg_dump -U quatrelati quatrelati > backup.sql
 
 # Automated backup (cron)
-0 2 * * * docker exec quatrelati-postgres pg_dump -U quatrelati quatrelati > /backups/quatrelati_$(date +\%Y\%m\%d).sql
+0 2 * * * sudo docker exec quatrelati-db pg_dump -U quatrelati quatrelati_pedidos > /backups/quatrelati_$(date +\%Y\%m\%d).sql
 ```
 
 ### Restore
@@ -271,16 +169,21 @@ docker-compose start backend
 ### Migrations
 
 ```bash
-# Run migrations
-docker exec quatrelati-postgres psql -U quatrelati -d quatrelati -f /migrations/001_migration.sql
+# Run migrations (production)
+sudo docker exec quatrelati-db psql -U quatrelati -d quatrelati_pedidos -f /migrations/006_add_primeiro_acesso.sql
+
+# Run migrations (development)
+psql -U quatrelati -d quatrelati -f db/migrations/006_add_primeiro_acesso.sql
 ```
 
 ## Monitoring
 
 ### Health Checks
 
-- Backend: `GET /api/health`
-- Database: PostgreSQL healthcheck in compose
+All containers have built-in health checks:
+- Backend: HTTP check on startup
+- Database: `pg_isready` command
+- Frontend: HTTP check on port 3000
 
 ### Logs
 
@@ -293,38 +196,17 @@ docker-compose logs -f backend
 
 # Last 100 lines
 docker-compose logs --tail=100 backend
+
+# Production logs
+sudo docker compose -f docker-compose.plesk.yml --env-file .env.prod logs -f --tail=100
 ```
-
-## Scaling
-
-### Horizontal Scaling
-
-```yaml
-# docker-compose.prod.yml
-services:
-  backend:
-    deploy:
-      replicas: 3
-```
-
-### Load Balancing
-
-Configure Nginx upstream with multiple backend instances.
 
 ## SSL/TLS
 
-### Let's Encrypt with Certbot
-
-```bash
-# Install certbot
-apt-get install certbot python3-certbot-nginx
-
-# Generate certificate
-certbot --nginx -d yourdomain.com
-
-# Auto-renewal
-certbot renew --dry-run
-```
+SSL is managed by Cloudflare:
+- Full SSL mode enabled
+- Automatic HTTPS redirect
+- Edge certificates managed by Cloudflare
 
 ## Troubleshooting
 
@@ -345,10 +227,10 @@ docker-compose ps postgres
 docker-compose logs postgres
 ```
 
-**Permission denied:**
+**Permission denied (production):**
 ```bash
-# Fix volume permissions
-sudo chown -R 1000:1000 ./data
+# Use sudo for docker commands
+sudo docker compose -f docker-compose.plesk.yml --env-file .env.prod logs
 ```
 
 ### Reset Everything
@@ -361,11 +243,11 @@ docker-compose up -d --build
 
 ## Security Checklist
 
-- [ ] Change default database password
-- [ ] Set strong JWT_SECRET (32+ characters)
-- [ ] Enable HTTPS in production
-- [ ] Configure firewall rules
-- [ ] Set up regular backups
-- [ ] Monitor logs for suspicious activity
-- [ ] Keep dependencies updated
-- [ ] Use secrets management in production
+- [x] Strong JWT_SECRET (32+ characters)
+- [x] HTTPS enabled (Cloudflare)
+- [x] Rate limiting on auth endpoints
+- [x] SQL injection prevention (parameterized queries)
+- [x] Password hashing (bcrypt)
+- [x] Environment variables for secrets
+- [ ] Regular database backups (cron)
+- [ ] Log monitoring

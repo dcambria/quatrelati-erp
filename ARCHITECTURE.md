@@ -15,7 +15,7 @@
                                           │
                     ┌─────────────────────▼───────────────────────────────┐
                     │                    BACKEND                          │
-                    │               Node.js + Express                     │
+                    │            Node.js 22 + Express 5                   │
                     │                  Port: 3001                         │
                     │                                                     │
                     │  ┌─────────────────────────────────────────────┐   │
@@ -243,7 +243,8 @@ postgres:5432 (internal)
 
 | Service | Purpose | Required |
 |---------|---------|----------|
-| SMTP | Email sending | Optional |
+| AWS SES | Email sending (magic links, convites) | Production |
+| Cloudflare | CDN, WAF, DNS | Production |
 | Twilio | WhatsApp OTP | Optional |
 | S3/R2 | Image storage | Optional |
 

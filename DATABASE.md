@@ -15,9 +15,10 @@ User accounts for the system.
 | nome | VARCHAR(100) | User full name |
 | email | VARCHAR(100) | Unique email address |
 | senha_hash | VARCHAR(255) | Bcrypt password hash |
-| nivel | VARCHAR(20) | Access level: `superadmin`, `admin`, `user` |
+| nivel | VARCHAR(20) | Access level: `superadmin`, `admin`, `vendedor`, `visualizador` |
 | ativo | BOOLEAN | Active status (default: true) |
 | pode_visualizar_todos | BOOLEAN | Can view all orders (default: false) |
+| primeiro_acesso | BOOLEAN | First access flag (default: true) |
 | telefone | VARCHAR(20) | Phone number |
 | created_at | TIMESTAMP | Creation timestamp |
 | updated_at | TIMESTAMP | Last update timestamp |
@@ -33,10 +34,15 @@ Client/customer records.
 | cnpj_cpf | VARCHAR(20) | CNPJ or CPF document |
 | telefone | VARCHAR(20) | Phone number |
 | email | VARCHAR(100) | Email address |
-| endereco | TEXT | Full address |
+| endereco | TEXT | Street address |
+| numero | VARCHAR(20) | Address number |
+| complemento | VARCHAR(100) | Address complement |
+| bairro | VARCHAR(100) | Neighborhood |
 | cidade | VARCHAR(100) | City |
 | estado | VARCHAR(2) | State code |
 | cep | VARCHAR(10) | ZIP code |
+| latitude | DECIMAL(10,8) | GPS latitude |
+| longitude | DECIMAL(11,8) | GPS longitude |
 | observacoes | TEXT | Notes |
 | ativo | BOOLEAN | Active status |
 | created_by | INTEGER | User who created |
@@ -111,7 +117,7 @@ JWT refresh token storage.
 | created_at | TIMESTAMP | Creation timestamp |
 
 ### magic_links
-Password reset magic links.
+Password reset and invitation magic links.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -129,10 +135,29 @@ User activity logging.
 |--------|------|-------------|
 | id | SERIAL | Primary key |
 | usuario_id | INTEGER | FK to usuarios |
+| usuario_nome | VARCHAR(100) | User name (denormalized) |
+| usuario_nivel | VARCHAR(20) | User level (denormalized) |
 | acao | VARCHAR(50) | Action type |
 | entidade | VARCHAR(50) | Entity type |
 | entidade_id | INTEGER | Entity ID |
+| entidade_nome | VARCHAR(200) | Entity name |
 | detalhes | JSONB | Additional details |
+| ip_address | VARCHAR(45) | Client IP |
+| user_agent | TEXT | Browser user agent |
+| created_at | TIMESTAMP | Timestamp |
+
+### error_logs
+System error logging.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL | Primary key |
+| error_type | VARCHAR(100) | Error type |
+| message | TEXT | Error message |
+| stack | TEXT | Stack trace |
+| request_path | VARCHAR(255) | Request path |
+| request_method | VARCHAR(10) | HTTP method |
+| user_id | INTEGER | User ID (if authenticated) |
 | ip_address | VARCHAR(45) | Client IP |
 | user_agent | TEXT | Browser user agent |
 | created_at | TIMESTAMP | Timestamp |
@@ -159,12 +184,14 @@ CREATE INDEX idx_pedidos_status ON pedidos(entregue);
 CREATE INDEX idx_pedidos_mes ON pedidos(EXTRACT(YEAR FROM data_pedido), EXTRACT(MONTH FROM data_pedido));
 CREATE INDEX idx_pedidos_numero ON pedidos(numero_pedido);
 CREATE INDEX idx_clientes_nome ON clientes(nome);
+CREATE INDEX idx_clientes_vendedor ON clientes(vendedor_id);
 CREATE INDEX idx_produtos_nome ON produtos(nome);
 CREATE INDEX idx_usuarios_email ON usuarios(email);
 CREATE INDEX idx_refresh_tokens_token ON refresh_tokens(token);
 CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
 CREATE INDEX idx_activity_logs_usuario ON activity_logs(usuario_id);
 CREATE INDEX idx_activity_logs_created ON activity_logs(created_at);
+CREATE INDEX idx_error_logs_created ON error_logs(created_at);
 ```
 
 ## Triggers
@@ -188,6 +215,7 @@ usuarios
   +-- refresh_tokens (user_id)
   +-- magic_links (user_id)
   +-- activity_logs (usuario_id)
+  +-- error_logs (user_id)
 
 clientes
   |
@@ -212,11 +240,17 @@ Located in `/db/migrations/`:
 | 001_add_razao_social_and_entrega_fields.sql | Added razao_social to clientes, horario_recebimento to pedidos |
 | 002_add_pode_visualizar_todos.sql | Added pode_visualizar_todos to usuarios |
 | 003_add_missing_columns.sql | Added cidade, estado to clientes |
+| 004_add_error_logs.sql | Added error_logs table |
+| 005_add_endereco_completo_fields.sql | Added numero, complemento, bairro, latitude, longitude to clientes |
+| 006_add_primeiro_acesso.sql | Added primeiro_acesso to usuarios |
 
 ## Backup
 
 ```bash
-# Backup
+# Backup (producao)
+sudo docker exec quatrelati-db pg_dump -U quatrelati quatrelati_pedidos > backup.sql
+
+# Backup (desenvolvimento)
 docker exec quatrelati-postgres pg_dump -U quatrelati quatrelati > backup.sql
 
 # Restore

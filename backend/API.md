@@ -95,13 +95,23 @@ Verify magic link token.
 ```
 
 ### PUT /auth/change-password
-Change password (requires auth).
+Change password (requires auth). Does not require current password.
 
 **Request Body:**
 ```json
 {
-  "currentPassword": "old-password",
   "newPassword": "NewP@ssw0rd"
+}
+```
+
+### PUT /auth/set-initial-password
+Set initial password on first access (requires auth).
+
+**Request Body:**
+```json
+{
+  "password": "SecureP@ss1",
+  "nome": "Updated Name"
 }
 ```
 

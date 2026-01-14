@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-01-14
+
+### Added
+- Tour guiada para novos usuarios apos primeiro acesso
+- Indicador de forca de senha (PasswordStrength component)
+- Protecao contra envio de emails para dominios de teste (@teste.local)
+- Favicon Quatrelati
+
+### Changed
+- Perfil: botao "Alterar Senha" expande formulario (nao exige senha atual)
+- EmailService v2.3.0: pula envio para emails de teste
+- Perfil page v1.3.0: refatorado secao de senha
+
+### Fixed
+- Race condition no primeiro acesso (verificacao antes de fechar modal)
+- Fluxo de primeiro acesso com tour guiada
+
+## [2.1.0] - 2026-01-13
+
+### Added
+- Deploy em producao (Plesk/EC2)
+- docker-compose.plesk.yml para deploy
+- Integracao AWS SES para envio de emails
+- Convite de usuarios por email (magic link)
+- Modal de primeiro acesso com definicao de senha
+
+### Changed
+- EmailService usando IAM role ao inves de profile
+- Backend dotenv movido para dependencies
+
+### Security
+- Magic link com token seguro (crypto.randomBytes)
+- Expiracao de magic links em 24h
+
 ## [2.0.0] - 2026-01-12
 
 ### Added
@@ -138,12 +172,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | frontend/app/(dashboard)/pedidos/components/PedidoFormModal.js | v1.3.0 | Horario mask |
 | frontend/app/(dashboard)/clientes/page.js | v1.5.0 | CNPJ/CEP/Tel masks |
 | frontend/app/(dashboard)/produtos/page.js | v1.2.0 | Peso/Moeda masks |
-| frontend/app/(dashboard)/perfil/page.js | v1.1.0 | Telefone BR mask |
+| frontend/app/(dashboard)/perfil/page.js | v1.3.0 | Refatorado secao senha |
+| frontend/app/(dashboard)/usuarios/page.js | v1.2.0 | Indicador forca senha |
+| frontend/app/components/ui/PasswordStrength.js | v1.0.0 | Componente forca senha |
 | backend/src/middleware/auth.js | v1.1.0 | JWT fail-fast |
 | backend/src/middleware/rateLimit.js | v1.0.0 | Rate limiting |
 | backend/src/middleware/validation.js | v1.2.0 | Input validation |
 | backend/src/routes/logs.js | v1.1.0 | SQL injection fix |
 | backend/src/routes/pedidos.js | v2.0.0 | DB transactions |
+| backend/src/services/emailService.js | v2.3.0 | Skip test emails |
 
 ---
 

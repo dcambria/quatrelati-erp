@@ -1,42 +1,51 @@
-# Sistema de Gestão de Pedidos - Laticínio Quatrelati
+# Sistema de Gestao de Pedidos - Laticinio Quatrelati
 
-Sistema completo de gestão de pedidos mensais para o Laticínio Quatrelati, empresa de laticínios especializada em manteigas, com 40+ anos no mercado lácteo.
+Sistema completo de gestao de pedidos mensais para o Laticinio Quatrelati, empresa de laticinios especializada em manteigas, com 40+ anos no mercado lacteo.
 
-## Stack Tecnológica
+## Producao
+
+**URL:** https://erp.laticinioquatrelati.com.br
+
+## Stack Tecnologica
 
 ### Frontend
-- Next.js 15+ com App Router
+- Next.js 15.5+ com App Router
 - React 19+
 - Tailwind CSS 3.4+ (Design System Liquid Glass)
-- Lucide React (ícones)
-- React Hook Form + Zod (formulários)
-- React Hot Toast (notificações)
-- Recharts (gráficos)
+- Lucide React (icones)
+- React Hook Form + Zod (formularios)
+- React Hot Toast (notificacoes)
+- Recharts (graficos)
 - date-fns (datas)
+- next-pwa (PWA)
 
 ### Backend
-- Node.js 18+ com Express
+- Node.js 22+ com Express 5
 - PostgreSQL 15+
-- JWT (autenticação)
+- JWT (autenticacao)
 - bcryptjs (hash de senhas)
-- PDFKit (exportação PDF)
+- PDFKit (exportacao PDF)
+- AWS SES (envio de emails)
 
 ### Infraestrutura
 - Docker + Docker Compose
+- Nginx (reverse proxy)
+- Cloudflare (CDN/WAF)
+- AWS EC2 (Plesk)
 
-## Início Rápido
+## Inicio Rapido
 
-### Pré-requisitos
+### Pre-requisitos
 - Docker e Docker Compose instalados
-- Node.js 18+ (para desenvolvimento local)
+- Node.js 22+ (para desenvolvimento local)
 
 ### Executar com Docker (Recomendado)
 
 ```bash
-# Clonar/entrar no diretório
+# Clonar/entrar no diretorio
 cd quatrelati
 
-# Subir todos os serviços
+# Subir todos os servicos
 docker-compose up -d
 
 # Acessar
@@ -63,56 +72,72 @@ npm run dev
 
 ## Credenciais de Acesso
 
-As credenciais de acesso estão no arquivo `.env.local` (não versionado).
+As credenciais de acesso estao no arquivo `.env.local` (nao versionado).
 Solicite ao administrador do sistema.
 
 ## Funcionalidades
 
 ### Dashboard
 - Resumo mensal (pedidos, valor, peso)
-- Gráfico de status de entregas (pizza)
-- Evolução mensal (linha)
+- Grafico de status de entregas (pizza)
+- Evolucao mensal (linha)
 - Top 5 clientes e produtos
-- Próximas entregas (7 dias)
+- Proximas entregas (7 dias)
 - Entregas atrasadas
 
 ### Pedidos
-- Listagem com navegação mensal
+- Listagem com navegacao mensal
 - Filtros por status, cliente, produto
-- Cadastro com cálculo automático de peso e total
-- Numeração automática (YYMMXX)
+- Cadastro com calculo automatico de peso e total
+- Numeracao automatica (YYMMXX)
 - Marcar como entregue
-- Exportação PDF
-- Impressão direta
+- Exportacao PDF
+- Impressao direta
 
 ### Clientes
 - CRUD completo
-- Histórico de pedidos
-- Estatísticas por cliente
-- Visualização em Cards / Lista / Mapa
+- Historico de pedidos
+- Estatisticas por cliente
+- Visualizacao em Cards / Lista / Mapa
 - Mapa Leaflet com clientes por cidade
-- Criação de rotas Google Maps (seleção múltipla)
-- Exportação PDF da lista
-- Ordenação por todas as colunas
-- Telefone e email clicáveis (tel: / mailto:)
+- Criacao de rotas Google Maps (selecao multipla)
+- Exportacao PDF da lista
+- Ordenacao por todas as colunas
+- Telefone e email clicaveis (tel: / mailto:)
 
 ### Produtos
 - CRUD completo
-- Estatísticas de vendas
-- Peso por caixa configurável
+- Estatisticas de vendas
+- Peso por caixa configuravel
 
-### Usuários (apenas superadmin)
-- CRUD de usuários
-- Níveis: superadmin, admin, user
+### Usuarios (apenas superadmin)
+- CRUD de usuarios
+- Niveis: superadmin, admin, vendedor, visualizador
+- Convite por email (magic link)
 - Ativar/desativar
+- Indicador de forca de senha
+
+### Perfil
+- Edicao de nome e telefone
+- Foto via Gravatar
+- Alteracao de senha (sem exigir senha atual)
+
+### Primeiro Acesso
+- Modal de boas-vindas
+- Definicao de senha obrigatoria
+- Tour guiada pelo sistema
 
 ## API Endpoints
 
-### Autenticação
+### Autenticacao
 - `POST /api/auth/login` - Login
 - `POST /api/auth/logout` - Logout
 - `POST /api/auth/refresh` - Renovar token
-- `GET /api/auth/me` - Usuário atual
+- `GET /api/auth/me` - Usuario atual
+- `PUT /api/auth/profile` - Atualizar perfil
+- `PUT /api/auth/change-password` - Alterar senha
+- `POST /api/auth/verify-magic-link` - Verificar magic link
+- `PUT /api/auth/set-initial-password` - Definir senha inicial
 
 ### Pedidos
 - `GET /api/pedidos` - Listar (filtros: mes, ano, cliente_id, status)
@@ -126,7 +151,7 @@ Solicite ao administrador do sistema.
 ### Clientes
 - `GET /api/clientes` - Listar
 - `GET /api/clientes/:id` - Detalhes
-- `GET /api/clientes/:id/pedidos` - Histórico
+- `GET /api/clientes/:id/pedidos` - Historico
 - `POST /api/clientes` - Criar
 - `PUT /api/clientes/:id` - Atualizar
 - `DELETE /api/clientes/:id` - Excluir
@@ -138,30 +163,32 @@ Solicite ao administrador do sistema.
 - `PUT /api/produtos/:id` - Atualizar
 - `DELETE /api/produtos/:id` - Excluir
 
-### Usuários
+### Usuarios
 - `GET /api/usuarios` - Listar
 - `GET /api/usuarios/:id` - Detalhes
 - `POST /api/usuarios` - Criar
 - `PUT /api/usuarios/:id` - Atualizar
 - `DELETE /api/usuarios/:id` - Excluir
+- `POST /api/usuarios/invite` - Enviar convite
+- `POST /api/usuarios/:id/invite` - Reenviar convite
 
 ### Dashboard
-- `GET /api/dashboard/resumo` - Resumo do mês
-- `GET /api/dashboard/stats` - Estatísticas gerais
+- `GET /api/dashboard/resumo` - Resumo do mes
+- `GET /api/dashboard/stats` - Estatisticas gerais
 - `GET /api/dashboard/top-clientes` - Top clientes
 - `GET /api/dashboard/top-produtos` - Top produtos
-- `GET /api/dashboard/evolucao` - Evolução mensal
-- `GET /api/dashboard/proximas-entregas` - Próximas entregas
+- `GET /api/dashboard/evolucao` - Evolucao mensal
+- `GET /api/dashboard/proximas-entregas` - Proximas entregas
 - `GET /api/dashboard/entregas-atrasadas` - Atrasadas
 
 ## Design System
 
 O sistema utiliza o design "Liquid Glass" inspirado no Apple HIG 2024+, com:
 
-- Efeitos de backdrop-blur e transparência
+- Efeitos de backdrop-blur e transparencia
 - Cores da marca Quatrelati (dourado, azul, verde)
 - Gradientes suaves
-- Animações fluidas
+- Animacoes fluidas
 - Suporte completo a dark mode
 
 ## Estrutura do Projeto
@@ -170,38 +197,48 @@ O sistema utiliza o design "Liquid Glass" inspirado no Apple HIG 2024+, com:
 quatrelati/
 ├── frontend/
 │   ├── app/
-│   │   ├── (auth)/login/
+│   │   ├── (auth)/
+│   │   │   ├── login/
+│   │   │   └── magic-link/
 │   │   ├── (dashboard)/
 │   │   │   ├── pedidos/
 │   │   │   ├── clientes/
 │   │   │   ├── produtos/
-│   │   │   └── usuarios/
+│   │   │   ├── usuarios/
+│   │   │   ├── perfil/
+│   │   │   ├── atividades/
+│   │   │   └── configuracoes/
 │   │   ├── components/
 │   │   ├── contexts/
 │   │   └── lib/
+│   ├── tests/
 │   └── package.json
 ├── backend/
 │   ├── src/
 │   │   ├── routes/
 │   │   ├── middleware/
+│   │   ├── services/
 │   │   └── server.js
+│   ├── tests/
 │   └── package.json
 ├── db/
-│   └── init.sql
+│   ├── init.sql
+│   └── migrations/
 ├── docker-compose.yml
+├── docker-compose.plesk.yml
 └── README.md
 ```
 
 ## Testes E2E (Playwright)
 
-Os testes E2E utilizam Playwright e requerem configuração de credenciais via variáveis de ambiente.
+Os testes E2E utilizam Playwright e requerem configuracao de credenciais via variaveis de ambiente.
 
-### Configuração
+### Configuracao
 
 1. Crie o arquivo `frontend/.env.local`:
 ```bash
 # Credenciais de teste (NUNCA commitar!)
-TEST_BASE_URL=http://localhost:3002
+TEST_BASE_URL=http://localhost:3000
 TEST_USER_EMAIL=seu@email.com
 TEST_USER_PASSWORD=suasenha
 ```
@@ -216,18 +253,18 @@ npx playwright test
 # Rodar com interface visual
 npx playwright test --headed
 
-# Rodar teste específico
+# Rodar teste especifico
 npx playwright test tests/clientes-debug.spec.js --headed
 ```
 
 ### Arquivos de Teste
-- `tests/helpers.js` - Funções compartilhadas
-- `tests/test-config.js` - Configuração centralizada
+- `tests/helpers.js` - Funcoes compartilhadas
+- `tests/test-config.js` - Configuracao centralizada
 - `tests/*.spec.js` - Testes E2E
 
-> **Importante:** As credenciais são carregadas do `.env.local` que está no `.gitignore`. Nunca commite senhas no repositório.
+> **Importante:** As credenciais sao carregadas do `.env.local` que esta no `.gitignore`. Nunca commite senhas no repositorio.
 
-## Comandos Úteis
+## Comandos Uteis
 
 ```bash
 # Logs dos containers
@@ -244,12 +281,12 @@ docker-compose down -v
 docker-compose up -d
 ```
 
-## Licença
+## Licenca
 
-**Software Proprietário** - Bureau de Tecnologia Ltda.
+**Software Proprietario** - Bureau de Tecnologia Ltda.
 
-Este software é propriedade exclusiva do Bureau de Tecnologia Ltda. Todos os direitos reservados.
-É expressamente proibida a cópia, distribuição, modificação ou uso não autorizado deste software.
+Este software e propriedade exclusiva do Bureau de Tecnologia Ltda. Todos os direitos reservados.
+E expressamente proibida a copia, distribuicao, modificacao ou uso nao autorizado deste software.
 
 ---
 

@@ -150,11 +150,12 @@ frontend/app/
     └── api.js                 # Cliente HTTP
 ```
 
-### Níveis de Acesso
+### Niveis de Acesso
 
-- **superadmin**: Acesso total, gerencia usuários
+- **superadmin**: Acesso total, gerencia usuarios
 - **admin**: Acesso a pedidos, clientes e produtos
-- **user**: Acesso apenas a pedidos
+- **vendedor**: Acesso a pedidos e clientes (proprios ou todos se pode_visualizar_todos)
+- **visualizador**: Apenas visualizacao
 
 ### Versionamento
 

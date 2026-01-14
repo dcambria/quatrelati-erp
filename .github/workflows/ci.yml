@@ -167,6 +167,8 @@ jobs:
         working-directory: frontend
         env:
           BASE_URL: http://localhost:3000
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
         run: npx playwright test --reporter=html
 
       - name: Upload test results
@@ -248,7 +250,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           script: |
-            cd /opt/quatrelati
-            docker-compose -f docker-compose.prod.yml pull
-            docker-compose -f docker-compose.prod.yml up -d
-            docker system prune -f
+            cd /var/www/vhosts/laticinioquatrelati.com.br/erp.laticinioquatrelati.com.br
+            sudo docker compose -f docker-compose.plesk.yml --env-file .env.prod pull
+            sudo docker compose -f docker-compose.plesk.yml --env-file .env.prod up -d
+            sudo docker system prune -f

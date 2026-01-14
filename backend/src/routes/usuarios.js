@@ -1,20 +1,20 @@
 // =====================================================
 // Rotas de Usuários
-// v1.3.0 - Aplicar Activity Log em todas as rotas
+// v1.4.0 - Admin pode gerenciar usuários (exceto superadmin)
 // =====================================================
 
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const { authMiddleware, superadminOnly } = require('../middleware/auth');
+const { authMiddleware, adminOnly } = require('../middleware/auth');
 const { usuarioValidation, usuarioUpdateValidation, idValidation } = require('../middleware/validation');
 const { activityLogMiddleware } = require('../middleware/activityLog');
 const emailService = require('../services/emailService');
 
-// Todas as rotas requerem autenticação e nível superadmin
+// Todas as rotas requerem autenticação e nível admin ou superadmin
 router.use(authMiddleware);
-router.use(superadminOnly);
+router.use(adminOnly);
 
 /**
  * GET /api/usuarios
@@ -132,6 +132,16 @@ router.put('/:id', idValidation, usuarioUpdateValidation, activityLogMiddleware(
             return res.status(400).json({ error: 'Você não pode desativar seu próprio usuário' });
         }
 
+        // Admin não pode editar superadmin
+        if (usuarioAtual.rows[0].nivel === 'superadmin' && req.userNivel !== 'superadmin') {
+            return res.status(403).json({ error: 'Apenas superadmin pode editar outro superadmin' });
+        }
+
+        // Admin não pode promover a superadmin
+        if (nivel === 'superadmin' && req.userNivel !== 'superadmin') {
+            return res.status(403).json({ error: 'Apenas superadmin pode promover usuários a superadmin' });
+        }
+
         // Verificar se email já existe (se foi alterado)
         if (email && email !== usuarioAtual.rows[0].email) {
             const emailExiste = await req.db.query(
@@ -193,6 +203,11 @@ router.delete('/:id', idValidation, activityLogMiddleware('excluir', 'usuario'),
 
         if (usuarioAtual.rows.length === 0) {
             return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+
+        // Admin não pode excluir superadmin
+        if (usuarioAtual.rows[0].nivel === 'superadmin' && req.userNivel !== 'superadmin') {
+            return res.status(403).json({ error: 'Apenas superadmin pode excluir outro superadmin' });
         }
 
         // Verificar se usuário criou pedidos

@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Usuários
-// v1.2.0 - Indicador visual de força de senha
+// v1.3.0 - Admin pode gerenciar usuários (exceto superadmin)
 // =====================================================
 
 import { useState, useEffect } from 'react';
@@ -22,6 +22,7 @@ import {
   Mail,
   Phone,
   Send,
+  Lock,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -53,7 +54,7 @@ const NIVEIS = [
 ];
 
 export default function UsuariosPage() {
-  const { isSuperAdmin, user: currentUser } = useAuth();
+  const { isSuperAdmin, isAdmin, user: currentUser } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [usuarios, setUsuarios] = useState([]);
@@ -62,6 +63,9 @@ export default function UsuariosPage() {
   const [saving, setSaving] = useState(false);
   const [sendingInvite, setSendingInvite] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  // Admin ou superadmin pode acessar
+  const canAccess = isSuperAdmin || isAdmin;
 
   const {
     register,
@@ -76,14 +80,25 @@ export default function UsuariosPage() {
 
   const watchedPassword = watch('senha', '');
 
+  // Verifica se pode editar/excluir um usuário
+  const canEditUser = (usuario) => {
+    // Não pode editar a si mesmo (exceto visualizar)
+    if (usuario.id === currentUser?.id) return false;
+    // Superadmin pode editar qualquer um
+    if (isSuperAdmin) return true;
+    // Admin não pode editar superadmin
+    if (usuario.nivel === 'superadmin') return false;
+    return true;
+  };
+
   useEffect(() => {
-    if (!isSuperAdmin) {
+    if (!canAccess) {
       toast.error('Acesso não autorizado');
       router.push('/');
       return;
     }
     carregarUsuarios();
-  }, [isSuperAdmin, router]);
+  }, [canAccess, router]);
 
   const carregarUsuarios = async () => {
     setLoading(true);
@@ -223,7 +238,7 @@ export default function UsuariosPage() {
     return NIVEIS.find(n => n.value === nivel) || NIVEIS[0];
   };
 
-  if (!isSuperAdmin) {
+  if (!canAccess) {
     return null;
   }
 
@@ -330,17 +345,17 @@ export default function UsuariosPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => abrirModal(usuario)}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    Editar
-                  </Button>
-                  {!isCurrentUser && (
+                  {canEditUser(usuario) ? (
                     <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => abrirModal(usuario)}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Editar
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -358,6 +373,21 @@ export default function UsuariosPage() {
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </>
+                  ) : isCurrentUser ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => abrirModal(usuario)}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      Editar
+                    </Button>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center gap-2 text-sm text-gray-400">
+                      <Lock className="w-4 h-4" />
+                      <span>Protegido</span>
+                    </div>
                   )}
                 </div>
               </Card>
@@ -425,7 +455,9 @@ export default function UsuariosPage() {
             label="Nível de Acesso"
             error={errors.nivel?.message}
             required
-            options={NIVEIS.map(n => ({ value: n.value, label: n.label }))}
+            options={NIVEIS
+              .filter(n => isSuperAdmin || n.value !== 'superadmin')
+              .map(n => ({ value: n.value, label: n.label }))}
             {...register('nivel')}
           />
 

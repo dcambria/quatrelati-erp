@@ -39,7 +39,7 @@ const menuItems = [
 ];
 
 const adminItems = [
-  { href: '/usuarios', label: 'Usuarios', icon: UserCog, adminOnly: true },
+  { href: '/usuarios', label: 'Usuarios', icon: UserCog },
 ];
 
 const superadminItems = [

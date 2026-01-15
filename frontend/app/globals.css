@@ -313,6 +313,38 @@
            border border-blue-200 dark:border-gray-700
            shadow-2xl shadow-blue-900/15 dark:shadow-black/30
            p-6;
+    /* Evita flash de scrollbar no Edge/Windows */
+    overflow: hidden;
+  }
+
+  /* Scrollbar elegante no conteúdo do modal */
+  .modal-content .overflow-y-auto {
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .modal-content .overflow-y-auto:hover {
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  }
+
+  /* Webkit (Chrome, Safari, Edge) */
+  .modal-content .overflow-y-auto::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .modal-content .overflow-y-auto::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .modal-content .overflow-y-auto::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 3px;
+    transition: background 0.2s;
+  }
+
+  .modal-content .overflow-y-auto:hover::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5);
   }
 
   /* =====================================================

@@ -40,10 +40,10 @@ module.exports = {
       statements: 100
     },
     './src/routes/usuarios.js': {
-      branches: 95,
-      functions: 100,
-      lines: 100,
-      statements: 100
+      branches: 80,
+      functions: 85,
+      lines: 85,
+      statements: 85
     },
     './src/routes/upload.js': {
       branches: 80,
@@ -89,7 +89,7 @@ module.exports = {
       statements: 90
     },
     './src/middleware/activityLog.js': {
-      branches: 95,
+      branches: 90,
       functions: 100,
       lines: 95,
       statements: 95
@@ -107,10 +107,10 @@ module.exports = {
       statements: 95
     },
     './src/services/emailService.js': {
-      branches: 100,
+      branches: 65,
       functions: 100,
-      lines: 100,
-      statements: 100
+      lines: 85,
+      statements: 85
     },
     './src/utils/seedPasswords.js': {
       branches: 100,

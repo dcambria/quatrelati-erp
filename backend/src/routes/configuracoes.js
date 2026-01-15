@@ -1,5 +1,6 @@
 // =====================================================
 // Rotas de Configurações do Sistema
+// v1.0.1 - Corrige importação de produtos
 // Apenas superadmins podem acessar
 // =====================================================
 
@@ -394,29 +395,29 @@ router.post('/importar/produtos', upload.single('arquivo'), async (req, res) => 
 
         for (const produto of dados.dados) {
             try {
-                // Verificar se produto existe pelo código
+                // Verificar se produto existe pelo nome
                 const existente = await req.db.query(
-                    'SELECT id FROM produtos WHERE codigo = $1',
-                    [produto.codigo]
+                    'SELECT id FROM produtos WHERE nome = $1',
+                    [produto.nome]
                 );
 
                 if (existente.rows.length > 0) {
                     await req.db.query(`
                         UPDATE produtos SET
-                            nome = $1, preco = $2, peso_caixa_kg = $3,
+                            descricao = $1, preco_padrao = $2, peso_caixa_kg = $3,
                             imagem_url = $4, ativo = $5, updated_at = CURRENT_TIMESTAMP
-                        WHERE codigo = $6
+                        WHERE nome = $6
                     `, [
-                        produto.nome, produto.preco, produto.peso_caixa_kg,
-                        produto.imagem_url, produto.ativo !== false, produto.codigo
+                        produto.descricao, produto.preco_padrao, produto.peso_caixa_kg,
+                        produto.imagem_url, produto.ativo !== false, produto.nome
                     ]);
                     atualizados++;
                 } else {
                     await req.db.query(`
-                        INSERT INTO produtos (codigo, nome, preco, peso_caixa_kg, imagem_url, ativo)
+                        INSERT INTO produtos (nome, descricao, preco_padrao, peso_caixa_kg, imagem_url, ativo)
                         VALUES ($1, $2, $3, $4, $5, $6)
                     `, [
-                        produto.codigo, produto.nome, produto.preco,
+                        produto.nome, produto.descricao, produto.preco_padrao,
                         produto.peso_caixa_kg, produto.imagem_url, produto.ativo !== false
                     ]);
                     importados++;

@@ -141,6 +141,34 @@
             font-weight: 600;
             text-decoration: none;
         }
+
+        .bureau-logo {
+            display: inline-flex;
+            align-items: center;
+            transition: transform 0.2s ease;
+        }
+
+        .bureau-logo:hover {
+            transform: scale(1.1);
+        }
+
+        .bureau-logo .bit-arrow {
+            fill: #94a3b8;
+            transition: fill 0.2s ease;
+        }
+
+        .bureau-logo .bit-text {
+            fill: #cbd5e1;
+            transition: fill 0.2s ease;
+        }
+
+        .bureau-logo:hover .bit-arrow {
+            fill: #1e3a8a;
+        }
+
+        .bureau-logo:hover .bit-text {
+            fill: #D4A017;
+        }
     </style>
 </head>
 <body>
@@ -176,14 +204,13 @@
         <div class="footer">
             <p style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                 <span>Desenvolvido por</span>
-                <a href="https://bureau-it.com" target="_blank" style="display: inline-flex; align-items: center;">
+                <a href="https://bureau-it.com" target="_blank" class="bureau-logo">
                     <svg width="28" height="28" viewBox="0 0 123.81 123.81" xmlns="http://www.w3.org/2000/svg">
-                        <rect fill="#232526" width="123.81" height="123.81" rx="12"/>
-                        <polygon fill="#f8f8f2" points="16.59 44.68 16.59 87.58 28.69 71.86 45.68 71.86 16.59 44.68"/>
-                        <path fill="#a6e22e" d="M67.86,72.32q-5,0-7.55-2.33c-1.72-1.55-2.58-3.95-2.58-7.22v-9.2H54.59V45h3.14V38.29H68.89V45h6.17v8.57H68.89v6.72a2.73,2.73,0,0,0,.69,2.12,2.93,2.93,0,0,0,2,.61A8.43,8.43,0,0,0,75,62.23V70.8a12.7,12.7,0,0,1-3.18,1.1A17.78,17.78,0,0,1,67.86,72.32Z"/>
-                        <rect fill="#a6e22e" x="41.13" y="36.23" width="11.16" height="6.86"/>
-                        <polygon fill="#a6e22e" points="41.13 45 41.13 64.03 49.44 71.73 52.29 71.73 52.29 45 41.13 45"/>
-                        <path fill="#a6e22e" d="M78.18,73.48h29v5.58h-29Z"/>
+                        <polygon class="bit-arrow" points="16.59 44.68 16.59 87.58 28.69 71.86 45.68 71.86 16.59 44.68"/>
+                        <path class="bit-text" d="M67.86,72.32q-5,0-7.55-2.33c-1.72-1.55-2.58-3.95-2.58-7.22v-9.2H54.59V45h3.14V38.29H68.89V45h6.17v8.57H68.89v6.72a2.73,2.73,0,0,0,.69,2.12,2.93,2.93,0,0,0,2,.61A8.43,8.43,0,0,0,75,62.23V70.8a12.7,12.7,0,0,1-3.18,1.1A17.78,17.78,0,0,1,67.86,72.32Z"/>
+                        <rect class="bit-text" x="41.13" y="36.23" width="11.16" height="6.86"/>
+                        <polygon class="bit-text" points="41.13 45 41.13 64.03 49.44 71.73 52.29 71.73 52.29 45 41.13 45"/>
+                        <path class="bit-text" d="M78.18,73.48h29v5.58h-29Z"/>
                     </svg>
                 </a>
             </p>

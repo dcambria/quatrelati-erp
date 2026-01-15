@@ -132,6 +132,7 @@ describe('Activity Log Middleware', () => {
                 params: {},
                 body: { data: 'test' },
                 ip: '127.0.0.1',
+                headers: {},
                 get: jest.fn().mockReturnValue('Test Agent')
             };
             res = {

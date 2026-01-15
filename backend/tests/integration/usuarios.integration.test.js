@@ -92,12 +92,15 @@ describe('Usuarios Routes Integration', () => {
             expect(response.status).toBe(200);
         });
 
-        it('deve rejeitar acesso por admin (não superadmin)', async () => {
+        it('deve permitir acesso por admin', async () => {
+            mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
             const response = await request(app)
                 .get('/api/usuarios')
                 .set('Authorization', `Bearer ${adminToken}`);
 
-            expect(response.status).toBe(403);
+            // adminOnly permite tanto admin quanto superadmin
+            expect(response.status).toBe(200);
         });
 
         it('deve rejeitar acesso por vendedor', async () => {

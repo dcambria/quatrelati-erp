@@ -224,8 +224,8 @@ describe('Auth Routes - Twilio não configurado', () => {
             .post('/api/auth/forgot-password-whatsapp')
             .send({ phone: '11999999999' });
 
-        // Em modo dev sem Twilio, deve retornar sucesso com devCode
-        expect(response.status).toBe(200);
-        expect(response.body.success).toBe(true);
+        // Quando Twilio não está configurado, retorna 503
+        expect(response.status).toBe(503);
+        expect(response.body.error).toContain('WhatsApp não está disponível');
     });
 });

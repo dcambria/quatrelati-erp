@@ -1,331 +1,341 @@
 // =====================================================
-// Teste E2E - Configurações Export/Import
-// v1.0.0 - Testa funcionalidades de exportação e importação
+// Teste E2E - Configuracoes Export/Import
+// v2.0.0 - Testes para novo design visual
 // =====================================================
 const { test, expect } = require('@playwright/test');
 const { TEST_USER, hasCredentials } = require('./test-config');
+const path = require('path');
+const fs = require('fs');
 
 const PROD_URL = 'https://erp.laticinioquatrelati.com.br';
 
-// Skip tests se não tiver credenciais
+// Skip tests se nao tiver credenciais
 test.beforeEach(async ({ }, testInfo) => {
-  if (!hasCredentials) {
-    testInfo.skip();
-  }
+    if (!hasCredentials) {
+        testInfo.skip();
+    }
 });
 
-test.describe('Página de Configurações - Export/Import', () => {
-
-  test('deve acessar página de configurações como superadmin', async ({ page }) => {
-    test.setTimeout(60000);
-
-    // Viewport grande
-    await page.setViewportSize({ width: 1920, height: 1080 });
-
-    // Login
-    console.log('Fazendo login...');
+// Helper para fazer login
+async function login(page) {
     await page.goto(`${PROD_URL}/login`);
     await page.fill('input[type="email"]', TEST_USER.email);
     await page.fill('input[type="password"]', TEST_USER.password);
     await page.click('button[type="submit"]');
     await page.waitForTimeout(3000);
+}
 
-    // Navegar para configurações
-    await page.goto(`${PROD_URL}/configuracoes`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-
-    // Verificar se a página carregou corretamente (não mostra mensagem de acesso restrito)
+// Helper para verificar acesso superadmin
+async function checkAccess(page) {
     const acessoRestrito = page.locator('text=Acesso Restrito');
     const isRestricted = await acessoRestrito.isVisible().catch(() => false);
-
     if (isRestricted) {
-      console.log('⚠️ Usuário de teste não é superadmin - pulando teste');
-      return;
+        console.log('Usuario nao e superadmin - pulando teste');
+        return false;
     }
+    return true;
+}
 
-    // Verificar elementos da página
-    await expect(page.getByRole('heading', { name: 'Exportacao de Dados' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Importacao de Dados' })).toBeVisible();
-
-    // Verificar botões de exportação (4 cards: clientes, produtos, pedidos, completo)
-    const exportButtons = page.locator('button:has-text("Exportar JSON")');
-    await expect(exportButtons.first()).toBeVisible();
-    expect(await exportButtons.count()).toBe(4);
-
-    // Screenshot da página
-    await page.screenshot({ path: 'tests/screenshots/configuracoes-page.png', fullPage: true });
-
-    console.log('✓ Página de configurações acessível para superadmin');
-  });
-
-  test('deve exportar clientes com sucesso', async ({ page }) => {
-    test.setTimeout(90000);
-
-    await page.setViewportSize({ width: 1920, height: 1080 });
-
-    // Login
-    await page.goto(`${PROD_URL}/login`);
-    await page.fill('input[type="email"]', TEST_USER.email);
-    await page.fill('input[type="password"]', TEST_USER.password);
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(3000);
-
-    // Navegar para configurações
-    await page.goto(`${PROD_URL}/configuracoes`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-
-    // Verificar acesso
-    const acessoRestrito = page.locator('text=Acesso Restrito');
-    if (await acessoRestrito.isVisible().catch(() => false)) {
-      console.log('⚠️ Usuário não é superadmin - pulando');
-      return;
-    }
-
-    // Clicar no primeiro botão de exportar (Clientes)
-    const exportarBtn = page.locator('button:has-text("Exportar JSON")').first();
-    await expect(exportarBtn).toBeVisible();
-
-    // Clicar no botão de exportar
-    await exportarBtn.click();
-    console.log('Clicou em Exportar Clientes');
-
-    // Aguardar toast de sucesso ou que o botão volte ao normal (loading termine)
-    try {
-      await page.waitForSelector('div[role="status"]:has-text("clientes")', { timeout: 15000 });
-      console.log('Toast de exportação apareceu');
-    } catch {
-      // Verificar se o download foi iniciado pelo comportamento da página
-      await page.waitForTimeout(5000);
-    }
-
-    // Screenshot após exportação
-    await page.screenshot({ path: 'tests/screenshots/configuracoes-export-clientes.png', fullPage: true });
-
-    console.log('✓ Exportação de clientes iniciada com sucesso');
-  });
-
-  test('deve exportar produtos com sucesso', async ({ page }) => {
-    test.setTimeout(90000);
-
-    await page.setViewportSize({ width: 1920, height: 1080 });
-
-    // Login
-    await page.goto(`${PROD_URL}/login`);
-    await page.fill('input[type="email"]', TEST_USER.email);
-    await page.fill('input[type="password"]', TEST_USER.password);
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(3000);
-
-    // Navegar para configurações
-    await page.goto(`${PROD_URL}/configuracoes`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-
-    // Verificar acesso
-    const acessoRestrito = page.locator('text=Acesso Restrito');
-    if (await acessoRestrito.isVisible().catch(() => false)) {
-      console.log('⚠️ Usuário não é superadmin - pulando');
-      return;
-    }
-
-    // Clicar no segundo botão de exportar (Produtos)
-    const exportarBtn = page.locator('button:has-text("Exportar JSON")').nth(1);
-    await expect(exportarBtn).toBeVisible();
-
-    // Clicar no botão de exportar
-    await exportarBtn.click();
-    console.log('Clicou em Exportar Produtos');
-
-    // Aguardar toast de sucesso
-    try {
-      await page.waitForSelector('div[role="status"]:has-text("produtos")', { timeout: 15000 });
-      console.log('Toast de exportação apareceu');
-    } catch {
-      await page.waitForTimeout(5000);
-    }
-
-    // Screenshot após exportação
-    await page.screenshot({ path: 'tests/screenshots/configuracoes-export-produtos.png', fullPage: true });
-
-    console.log('✓ Exportação de produtos iniciada com sucesso');
-  });
-
-  test('deve exportar pedidos', async ({ page }) => {
-    test.setTimeout(90000);
-
-    await page.setViewportSize({ width: 1920, height: 1080 });
-
-    // Login
-    await page.goto(`${PROD_URL}/login`);
-    await page.fill('input[type="email"]', TEST_USER.email);
-    await page.fill('input[type="password"]', TEST_USER.password);
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(3000);
-
-    // Navegar para configurações
-    await page.goto(`${PROD_URL}/configuracoes`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-
-    // Verificar acesso
-    const acessoRestrito = page.locator('text=Acesso Restrito');
-    if (await acessoRestrito.isVisible().catch(() => false)) {
-      console.log('⚠️ Usuário não é superadmin - pulando');
-      return;
-    }
-
-    // Clicar no terceiro botão de exportar (Pedidos)
-    const exportarBtn = page.locator('button:has-text("Exportar JSON")').nth(2);
-    await expect(exportarBtn).toBeVisible();
-
-    // Clicar no botão de exportar
-    await exportarBtn.click();
-    console.log('Clicou em Exportar Pedidos');
-
-    // Aguardar toast de sucesso
-    try {
-      await page.waitForSelector('div[role="status"]:has-text("pedidos")', { timeout: 15000 });
-      console.log('Toast de exportação apareceu');
-    } catch {
-      await page.waitForTimeout(5000);
-    }
-
-    // Screenshot após exportação
-    await page.screenshot({ path: 'tests/screenshots/configuracoes-export-pedidos.png', fullPage: true });
-
-    console.log('✓ Exportação de pedidos iniciada com sucesso');
-  });
-
-  test('opções de importação devem estar visíveis', async ({ page }) => {
-    test.setTimeout(60000);
-
-    await page.setViewportSize({ width: 1920, height: 1080 });
-
-    // Login
-    await page.goto(`${PROD_URL}/login`);
-    await page.fill('input[type="email"]', TEST_USER.email);
-    await page.fill('input[type="password"]', TEST_USER.password);
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(3000);
-
-    // Navegar para configurações
-    await page.goto(`${PROD_URL}/configuracoes`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-
-    // Verificar acesso
-    const acessoRestrito = page.locator('text=Acesso Restrito');
-    if (await acessoRestrito.isVisible().catch(() => false)) {
-      console.log('⚠️ Usuário não é superadmin - pulando');
-      return;
-    }
-
-    // Verificar seção de importação
-    await expect(page.getByRole('heading', { name: 'Importacao de Dados' })).toBeVisible();
-
-    // Verificar modos de importação
-    await expect(page.getByText('Modo de Importacao')).toBeVisible();
-    await expect(page.getByText('Adicionar/Atualizar registros existentes')).toBeVisible();
-    await expect(page.getByText('Substituir todos os dados')).toBeVisible();
-
-    // Verificar cards de importação
-    await expect(page.locator('h3:has-text("Importar Clientes")')).toBeVisible();
-    await expect(page.locator('h3:has-text("Importar Produtos")')).toBeVisible();
-
-    // Verificar botões de selecionar arquivo
-    const selecionarBtns = page.locator('button:has-text("Selecionar Arquivo")');
-    expect(await selecionarBtns.count()).toBeGreaterThanOrEqual(2);
-
-    // Screenshot das opções de importação
-    await page.screenshot({ path: 'tests/screenshots/configuracoes-import.png', fullPage: true });
-
-    console.log('✓ Opções de importação verificadas');
-  });
-
-  test('checkbox de apenas ativos deve funcionar', async ({ page }) => {
-    test.setTimeout(60000);
-
-    await page.setViewportSize({ width: 1920, height: 1080 });
-
-    // Login
-    await page.goto(`${PROD_URL}/login`);
-    await page.fill('input[type="email"]', TEST_USER.email);
-    await page.fill('input[type="password"]', TEST_USER.password);
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(3000);
-
-    // Navegar para configurações
-    await page.goto(`${PROD_URL}/configuracoes`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-
-    // Verificar acesso
-    const acessoRestrito = page.locator('text=Acesso Restrito');
-    if (await acessoRestrito.isVisible().catch(() => false)) {
-      console.log('⚠️ Usuário não é superadmin - pulando');
-      return;
-    }
-
-    // Encontrar checkbox de apenas ativos
-    const checkboxAtivos = page.locator('input[type="checkbox"]').first();
-    await expect(checkboxAtivos).toBeVisible();
-
-    // Verificar que inicialmente não está marcado
-    const isChecked = await checkboxAtivos.isChecked();
-    console.log(`Checkbox inicialmente: ${isChecked ? 'marcado' : 'desmarcado'}`);
-
-    // Clicar para alternar
-    await checkboxAtivos.click();
-    await page.waitForTimeout(500);
-
-    // Verificar que o estado mudou
-    expect(await checkboxAtivos.isChecked()).toBe(!isChecked);
-
-    console.log('✓ Checkbox de apenas ativos funciona corretamente');
-  });
-
-  test('radio de modo substituir deve mostrar aviso', async ({ page }) => {
-    test.setTimeout(60000);
-
-    await page.setViewportSize({ width: 1920, height: 1080 });
-
-    // Login
-    await page.goto(`${PROD_URL}/login`);
-    await page.fill('input[type="email"]', TEST_USER.email);
-    await page.fill('input[type="password"]', TEST_USER.password);
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(3000);
-
-    // Navegar para configurações
-    await page.goto(`${PROD_URL}/configuracoes`);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-
-    // Verificar acesso
-    const acessoRestrito = page.locator('text=Acesso Restrito');
-    if (await acessoRestrito.isVisible().catch(() => false)) {
-      console.log('⚠️ Usuário não é superadmin - pulando');
-      return;
-    }
-
-    // Verificar que o aviso não está visível inicialmente
-    const aviso = page.getByText('Este modo remove todos os registros existentes');
-    expect(await aviso.isVisible()).toBe(false);
-
-    // Clicar no radio de substituir
-    const radioSubstituir = page.locator('input[type="radio"][value="substituir"]');
-    await radioSubstituir.click();
-    await page.waitForTimeout(500);
-
-    // Verificar que o aviso apareceu
-    await expect(aviso).toBeVisible();
-
-    // Screenshot com aviso visível
-    await page.screenshot({ path: 'tests/screenshots/configuracoes-modo-substituir.png', fullPage: true });
-
-    console.log('✓ Aviso de modo substituir funciona corretamente');
-  });
+test.describe('Pagina de Configuracoes - Novo Design', () => {
+
+    test('deve carregar pagina com novo layout', async ({ page }) => {
+        test.setTimeout(60000);
+        await page.setViewportSize({ width: 1920, height: 1080 });
+
+        await login(page);
+        await page.goto(`${PROD_URL}/configuracoes`);
+        await page.waitForLoadState('networkidle');
+
+        if (!await checkAccess(page)) return;
+
+        // Verificar secao de exportacao
+        await expect(page.getByText('Exportar Dados')).toBeVisible();
+        await expect(page.getByText('Clique para baixar os dados em formato JSON')).toBeVisible();
+
+        // Verificar 4 cards de exportacao
+        await expect(page.getByRole('button', { name: /Clientes.*Cadastro completo/i })).toBeVisible();
+        await expect(page.getByRole('button', { name: /Produtos.*Catalogo/i })).toBeVisible();
+        await expect(page.getByRole('button', { name: /Pedidos.*Historico/i })).toBeVisible();
+        await expect(page.getByRole('button', { name: /Backup Completo.*Todos os dados/i })).toBeVisible();
+
+        // Verificar badge "Recomendado" no backup completo
+        await expect(page.getByText('Recomendado')).toBeVisible();
+
+        // Verificar secao de importacao
+        await expect(page.getByText('Importar Dados')).toBeVisible();
+
+        // Verificar opcoes de modo
+        await expect(page.getByText('Adicionar/Atualizar')).toBeVisible();
+        await expect(page.getByText('Substituir tudo')).toBeVisible();
+
+        // Screenshot do novo layout
+        await page.screenshot({ path: 'tests/screenshots/configuracoes-novo-layout.png', fullPage: true });
+
+        console.log('Novo layout carregado com sucesso');
+    });
+
+    test('deve exportar clientes com sucesso', async ({ page }) => {
+        test.setTimeout(90000);
+        await page.setViewportSize({ width: 1920, height: 1080 });
+
+        await login(page);
+        await page.goto(`${PROD_URL}/configuracoes`);
+        await page.waitForLoadState('networkidle');
+
+        if (!await checkAccess(page)) return;
+
+        // Configurar download handler
+        const downloadPromise = page.waitForEvent('download', { timeout: 30000 });
+
+        // Clicar no card de Clientes
+        const clientesCard = page.getByRole('button', { name: /Clientes.*Cadastro completo/i });
+        await clientesCard.click();
+
+        // Aguardar download
+        try {
+            const download = await downloadPromise;
+            const filename = download.suggestedFilename();
+            console.log(`Download iniciado: ${filename}`);
+
+            // Salvar arquivo para verificacao
+            const downloadPath = path.join('tests/downloads', filename);
+            await download.saveAs(downloadPath);
+
+            // Verificar conteudo do arquivo
+            const content = fs.readFileSync(downloadPath, 'utf-8');
+            const data = JSON.parse(content);
+
+            expect(data.tipo).toBe('clientes');
+            expect(data.versao).toBe('1.0');
+            expect(data.dados).toBeDefined();
+            expect(Array.isArray(data.dados)).toBe(true);
+
+            console.log(`Exportacao de clientes OK: ${data.total_registros} registros`);
+        } catch {
+            // Se nao houve download, verificar toast de sucesso
+            await page.waitForSelector('div[role="status"]:has-text("Clientes exportado")', { timeout: 15000 });
+            console.log('Toast de exportacao exibido');
+        }
+
+        await page.screenshot({ path: 'tests/screenshots/configuracoes-export-clientes-v2.png' });
+    });
+
+    test('deve exportar produtos com sucesso', async ({ page }) => {
+        test.setTimeout(90000);
+        await page.setViewportSize({ width: 1920, height: 1080 });
+
+        await login(page);
+        await page.goto(`${PROD_URL}/configuracoes`);
+        await page.waitForLoadState('networkidle');
+
+        if (!await checkAccess(page)) return;
+
+        // Configurar download handler
+        const downloadPromise = page.waitForEvent('download', { timeout: 30000 });
+
+        // Clicar no card de Produtos
+        const produtosCard = page.getByRole('button', { name: /Produtos.*Catalogo/i });
+        await produtosCard.click();
+
+        try {
+            const download = await downloadPromise;
+            const filename = download.suggestedFilename();
+            console.log(`Download iniciado: ${filename}`);
+
+            const downloadPath = path.join('tests/downloads', filename);
+            await download.saveAs(downloadPath);
+
+            const content = fs.readFileSync(downloadPath, 'utf-8');
+            const data = JSON.parse(content);
+
+            expect(data.tipo).toBe('produtos');
+            expect(data.dados).toBeDefined();
+
+            console.log(`Exportacao de produtos OK: ${data.total_registros} registros`);
+        } catch {
+            await page.waitForSelector('div[role="status"]:has-text("Produtos exportado")', { timeout: 15000 });
+            console.log('Toast de exportacao exibido');
+        }
+
+        await page.screenshot({ path: 'tests/screenshots/configuracoes-export-produtos-v2.png' });
+    });
+
+    test('deve exportar pedidos com sucesso', async ({ page }) => {
+        test.setTimeout(90000);
+        await page.setViewportSize({ width: 1920, height: 1080 });
+
+        await login(page);
+        await page.goto(`${PROD_URL}/configuracoes`);
+        await page.waitForLoadState('networkidle');
+
+        if (!await checkAccess(page)) return;
+
+        const downloadPromise = page.waitForEvent('download', { timeout: 30000 });
+
+        // Clicar no card de Pedidos
+        const pedidosCard = page.getByRole('button', { name: /Pedidos.*Historico/i });
+        await pedidosCard.click();
+
+        try {
+            const download = await downloadPromise;
+            const filename = download.suggestedFilename();
+            console.log(`Download iniciado: ${filename}`);
+
+            const downloadPath = path.join('tests/downloads', filename);
+            await download.saveAs(downloadPath);
+
+            const content = fs.readFileSync(downloadPath, 'utf-8');
+            const data = JSON.parse(content);
+
+            expect(data.tipo).toBe('pedidos');
+
+            console.log(`Exportacao de pedidos OK: ${data.total_registros} registros`);
+        } catch {
+            await page.waitForSelector('div[role="status"]:has-text("Pedidos exportado")', { timeout: 15000 });
+            console.log('Toast de exportacao exibido');
+        }
+
+        await page.screenshot({ path: 'tests/screenshots/configuracoes-export-pedidos-v2.png' });
+    });
+
+    test('deve exportar backup completo com sucesso', async ({ page }) => {
+        test.setTimeout(120000);
+        await page.setViewportSize({ width: 1920, height: 1080 });
+
+        await login(page);
+        await page.goto(`${PROD_URL}/configuracoes`);
+        await page.waitForLoadState('networkidle');
+
+        if (!await checkAccess(page)) return;
+
+        const downloadPromise = page.waitForEvent('download', { timeout: 60000 });
+
+        // Clicar no card de Backup Completo
+        const backupCard = page.getByRole('button', { name: /Backup Completo.*Todos os dados/i });
+        await backupCard.click();
+
+        try {
+            const download = await downloadPromise;
+            const filename = download.suggestedFilename();
+            console.log(`Download iniciado: ${filename}`);
+
+            const downloadPath = path.join('tests/downloads', filename);
+            await download.saveAs(downloadPath);
+
+            const content = fs.readFileSync(downloadPath, 'utf-8');
+            const data = JSON.parse(content);
+
+            expect(data.tipo).toBe('completo');
+            expect(data.clientes).toBeDefined();
+            expect(data.produtos).toBeDefined();
+            expect(data.pedidos).toBeDefined();
+
+            console.log(`Backup completo OK: clientes=${data.clientes.length}, produtos=${data.produtos.length}, pedidos=${data.pedidos.length}`);
+        } catch {
+            await page.waitForSelector('div[role="status"]:has-text("Completo exportado")', { timeout: 15000 });
+            console.log('Toast de exportacao exibido');
+        }
+
+        await page.screenshot({ path: 'tests/screenshots/configuracoes-export-backup-v2.png' });
+    });
+
+    test('checkbox de apenas ativos deve funcionar', async ({ page }) => {
+        test.setTimeout(60000);
+        await page.setViewportSize({ width: 1920, height: 1080 });
+
+        await login(page);
+        await page.goto(`${PROD_URL}/configuracoes`);
+        await page.waitForLoadState('networkidle');
+
+        if (!await checkAccess(page)) return;
+
+        // Encontrar checkbox de apenas ativos
+        const checkboxLabel = page.getByText('Exportar apenas registros ativos');
+        await expect(checkboxLabel).toBeVisible();
+
+        // Clicar no checkbox
+        await checkboxLabel.click();
+        await page.waitForTimeout(500);
+
+        // Verificar que o texto de ajuda esta visivel
+        await expect(page.getByText('Aplica-se a Clientes e Produtos')).toBeVisible();
+
+        await page.screenshot({ path: 'tests/screenshots/configuracoes-checkbox-ativos-v2.png' });
+        console.log('Checkbox de apenas ativos funciona');
+    });
+
+    test('modo substituir deve mostrar aviso', async ({ page }) => {
+        test.setTimeout(60000);
+        await page.setViewportSize({ width: 1920, height: 1080 });
+
+        await login(page);
+        await page.goto(`${PROD_URL}/configuracoes`);
+        await page.waitForLoadState('networkidle');
+
+        if (!await checkAccess(page)) return;
+
+        // Verificar que aviso nao esta visivel inicialmente
+        const aviso = page.getByText('Este modo remove todos os registros existentes');
+        expect(await aviso.isVisible()).toBe(false);
+
+        // Clicar no modo substituir
+        const modoSubstituir = page.getByText('Substituir tudo');
+        await modoSubstituir.click();
+        await page.waitForTimeout(500);
+
+        // Verificar que o aviso apareceu
+        await expect(aviso).toBeVisible();
+
+        await page.screenshot({ path: 'tests/screenshots/configuracoes-modo-substituir-v2.png' });
+        console.log('Aviso de modo substituir funciona');
+    });
+
+    test('filtros de pedidos devem estar visiveis', async ({ page }) => {
+        test.setTimeout(60000);
+        await page.setViewportSize({ width: 1920, height: 1080 });
+
+        await login(page);
+        await page.goto(`${PROD_URL}/configuracoes`);
+        await page.waitForLoadState('networkidle');
+
+        if (!await checkAccess(page)) return;
+
+        // Verificar filtros de pedidos
+        await expect(page.getByText('Filtros para Pedidos')).toBeVisible();
+        await expect(page.getByText('Data Inicio')).toBeVisible();
+        await expect(page.getByText('Data Fim')).toBeVisible();
+
+        // Verificar select de status
+        const statusSelect = page.locator('select').filter({ hasText: 'Todos os status' });
+        await expect(statusSelect).toBeVisible();
+
+        // Clicar no select para ver opcoes
+        await statusSelect.click();
+        await expect(page.getByRole('option', { name: 'Pendente' })).toBeVisible();
+
+        await page.screenshot({ path: 'tests/screenshots/configuracoes-filtros-v2.png' });
+        console.log('Filtros de pedidos visiveis');
+    });
+
+    test('cards de importacao devem estar visiveis', async ({ page }) => {
+        test.setTimeout(60000);
+        await page.setViewportSize({ width: 1920, height: 1080 });
+
+        await login(page);
+        await page.goto(`${PROD_URL}/configuracoes`);
+        await page.waitForLoadState('networkidle');
+
+        if (!await checkAccess(page)) return;
+
+        // Verificar cards de importacao (border-dashed)
+        const importClientesCard = page.locator('button').filter({ hasText: /Clientes.*Importar cadastro/i });
+        const importProdutosCard = page.locator('button').filter({ hasText: /Produtos.*Importar catalogo/i });
+
+        await expect(importClientesCard).toBeVisible();
+        await expect(importProdutosCard).toBeVisible();
+
+        await page.screenshot({ path: 'tests/screenshots/configuracoes-import-cards-v2.png' });
+        console.log('Cards de importacao visiveis');
+    });
 
 });

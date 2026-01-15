@@ -1,4 +1,8 @@
 'use client';
+// =====================================================
+// Pagina de Configuracoes - Export/Import
+// v2.0.0 - Design moderno com layout reorganizado
+// =====================================================
 
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -11,10 +15,14 @@ import {
     ShoppingCart,
     Database,
     FileJson,
-    AlertCircle,
-    Check,
+    AlertTriangle,
+    CheckCircle2,
     Calendar,
     Filter,
+    ArrowDownToLine,
+    ArrowUpFromLine,
+    Info,
+    Loader2,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -22,79 +30,205 @@ import Header from '../../components/layout/Header';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 
-// Card de exportacao reutilizavel
-function ExportCard({ icon: Icon, iconBg, title, description, tipo, loading, onExport }) {
+// =====================================================
+// Configuracoes dos cards de export
+// =====================================================
+const EXPORT_ITEMS = [
+    {
+        tipo: 'clientes',
+        icon: Users,
+        title: 'Clientes',
+        description: 'Cadastro completo de clientes',
+        color: 'blue',
+    },
+    {
+        tipo: 'produtos',
+        icon: Package,
+        title: 'Produtos',
+        description: 'Catalogo de produtos',
+        color: 'emerald',
+    },
+    {
+        tipo: 'pedidos',
+        icon: ShoppingCart,
+        title: 'Pedidos',
+        description: 'Historico de pedidos',
+        color: 'amber',
+    },
+    {
+        tipo: 'completo',
+        icon: Database,
+        title: 'Backup Completo',
+        description: 'Todos os dados',
+        color: 'purple',
+        highlight: true,
+    },
+];
+
+const IMPORT_ITEMS = [
+    {
+        tipo: 'clientes',
+        icon: Users,
+        title: 'Clientes',
+        description: 'Importar cadastro de clientes',
+        color: 'blue',
+    },
+    {
+        tipo: 'produtos',
+        icon: Package,
+        title: 'Produtos',
+        description: 'Importar catalogo de produtos',
+        color: 'emerald',
+    },
+];
+
+const COLOR_CLASSES = {
+    blue: {
+        bg: 'bg-blue-500/10',
+        text: 'text-blue-600 dark:text-blue-400',
+        border: 'border-blue-500/20',
+        hover: 'hover:bg-blue-500/20',
+    },
+    emerald: {
+        bg: 'bg-emerald-500/10',
+        text: 'text-emerald-600 dark:text-emerald-400',
+        border: 'border-emerald-500/20',
+        hover: 'hover:bg-emerald-500/20',
+    },
+    amber: {
+        bg: 'bg-amber-500/10',
+        text: 'text-amber-600 dark:text-amber-400',
+        border: 'border-amber-500/20',
+        hover: 'hover:bg-amber-500/20',
+    },
+    purple: {
+        bg: 'bg-purple-500/10',
+        text: 'text-purple-600 dark:text-purple-400',
+        border: 'border-purple-500/20',
+        hover: 'hover:bg-purple-500/20',
+    },
+};
+
+// =====================================================
+// Componentes
+// =====================================================
+
+function ExportCard({ item, loading, onExport }) {
+    const colors = COLOR_CLASSES[item.color];
+    const Icon = item.icon;
+    const isLoading = loading === item.tipo;
+
     return (
-        <Card className="p-4">
-            <div className="flex items-start gap-3">
-                <div className={`p-2 ${iconBg} rounded-lg`}>
-                    <Icon className="w-6 h-6" />
+        <button
+            onClick={() => onExport(item.tipo)}
+            disabled={isLoading}
+            className={`
+                group relative p-5 rounded-xl border-2 transition-all duration-200
+                ${colors.bg} ${colors.border} ${colors.hover}
+                ${item.highlight ? 'ring-2 ring-purple-500/30' : ''}
+                disabled:opacity-70 disabled:cursor-not-allowed
+                text-left w-full
+            `}
+        >
+            <div className="flex items-start gap-4">
+                <div className={`p-3 rounded-lg ${colors.bg} ${colors.text}`}>
+                    {isLoading ? (
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                    ) : (
+                        <Icon className="w-6 h-6" />
+                    )}
                 </div>
-                <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 dark:text-white">{title}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{description}</p>
-                    <Button
-                        size="sm"
-                        onClick={() => onExport(tipo)}
-                        loading={loading}
-                        className="w-full"
-                    >
-                        <FileJson className="w-4 h-4" />
-                        Exportar JSON
-                    </Button>
+                <div className="flex-1 min-w-0">
+                    <h3 className={`font-semibold ${colors.text}`}>
+                        {item.title}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                        {item.description}
+                    </p>
                 </div>
+                <ArrowDownToLine className={`w-5 h-5 ${colors.text} opacity-50 group-hover:opacity-100 transition-opacity`} />
             </div>
-        </Card>
+            {item.highlight && (
+                <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-purple-500 text-white text-xs font-medium rounded-full">
+                    Recomendado
+                </div>
+            )}
+        </button>
     );
 }
 
-// Card de importacao reutilizavel
-function ImportCard({ icon: Icon, iconBg, title, description, tipo, loading, onImport }) {
+function ImportCard({ item, loading, onImport }) {
+    const colors = COLOR_CLASSES[item.color];
+    const Icon = item.icon;
+    const isLoading = loading === item.tipo;
+
     return (
-        <Card className="p-4">
-            <div className="flex items-start gap-3">
-                <div className={`p-2 ${iconBg} rounded-lg`}>
-                    <Icon className="w-6 h-6" />
+        <button
+            onClick={() => onImport(item.tipo)}
+            disabled={isLoading}
+            className={`
+                group relative p-5 rounded-xl border-2 border-dashed transition-all duration-200
+                bg-gray-50 dark:bg-gray-800/50 border-gray-300 dark:border-gray-600
+                hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800
+                disabled:opacity-70 disabled:cursor-not-allowed
+                text-left w-full
+            `}
+        >
+            <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-lg ${colors.bg} ${colors.text}`}>
+                    {isLoading ? (
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                    ) : (
+                        <Icon className="w-6 h-6" />
+                    )}
                 </div>
-                <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 dark:text-white">{title}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{description}</p>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onImport(tipo)}
-                        loading={loading}
-                        className="w-full"
-                    >
-                        <Upload className="w-4 h-4" />
-                        Selecionar Arquivo
-                    </Button>
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                        {item.title}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                        {item.description}
+                    </p>
                 </div>
+                <ArrowUpFromLine className="w-5 h-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
             </div>
-        </Card>
+        </button>
     );
 }
+
+// =====================================================
+// Pagina Principal
+// =====================================================
 
 export default function ConfiguracoesPage() {
     const { user } = useAuth();
     const [exportando, setExportando] = useState(null);
     const [importando, setImportando] = useState(null);
-    const [filtrosPedidos, setFiltrosPedidos] = useState({ data_inicio: '', data_fim: '', status: '' });
+    const [apenasAtivos, setApenasAtivos] = useState(false);
     const [modoImportacao, setModoImportacao] = useState('adicionar');
     const [resultadoImportacao, setResultadoImportacao] = useState(null);
-    const [apenasAtivos, setApenasAtivos] = useState(false);
+    const [filtrosPedidos, setFiltrosPedidos] = useState({
+        data_inicio: '',
+        data_fim: '',
+        status: '',
+    });
 
     // Verificar se e superadmin
     if (user?.nivel !== 'superadmin') {
         return (
             <div className="p-6 flex flex-col items-center justify-center min-h-[400px]">
-                <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Acesso Restrito</h2>
-                <p className="text-gray-500 dark:text-gray-400">Apenas superadmins podem acessar esta pagina.</p>
+                <AlertTriangle className="w-16 h-16 text-amber-500 mb-4" />
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                    Acesso Restrito
+                </h2>
+                <p className="text-gray-500 dark:text-gray-400">
+                    Apenas superadmins podem acessar esta pagina.
+                </p>
             </div>
         );
     }
 
+    // Handler de exportacao
     const handleExportar = async (tipo) => {
         setExportando(tipo);
         try {
@@ -111,28 +245,22 @@ export default function ConfiguracoesPage() {
             }
 
             const url = `/configuracoes/exportar/${tipo}${params.toString() ? '?' + params : ''}`;
-            const response = await api.get(url, { responseType: 'blob' });
+            const response = await api.get(url);
 
-            // Download do arquivo
-            const blob = new Blob([response.data], { type: 'application/json' });
+            // Criar blob e fazer download
+            const jsonString = JSON.stringify(response.data, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
             const downloadUrl = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = downloadUrl;
-
-            const contentDisposition = response.headers['content-disposition'];
-            let filename = `${tipo}_${new Date().toISOString().split('T')[0]}.json`;
-            if (contentDisposition) {
-                const match = contentDisposition.match(/filename=(.+)/);
-                if (match) filename = match[1].replace(/"/g, '');
-            }
-
-            link.download = filename;
+            link.download = `${tipo}_${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(link);
             link.click();
             link.remove();
             window.URL.revokeObjectURL(downloadUrl);
 
-            toast.success(`Exportacao de ${tipo} concluida!`);
+            const total = response.data.total_registros || response.data.dados?.length || 0;
+            toast.success(`${tipo.charAt(0).toUpperCase() + tipo.slice(1)} exportado! (${total} registros)`);
         } catch (error) {
             console.error('Erro ao exportar:', error);
             toast.error(error.message || `Erro ao exportar ${tipo}`);
@@ -141,6 +269,7 @@ export default function ConfiguracoesPage() {
         }
     };
 
+    // Handler de importacao
     const handleImportar = async (tipo, arquivo) => {
         setImportando(tipo);
         setResultadoImportacao(null);
@@ -165,6 +294,7 @@ export default function ConfiguracoesPage() {
         }
     };
 
+    // Seletor de arquivo
     const handleFileSelect = (tipo) => {
         const input = document.createElement('input');
         input.type = 'file';
@@ -177,98 +307,80 @@ export default function ConfiguracoesPage() {
     };
 
     return (
-        <div className="p-6 space-y-6 max-w-6xl mx-auto">
+        <div className="p-6 space-y-8 max-w-5xl mx-auto">
             <Header
                 title="Configuracoes"
                 subtitle="Gerencie exportacao e importacao de dados do sistema"
                 icon={Settings}
             />
 
-            {/* Exportacao */}
-            <section className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Download className="w-5 h-5 text-quatrelati-blue-500" />
-                    Exportacao de Dados
-                </h2>
-
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <ExportCard
-                        icon={Users}
-                        iconBg="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                        title="Clientes"
-                        description="Exportar cadastro de clientes"
-                        tipo="clientes"
-                        loading={exportando === 'clientes'}
-                        onExport={handleExportar}
-                    />
-                    <ExportCard
-                        icon={Package}
-                        iconBg="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-                        title="Produtos"
-                        description="Exportar cadastro de produtos"
-                        tipo="produtos"
-                        loading={exportando === 'produtos'}
-                        onExport={handleExportar}
-                    />
-                    <ExportCard
-                        icon={ShoppingCart}
-                        iconBg="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400"
-                        title="Pedidos"
-                        description="Exportar pedidos com itens"
-                        tipo="pedidos"
-                        loading={exportando === 'pedidos'}
-                        onExport={handleExportar}
-                    />
-                    <Card className="p-4 border-2 border-quatrelati-blue-200 dark:border-quatrelati-gold-900/50">
-                        <div className="flex items-start gap-3">
-                            <div className="p-2 bg-quatrelati-blue-100 dark:bg-quatrelati-gold-900/30 rounded-lg">
-                                <Database className="w-6 h-6 text-quatrelati-blue-600 dark:text-quatrelati-gold-400" />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="font-medium text-gray-900 dark:text-white">Backup Completo</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Todos os dados do sistema</p>
-                                <Button
-                                    size="sm"
-                                    onClick={() => handleExportar('completo')}
-                                    loading={exportando === 'completo'}
-                                    className="w-full"
-                                >
-                                    <FileJson className="w-4 h-4" />
-                                    Exportar JSON
-                                </Button>
-                            </div>
-                        </div>
-                    </Card>
+            {/* ===== SECAO DE EXPORTACAO ===== */}
+            <section className="space-y-5">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-quatrelati-gold-100 dark:bg-quatrelati-gold-900/30 rounded-lg">
+                        <Download className="w-5 h-5 text-quatrelati-gold-600 dark:text-quatrelati-gold-400" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                            Exportar Dados
+                        </h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Clique para baixar os dados em formato JSON
+                        </p>
+                    </div>
                 </div>
 
-                {/* Filtros */}
-                <Card className="p-4">
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                        <Filter className="w-4 h-4" />
-                        Opcoes de Exportacao
-                    </h4>
+                {/* Grid de cards de exportacao */}
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {EXPORT_ITEMS.map((item) => (
+                        <ExportCard
+                            key={item.tipo}
+                            item={item}
+                            loading={exportando}
+                            onExport={handleExportar}
+                        />
+                    ))}
+                </div>
+
+                {/* Opcoes de exportacao */}
+                <Card className="p-5">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Filter className="w-4 h-4 text-gray-500" />
+                        <h3 className="font-medium text-gray-900 dark:text-white">
+                            Opcoes de Exportacao
+                        </h3>
+                    </div>
 
                     <div className="grid md:grid-cols-2 gap-6">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={apenasAtivos}
-                                onChange={(e) => setApenasAtivos(e.target.checked)}
-                                className="w-4 h-4 rounded border-gray-300 text-quatrelati-blue-600 focus:ring-quatrelati-blue-500"
-                            />
-                            <span className="text-sm text-gray-700 dark:text-gray-300">
-                                Exportar apenas registros ativos (clientes/produtos)
-                            </span>
-                        </label>
-
+                        {/* Filtro de ativos */}
                         <div className="space-y-3">
-                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                            <label className="flex items-center gap-3 cursor-pointer group">
+                                <input
+                                    type="checkbox"
+                                    checked={apenasAtivos}
+                                    onChange={(e) => setApenasAtivos(e.target.checked)}
+                                    className="w-5 h-5 rounded border-gray-300 text-quatrelati-gold-600 focus:ring-quatrelati-gold-500"
+                                />
+                                <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                                    Exportar apenas registros ativos
+                                </span>
+                            </label>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 ml-8">
+                                Aplica-se a Clientes e Produtos
+                            </p>
+                        </div>
+
+                        {/* Filtros de pedidos */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                                 <Calendar className="w-4 h-4" />
                                 Filtros para Pedidos
-                            </p>
+                            </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data Inicio</label>
+                                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                        Data Inicio
+                                    </label>
                                     <input
                                         type="date"
                                         value={filtrosPedidos.data_inicio}
@@ -277,7 +389,9 @@ export default function ConfiguracoesPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data Fim</label>
+                                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                        Data Fim
+                                    </label>
                                     <input
                                         type="date"
                                         value={filtrosPedidos.data_fim}
@@ -286,146 +400,183 @@ export default function ConfiguracoesPage() {
                                     />
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Status</label>
-                                <select
-                                    value={filtrosPedidos.status}
-                                    onChange={(e) => setFiltrosPedidos(prev => ({ ...prev, status: e.target.value }))}
-                                    className="input-glass text-sm w-full"
-                                >
-                                    <option value="">Todos os status</option>
-                                    <option value="pendente">Pendente</option>
-                                    <option value="em_preparacao">Em preparacao</option>
-                                    <option value="pronto">Pronto</option>
-                                    <option value="entregue">Entregue</option>
-                                    <option value="cancelado">Cancelado</option>
-                                </select>
-                            </div>
+                            <select
+                                value={filtrosPedidos.status}
+                                onChange={(e) => setFiltrosPedidos(prev => ({ ...prev, status: e.target.value }))}
+                                className="input-glass text-sm w-full"
+                            >
+                                <option value="">Todos os status</option>
+                                <option value="pendente">Pendente</option>
+                                <option value="em_preparacao">Em preparacao</option>
+                                <option value="pronto">Pronto</option>
+                                <option value="entregue">Entregue</option>
+                                <option value="cancelado">Cancelado</option>
+                            </select>
                         </div>
                     </div>
                 </Card>
             </section>
 
-            <hr className="border-gray-200 dark:border-gray-700" />
+            {/* Divisor */}
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+                </div>
+                <div className="relative flex justify-center">
+                    <span className="bg-cream-50 dark:bg-gray-900 px-4 text-sm text-gray-500">
+                        ou
+                    </span>
+                </div>
+            </div>
 
-            {/* Importacao */}
-            <section className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Upload className="w-5 h-5 text-quatrelati-blue-500" />
-                    Importacao de Dados
-                </h2>
-
-                <Card className="p-4">
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-3">Modo de Importacao</h4>
-                    <div className="flex gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="radio"
-                                name="modo"
-                                value="adicionar"
-                                checked={modoImportacao === 'adicionar'}
-                                onChange={(e) => setModoImportacao(e.target.value)}
-                                className="w-4 h-4 text-quatrelati-blue-600 focus:ring-quatrelati-blue-500"
-                            />
-                            <span className="text-sm text-gray-700 dark:text-gray-300">
-                                Adicionar/Atualizar registros existentes
-                            </span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="radio"
-                                name="modo"
-                                value="substituir"
-                                checked={modoImportacao === 'substituir'}
-                                onChange={(e) => setModoImportacao(e.target.value)}
-                                className="w-4 h-4 text-red-600 focus:ring-red-500"
-                            />
-                            <span className="text-sm text-gray-700 dark:text-gray-300">
-                                Substituir todos os dados (apenas sem pedidos)
-                            </span>
-                        </label>
+            {/* ===== SECAO DE IMPORTACAO ===== */}
+            <section className="space-y-5">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-quatrelati-blue-100 dark:bg-quatrelati-blue-900/30 rounded-lg">
+                        <Upload className="w-5 h-5 text-quatrelati-blue-600 dark:text-quatrelati-blue-400" />
                     </div>
-                    {modoImportacao === 'substituir' && (
-                        <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                            <AlertCircle className="w-4 h-4" />
-                            Atencao: Este modo remove todos os registros existentes antes de importar.
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                            Importar Dados
+                        </h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Restaure dados a partir de arquivos JSON
                         </p>
-                    )}
-                </Card>
+                    </div>
+                </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                    <ImportCard
-                        icon={Users}
-                        iconBg="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                        title="Importar Clientes"
-                        description="Arquivo JSON exportado anteriormente"
-                        tipo="clientes"
-                        loading={importando === 'clientes'}
-                        onImport={handleFileSelect}
-                    />
-                    <ImportCard
-                        icon={Package}
-                        iconBg="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-                        title="Importar Produtos"
-                        description="Arquivo JSON exportado anteriormente"
-                        tipo="produtos"
-                        loading={importando === 'produtos'}
-                        onImport={handleFileSelect}
-                    />
+                {/* Modo de importacao */}
+                <div className="flex flex-wrap gap-3">
+                    <label className={`
+                        flex items-center gap-2 px-4 py-2.5 rounded-lg cursor-pointer transition-all
+                        ${modoImportacao === 'adicionar'
+                            ? 'bg-quatrelati-blue-100 dark:bg-quatrelati-blue-900/30 border-2 border-quatrelati-blue-500'
+                            : 'bg-gray-100 dark:bg-gray-800 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
+                        }
+                    `}>
+                        <input
+                            type="radio"
+                            name="modo"
+                            value="adicionar"
+                            checked={modoImportacao === 'adicionar'}
+                            onChange={(e) => setModoImportacao(e.target.value)}
+                            className="sr-only"
+                        />
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center
+                            ${modoImportacao === 'adicionar' ? 'border-quatrelati-blue-500' : 'border-gray-400'}`}>
+                            {modoImportacao === 'adicionar' && (
+                                <div className="w-2 h-2 rounded-full bg-quatrelati-blue-500" />
+                            )}
+                        </div>
+                        <span className={`text-sm font-medium ${modoImportacao === 'adicionar' ? 'text-quatrelati-blue-700 dark:text-quatrelati-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                            Adicionar/Atualizar
+                        </span>
+                    </label>
+
+                    <label className={`
+                        flex items-center gap-2 px-4 py-2.5 rounded-lg cursor-pointer transition-all
+                        ${modoImportacao === 'substituir'
+                            ? 'bg-red-100 dark:bg-red-900/30 border-2 border-red-500'
+                            : 'bg-gray-100 dark:bg-gray-800 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
+                        }
+                    `}>
+                        <input
+                            type="radio"
+                            name="modo"
+                            value="substituir"
+                            checked={modoImportacao === 'substituir'}
+                            onChange={(e) => setModoImportacao(e.target.value)}
+                            className="sr-only"
+                        />
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center
+                            ${modoImportacao === 'substituir' ? 'border-red-500' : 'border-gray-400'}`}>
+                            {modoImportacao === 'substituir' && (
+                                <div className="w-2 h-2 rounded-full bg-red-500" />
+                            )}
+                        </div>
+                        <span className={`text-sm font-medium ${modoImportacao === 'substituir' ? 'text-red-700 dark:text-red-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                            Substituir tudo
+                        </span>
+                    </label>
+                </div>
+
+                {modoImportacao === 'substituir' && (
+                    <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                        <p className="text-sm text-red-700 dark:text-red-300">
+                            Este modo remove todos os registros existentes. So funciona se nao houver pedidos vinculados.
+                        </p>
+                    </div>
+                )}
+
+                {/* Grid de cards de importacao */}
+                <div className="grid sm:grid-cols-2 gap-4">
+                    {IMPORT_ITEMS.map((item) => (
+                        <ImportCard
+                            key={item.tipo}
+                            item={item}
+                            loading={importando}
+                            onImport={handleFileSelect}
+                        />
+                    ))}
                 </div>
 
                 {/* Resultado da importacao */}
                 {resultadoImportacao && (
-                    <Card className={`p-4 ${resultadoImportacao.erro ? 'border-red-200 dark:border-red-900/50' : 'border-green-200 dark:border-green-900/50'}`}>
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                    <Card className={`p-4 border-2 ${resultadoImportacao.erro
+                        ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
+                        : 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20'
+                    }`}>
+                        <div className="flex items-start gap-3">
                             {resultadoImportacao.erro ? (
-                                <AlertCircle className="w-5 h-5 text-red-500" />
+                                <AlertTriangle className="w-6 h-6 text-red-500 flex-shrink-0" />
                             ) : (
-                                <Check className="w-5 h-5 text-green-500" />
+                                <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0" />
                             )}
-                            Resultado da Importacao - {resultadoImportacao.tipo}
-                        </h4>
-
-                        {resultadoImportacao.erro ? (
-                            <p className="text-sm text-red-600 dark:text-red-400">{resultadoImportacao.erro}</p>
-                        ) : (
-                            <div className="space-y-1 text-sm">
-                                <p className="text-gray-600 dark:text-gray-400">
-                                    Registros importados: <span className="font-medium text-green-600">{resultadoImportacao.importados}</span>
-                                </p>
-                                <p className="text-gray-600 dark:text-gray-400">
-                                    Registros atualizados: <span className="font-medium text-blue-600">{resultadoImportacao.atualizados}</span>
-                                </p>
-                                {resultadoImportacao.erros?.length > 0 && (
-                                    <div className="mt-2">
-                                        <p className="text-amber-600 dark:text-amber-400 font-medium">
-                                            Erros ({resultadoImportacao.erros.length}):
+                            <div className="flex-1">
+                                <h4 className={`font-semibold ${resultadoImportacao.erro ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'}`}>
+                                    {resultadoImportacao.erro ? 'Erro na Importacao' : 'Importacao Concluida'}
+                                </h4>
+                                {resultadoImportacao.erro ? (
+                                    <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                                        {resultadoImportacao.erro}
+                                    </p>
+                                ) : (
+                                    <div className="mt-2 space-y-1">
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                                            <span className="font-medium text-green-600">{resultadoImportacao.importados}</span> novos registros
                                         </p>
-                                        <ul className="mt-1 text-xs text-gray-500 dark:text-gray-400 max-h-32 overflow-y-auto">
-                                            {resultadoImportacao.erros.map((err, idx) => (
-                                                <li key={idx}>{err.cliente || err.produto}: {err.erro}</li>
-                                            ))}
-                                        </ul>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                                            <span className="font-medium text-blue-600">{resultadoImportacao.atualizados}</span> atualizados
+                                        </p>
+                                        {resultadoImportacao.erros?.length > 0 && (
+                                            <details className="mt-2">
+                                                <summary className="text-sm text-amber-600 cursor-pointer">
+                                                    {resultadoImportacao.erros.length} erros
+                                                </summary>
+                                                <ul className="mt-1 text-xs text-gray-500 space-y-0.5 max-h-24 overflow-y-auto">
+                                                    {resultadoImportacao.erros.map((err, idx) => (
+                                                        <li key={idx}>{err.cliente || err.produto}: {err.erro}</li>
+                                                    ))}
+                                                </ul>
+                                            </details>
+                                        )}
                                     </div>
                                 )}
                             </div>
-                        )}
+                        </div>
                     </Card>
                 )}
             </section>
 
-            {/* Info */}
-            <Card className="p-4 bg-blue-50 dark:bg-gray-800 border-blue-200 dark:border-gray-700">
+            {/* Info box */}
+            <Card className="p-4 bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700">
                 <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <p className="font-medium text-gray-900 dark:text-white mb-1">Sobre Exportacao e Importacao</p>
-                        <ul className="list-disc list-inside space-y-1">
-                            <li>Os arquivos exportados estao em formato JSON e podem ser editados manualmente.</li>
-                            <li>Na importacao, clientes sao identificados pelo CNPJ/CPF e produtos pelo codigo.</li>
-                            <li>O modo &quot;substituir&quot; so funciona se nao houver pedidos vinculados aos registros.</li>
-                            <li>Pedidos nao podem ser importados para evitar inconsistencias.</li>
-                        </ul>
+                    <Info className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                        <p><strong>Formatos:</strong> Os arquivos sao exportados em JSON e podem ser editados manualmente.</p>
+                        <p><strong>Identificacao:</strong> Clientes sao identificados por CNPJ/CPF, produtos pelo nome.</p>
+                        <p><strong>Restricao:</strong> Pedidos nao podem ser importados para evitar inconsistencias.</p>
                     </div>
                 </div>
             </Card>

@@ -1,6 +1,6 @@
 // =====================================================
 // Mapa de Clientes - Leaflet
-// v2.8.0 - Marcadores com iniciais, popup melhorado
+// v2.9.0 - Geocoding com endereço completo, precisão melhorada
 // =====================================================
 'use client';
 
@@ -41,17 +41,26 @@ function setCache(cache) {
 }
 
 // Geocoding via Nominatim (OpenStreetMap)
-async function geocodeAddress(cidade, estado) {
-  if (!cidade && !estado) return null;
+async function geocodeAddress(endereco, numero, cidade, estado, cep) {
+  if (!cidade && !estado && !endereco) return null;
 
-  const cacheKey = `${cidade || ''}_${estado || ''}`.toLowerCase().trim();
+  // Criar chave de cache mais específica
+  const cacheKey = `${endereco || ''}_${numero || ''}_${cidade || ''}_${estado || ''}_${cep || ''}`.toLowerCase().trim().replace(/\s+/g, '_');
   const cache = getCache();
 
   if (cache[cacheKey]?.lat) {
     return cache[cacheKey];
   }
 
-  const query = [cidade, estado, 'Brasil'].filter(Boolean).join(', ');
+  // Tentar primeiro com endereço completo
+  let query = '';
+  if (endereco && cidade) {
+    query = [endereco, numero, cidade, estado, cep, 'Brasil'].filter(Boolean).join(', ');
+  } else if (cep) {
+    query = `${cep}, Brasil`;
+  } else {
+    query = [cidade, estado, 'Brasil'].filter(Boolean).join(', ');
+  }
 
   try {
     const response = await fetch(
@@ -79,6 +88,37 @@ async function geocodeAddress(cidade, estado) {
       setCache(cache);
 
       return result;
+    }
+
+    // Se não encontrou com endereço completo, tentar só com cidade/estado
+    if (endereco && cidade) {
+      const fallbackQuery = [cidade, estado, 'Brasil'].filter(Boolean).join(', ');
+      const fallbackResponse = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fallbackQuery)}&limit=1&countrycodes=br`,
+        {
+          headers: {
+            'User-Agent': 'Quatrelati-ERP/1.0'
+          }
+        }
+      );
+
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json();
+        if (fallbackData && fallbackData.length > 0) {
+          const result = {
+            lat: parseFloat(fallbackData[0].lat),
+            lng: parseFloat(fallbackData[0].lon),
+            nome: fallbackData[0].display_name.split(',')[0],
+            timestamp: Date.now(),
+            approximate: true // Marcar como aproximado
+          };
+
+          cache[cacheKey] = result;
+          setCache(cache);
+
+          return result;
+        }
+      }
     }
   } catch (error) {
     console.error('Erro no geocoding:', error);
@@ -209,44 +249,50 @@ export default function ClientesMap({ clientes, onClienteClick, compact = false,
 
     const results = [];
     let needsApiCall = false;
+    const positionsUsed = new Map(); // Para evitar sobreposição exata
 
     for (const cliente of clientes) {
       if (geocodingRef.current !== currentRun) {
         return;
       }
 
-      if (!cliente.cidade && !cliente.estado) continue;
+      // Precisa ter pelo menos cidade/estado ou endereço
+      if (!cliente.cidade && !cliente.estado && !cliente.endereco) continue;
 
-      const cacheKey = `${cliente.cidade || ''}_${cliente.estado || ''}`.toLowerCase().trim();
+      // Criar chave de cache específica para este cliente
+      const cacheKey = `${cliente.endereco || ''}_${cliente.numero || ''}_${cliente.cidade || ''}_${cliente.estado || ''}_${cliente.cep || ''}`.toLowerCase().trim().replace(/\s+/g, '_');
       const cache = getCache();
 
+      let coords = null;
+
       if (cache[cacheKey]?.lat) {
-        const variation = (Math.random() - 0.5) * 0.05;
-        results.push({
-          ...cliente,
-          coords: {
-            lat: cache[cacheKey].lat + variation,
-            lng: cache[cacheKey].lng + variation
-          }
-        });
-        continue;
-      }
+        coords = cache[cacheKey];
+      } else {
+        if (needsApiCall) {
+          await new Promise(resolve => setTimeout(resolve, 1100));
+        }
 
-      if (needsApiCall) {
-        await new Promise(resolve => setTimeout(resolve, 1100));
+        coords = await geocodeAddress(cliente.endereco, cliente.numero, cliente.cidade, cliente.estado, cliente.cep);
+        needsApiCall = true;
       }
-
-      const coords = await geocodeAddress(cliente.cidade, cliente.estado);
-      needsApiCall = true;
 
       if (coords) {
-        const variation = (Math.random() - 0.5) * 0.05;
+        // Pequena variação apenas se houver sobreposição exata (mesma coordenada)
+        const posKey = `${coords.lat.toFixed(4)}_${coords.lng.toFixed(4)}`;
+        let offsetIndex = positionsUsed.get(posKey) || 0;
+        positionsUsed.set(posKey, offsetIndex + 1);
+
+        // Variação mínima de ~50m apenas para evitar sobreposição exata
+        const angle = (offsetIndex * 45) * (Math.PI / 180);
+        const offset = offsetIndex * 0.0005; // ~50m por cliente sobreposto
+
         results.push({
           ...cliente,
           coords: {
-            lat: coords.lat + variation,
-            lng: coords.lng + variation
-          }
+            lat: coords.lat + (offset * Math.cos(angle)),
+            lng: coords.lng + (offset * Math.sin(angle))
+          },
+          approximate: coords.approximate || false
         });
       }
     }

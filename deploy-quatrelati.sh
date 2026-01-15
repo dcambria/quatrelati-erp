@@ -1,7 +1,7 @@
 #!/bin/bash
 # =====================================================
 # Deploy Script - Quatrelati ERP
-# v2.1.0 - Deploy robusto com backup, rollback e logs
+# v2.2.0 - Deploy com purge Cloudflare automático
 # =====================================================
 
 set -e
@@ -14,6 +14,10 @@ LOG_DIR="$DEPLOY_DIR/logs"
 LOG_FILE="$LOG_DIR/deploy-$(date '+%Y%m%d-%H%M%S').log"
 COMPOSE_FILE="docker-compose.plesk.yml"
 ENV_FILE=".env.prod"
+
+# Cloudflare
+CLOUDFLARE_ZONE_ID="be3ec7c3ee6f7307d252a6915955609c"
+CLOUDFLARE_TOKEN="${CLOUDFLARE_TOKEN:-}"
 
 # Cores para output
 RED='\033[0;31m'
@@ -220,6 +224,32 @@ cleanup_docker() {
 }
 
 # =====================================================
+# Cloudflare Cache Purge
+# =====================================================
+
+purge_cloudflare_cache() {
+    if [ -z "$CLOUDFLARE_TOKEN" ]; then
+        log_warning "CLOUDFLARE_TOKEN não configurado, pulando purge de cache"
+        return 0
+    fi
+
+    log_info "Limpando cache do Cloudflare..."
+
+    local response=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
+        -H "Authorization: Bearer ${CLOUDFLARE_TOKEN}" \
+        -H "Content-Type: application/json" \
+        -d '{"purge_everything":true}')
+
+    local success=$(echo "$response" | grep -o '"success":true' || echo "")
+
+    if [ -n "$success" ]; then
+        log_success "Cache do Cloudflare limpo com sucesso"
+    else
+        log_warning "Falha ao limpar cache do Cloudflare"
+    fi
+}
+
+# =====================================================
 # Verificação Final
 # =====================================================
 
@@ -309,6 +339,7 @@ main() {
     # Deploy com tratamento de erro
     if update_code && build_containers && restart_containers && wait_for_healthy && verify_deployment; then
         disable_maintenance
+        purge_cloudflare_cache
         cleanup_docker
         cleanup_old_logs
 

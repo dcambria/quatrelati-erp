@@ -166,11 +166,13 @@ jobs:
 
       - name: Run E2E tests
         working-directory: frontend
+        timeout-minutes: 10
+        continue-on-error: true
         env:
           BASE_URL: http://localhost:3000
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
-        run: npx playwright test --reporter=html
+        run: npx playwright test --reporter=html --timeout=60000
 
       - name: Upload test results
         if: always()

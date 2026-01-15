@@ -421,7 +421,7 @@ export default function ClientesMap({ clientes, onClienteClick, compact = false,
           zoomControl={false}
         >
           <TileLayer
-            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+            attribution='&copy; <a href="https://carto.com/">CARTO</a> | <a href="https://bureau-it.com" target="_blank" style="font-weight:600">[bit_]</a>'
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           />
           <MapController

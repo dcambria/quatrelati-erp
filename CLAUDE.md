@@ -54,6 +54,30 @@ sudo docker exec quatrelati-db pg_dump -U quatrelati quatrelati_pedidos > backup
 
 ---
 
+## Cloudflare
+
+- **Zone ID:** `be3ec7c3ee6f7307d252a6915955609c`
+- **Domínio:** laticinioquatrelati.com.br
+- **Token:** Armazenado em `.env` (CLOUDFLARE_TOKEN)
+
+### Comandos de Cache
+
+```bash
+# Purge total do cache
+curl -X POST "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
+  -H "Authorization: Bearer ${CLOUDFLARE_TOKEN}" \
+  -H "Content-Type: application/json" \
+  --data '{"purge_everything":true}'
+
+# Purge de URLs específicas
+curl -X POST "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
+  -H "Authorization: Bearer ${CLOUDFLARE_TOKEN}" \
+  -H "Content-Type: application/json" \
+  --data '{"files":["https://erp.laticinioquatrelati.com.br/path/to/file"]}'
+```
+
+---
+
 ## Arquivos de Produção
 
 - `docker-compose.plesk.yml` - Compose para deploy em Plesk

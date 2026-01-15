@@ -1,7 +1,7 @@
 'use client';
 // =====================================================
 // Pagina de Gestao de Pedidos
-// v2.4.0 - Modal de visualização + clique abre detalhes
+// v2.4.1 - Atualização automática dos cards após ações
 // =====================================================
 
 import { useState, useEffect } from 'react';
@@ -235,10 +235,9 @@ export default function PedidosPage() {
       await api.patch(`/pedidos/${pedido.id}/entregar`, {
         data_entrega_real: new Date().toISOString().split('T')[0],
       });
-      setPedidos(prev => prev.map(p =>
-        p.id === pedido.id ? { ...p, entregue: true } : p
-      ));
       toast.success('Pedido marcado como entregue');
+      // Recarregar pedidos e totais para atualizar os cards
+      carregarPedidos();
     } catch (error) {
       console.error('Erro ao marcar como entregue:', error);
       toast.error('Erro ao atualizar pedido');
@@ -248,11 +247,10 @@ export default function PedidosPage() {
   const reverterEntrega = async (id) => {
     try {
       await api.patch(`/pedidos/${id}/reverter-entrega`);
-      setPedidos(prev => prev.map(p =>
-        p.id === id ? { ...p, entregue: false } : p
-      ));
       toast.success('Entrega revertida para pendente');
       setRevertConfirm(null);
+      // Recarregar pedidos e totais para atualizar os cards
+      carregarPedidos();
     } catch (error) {
       console.error('Erro ao reverter entrega:', error);
       toast.error('Erro ao reverter entrega');
@@ -262,9 +260,10 @@ export default function PedidosPage() {
   const excluirPedido = async (id) => {
     try {
       await api.delete(`/pedidos/${id}`);
-      setPedidos(prev => prev.filter(p => p.id !== id));
       toast.success('Pedido excluído com sucesso');
       setDeleteConfirm(null);
+      // Recarregar pedidos e totais para atualizar os cards
+      carregarPedidos();
     } catch (error) {
       console.error('Erro ao excluir pedido:', error);
       toast.error('Erro ao excluir pedido');

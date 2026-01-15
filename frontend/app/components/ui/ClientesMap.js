@@ -1,6 +1,6 @@
 // =====================================================
 // Mapa de Clientes - Leaflet
-// v2.9.0 - Geocoding com endereço completo, precisão melhorada
+// v3.0.0 - Design clean com identidade Quatrelati
 // =====================================================
 'use client';
 
@@ -374,64 +374,55 @@ export default function ClientesMap({ clientes, onClienteClick, compact = false,
 
   return (
     <div className="space-y-2">
-      {/* Info bar */}
-      <div className="flex items-center gap-2 text-xs flex-wrap p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-        {/* Badges de estatísticas */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-quatrelati-blue-100 dark:bg-quatrelati-blue-900/30 text-quatrelati-blue-700 dark:text-quatrelati-blue-300 rounded-md font-medium">
-          <MapPin className="w-3.5 h-3.5" />
-          <span>{clientesComLocalizacao} no mapa</span>
-        </div>
-        {clientesSemLocalizacao > 0 && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-md">
-            <Users className="w-3.5 h-3.5" />
-            <span>{clientesSemLocalizacao} sem localização</span>
-          </div>
-        )}
-        {geocoding && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-md animate-pulse">
-            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            <span>Geocodificando...</span>
-          </div>
-        )}
-
-        {/* Botões de ação */}
-        {clientesComLocalizacao > 0 && !geocoding && (
-          <div className="flex items-center gap-2 ml-auto">
-            <button
-              onClick={() => setRecenterTrigger(prev => prev + 1)}
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-gray-700 text-quatrelati-blue-600 dark:text-quatrelati-blue-400 hover:bg-quatrelati-blue-50 dark:hover:bg-gray-600 rounded-md transition-colors shadow-sm border border-gray-200 dark:border-gray-600"
-              title="Recentralizar mapa"
-            >
-              <Focus className="w-3.5 h-3.5" />
-              <span>Recentralizar</span>
-            </button>
-            <button
-              onClick={() => setExpanded(prev => !prev)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors shadow-sm border ${
-                expanded
-                  ? 'bg-gray-700 dark:bg-gray-600 text-white border-gray-600 dark:border-gray-500'
-                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 border-gray-200 dark:border-gray-600'
-              }`}
-              title={expanded ? "Reduzir mapa" : "Ampliar mapa"}
-            >
-              {expanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-              <span>{expanded ? 'Reduzir' : 'Ampliar'}</span>
-            </button>
-          </div>
-        )}
-      </div>
-
       {/* Mapa */}
-      <div className={`${expanded ? (compact ? 'h-[600px]' : 'h-[800px]') : (compact ? 'h-[300px]' : 'h-[400px]')} rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 transition-all duration-300`}>
+      <div className={`relative ${expanded ? (compact ? 'h-[600px]' : 'h-[800px]') : (compact ? 'h-[280px]' : 'h-[380px]')} rounded-2xl overflow-hidden border border-gray-200/50 dark:border-gray-700/50 shadow-sm transition-all duration-300`}>
+        {/* Controles flutuantes */}
+        <div className="absolute top-3 right-3 z-[1000] flex items-center gap-2">
+          {geocoding && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-quatrelati-gold-600 dark:text-quatrelati-gold-400 rounded-lg text-xs font-medium shadow-sm">
+              <RefreshCw className="w-3 h-3 animate-spin" />
+              <span>Carregando...</span>
+            </div>
+          )}
+          {clientesComLocalizacao > 0 && !geocoding && (
+            <>
+              <button
+                onClick={() => setRecenterTrigger(prev => prev + 1)}
+                className="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-600 dark:text-gray-300 hover:text-quatrelati-gold-600 dark:hover:text-quatrelati-gold-400 rounded-lg transition-colors shadow-sm"
+                title="Recentralizar"
+              >
+                <Focus className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setExpanded(prev => !prev)}
+                className="p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-600 dark:text-gray-300 hover:text-quatrelati-gold-600 dark:hover:text-quatrelati-gold-400 rounded-lg transition-colors shadow-sm"
+                title={expanded ? "Reduzir" : "Ampliar"}
+              >
+                {expanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Badge de contagem */}
+        <div className="absolute bottom-3 left-3 z-[1000] flex items-center gap-1.5 px-2.5 py-1.5 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg text-xs shadow-sm">
+          <MapPin className="w-3 h-3 text-quatrelati-gold-500" />
+          <span className="font-medium text-gray-700 dark:text-gray-300">{clientesComLocalizacao}</span>
+          {clientesSemLocalizacao > 0 && (
+            <span className="text-gray-400 dark:text-gray-500">/ {clientes.length}</span>
+          )}
+        </div>
+
         <MapContainer
           center={centerBrasil}
           zoom={4}
           style={{ height: '100%', width: '100%' }}
           scrollWheelZoom={true}
+          zoomControl={false}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           />
           <MapController
             clientes={geocodedClientes}
@@ -451,46 +442,34 @@ export default function ClientesMap({ clientes, onClienteClick, compact = false,
               ref={(ref) => { if (ref) markersRef.current[cliente.id] = ref; }}
             >
               <Popup>
-                <div className="min-w-[240px] p-1">
-                  {/* Header com nome */}
+                <div className="min-w-[200px]">
+                  {/* Nome */}
                   <div
-                    className="font-bold text-base text-gray-900 hover:text-quatrelati-blue-600 cursor-pointer pb-2 border-b border-gray-200 mb-2"
+                    className="font-semibold text-gray-900 hover:text-quatrelati-gold-600 cursor-pointer mb-2"
                     onClick={() => onClienteClick && onClienteClick(cliente)}
                   >
                     {cliente.nome}
                   </div>
 
-                  {/* Endereço */}
-                  <div className="text-sm text-gray-700 mb-3 space-y-1">
+                  {/* Endereço compacto */}
+                  <div className="text-xs text-gray-500 mb-3 leading-relaxed">
                     {cliente.endereco && (
-                      <p className="font-medium">
-                        {cliente.endereco}
-                        {cliente.numero && `, ${cliente.numero}`}
-                      </p>
+                      <span>{cliente.endereco}{cliente.numero && `, ${cliente.numero}`} · </span>
                     )}
-                    {cliente.complemento && (
-                      <p className="text-gray-500 text-xs">{cliente.complemento}</p>
-                    )}
-                    <p className="text-gray-600">
-                      {cliente.cidade}{cliente.estado && ` - ${cliente.estado}`}
-                    </p>
-                    {cliente.cep && (
-                      <p className="text-gray-400 text-xs">CEP: {cliente.cep}</p>
-                    )}
+                    <span>{cliente.cidade}{cliente.estado && `-${cliente.estado}`}</span>
                   </div>
 
                   {/* Ações */}
-                  <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
+                  <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
                     {cliente.telefone && (
                       <a
                         href={`tel:${cliente.telefone.replace(/\D/g, '')}`}
-                        className="flex items-center gap-2 text-sm text-gray-600 hover:text-quatrelati-blue-600 transition-colors"
+                        className="flex items-center gap-1 text-xs text-gray-500 hover:text-quatrelati-gold-600 transition-colors"
+                        title="Ligar"
                       >
-                        <Phone className="w-4 h-4" />
-                        {cliente.telefone}
+                        <Phone className="w-3.5 h-3.5" />
                       </a>
                     )}
-
                     {(cliente.endereco || cliente.cidade) && (
                       <a
                         href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
@@ -498,10 +477,10 @@ export default function ClientesMap({ clientes, onClienteClick, compact = false,
                         )}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-green-600 hover:text-green-700 font-medium transition-colors"
+                        className="flex items-center gap-1 text-xs text-quatrelati-gold-600 hover:text-quatrelati-gold-700 font-medium transition-colors"
                       >
-                        <Navigation className="w-4 h-4" />
-                        Abrir rota no Google Maps
+                        <Navigation className="w-3.5 h-3.5" />
+                        <span>Rota</span>
                       </a>
                     )}
                   </div>

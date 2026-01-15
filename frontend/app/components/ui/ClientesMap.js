@@ -1,6 +1,6 @@
 // =====================================================
 // Mapa de Clientes - Leaflet
-// v2.7.1 - Ícone Focus, invalidateSize ao expandir
+// v2.8.0 - Marcadores com iniciais, popup melhorado
 // =====================================================
 'use client';
 
@@ -287,29 +287,42 @@ export default function ClientesMap({ clientes, onClienteClick, compact = false,
 
   const centerBrasil = [-14.235, -51.9253];
 
-  const createIcon = (numero) => {
+  // Gera iniciais do nome (até 2 letras)
+  const getInitials = (nome) => {
+    if (!nome) return '?';
+    const words = nome.trim().split(/\s+/);
+    if (words.length === 1) {
+      return words[0].substring(0, 2).toUpperCase();
+    }
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+  };
+
+  const createIcon = (cliente) => {
+    const initials = getInitials(cliente.nome);
     return L.divIcon({
       className: 'custom-marker',
       html: `
         <div style="
-          background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+          background: linear-gradient(135deg, #D4A017, #B8860B);
           color: white;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
+          min-width: 36px;
+          height: 36px;
+          padding: 0 8px;
+          border-radius: 18px;
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: bold;
-          font-size: 12px;
+          font-size: 11px;
           border: 2px solid white;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          box-shadow: 0 3px 8px rgba(0,0,0,0.35);
+          white-space: nowrap;
         ">
-          ${numero}
+          ${initials}
         </div>
       `,
-      iconSize: [28, 28],
-      iconAnchor: [14, 14],
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
     });
   };
 
@@ -384,31 +397,35 @@ export default function ClientesMap({ clientes, onClienteClick, compact = false,
             expanded={expanded}
           />
 
-          {geocodedClientes.map((cliente, index) => (
+          {geocodedClientes.map((cliente) => (
             <Marker
               key={cliente.id}
               position={[cliente.coords.lat, cliente.coords.lng]}
-              icon={createIcon(index + 1)}
+              icon={createIcon(cliente)}
               ref={(ref) => { if (ref) markersRef.current[cliente.id] = ref; }}
             >
               <Popup>
-                <div className="min-w-[220px]">
+                <div className="min-w-[240px] p-1">
+                  {/* Header com nome */}
                   <div
-                    className="font-bold text-blue-600 hover:underline cursor-pointer mb-2"
+                    className="font-bold text-base text-gray-900 hover:text-quatrelati-blue-600 cursor-pointer pb-2 border-b border-gray-200 mb-2"
                     onClick={() => onClienteClick && onClienteClick(cliente)}
                   >
                     {cliente.nome}
                   </div>
 
-                  <div className="text-sm text-gray-600 mb-2 space-y-0.5">
+                  {/* Endereço */}
+                  <div className="text-sm text-gray-700 mb-3 space-y-1">
                     {cliente.endereco && (
-                      <p>
+                      <p className="font-medium">
                         {cliente.endereco}
                         {cliente.numero && `, ${cliente.numero}`}
-                        {cliente.complemento && ` - ${cliente.complemento}`}
                       </p>
                     )}
-                    <p>
+                    {cliente.complemento && (
+                      <p className="text-gray-500 text-xs">{cliente.complemento}</p>
+                    )}
+                    <p className="text-gray-600">
                       {cliente.cidade}{cliente.estado && ` - ${cliente.estado}`}
                     </p>
                     {cliente.cep && (
@@ -416,29 +433,32 @@ export default function ClientesMap({ clientes, onClienteClick, compact = false,
                     )}
                   </div>
 
-                  {cliente.telefone && (
-                    <a
-                      href={`tel:${cliente.telefone.replace(/\D/g, '')}`}
-                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 mb-2"
-                    >
-                      <Phone className="w-3 h-3" />
-                      {cliente.telefone}
-                    </a>
-                  )}
+                  {/* Ações */}
+                  <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
+                    {cliente.telefone && (
+                      <a
+                        href={`tel:${cliente.telefone.replace(/\D/g, '')}`}
+                        className="flex items-center gap-2 text-sm text-gray-600 hover:text-quatrelati-blue-600 transition-colors"
+                      >
+                        <Phone className="w-4 h-4" />
+                        {cliente.telefone}
+                      </a>
+                    )}
 
-                  {(cliente.endereco || cliente.cidade) && (
-                    <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-                        [cliente.endereco, cliente.numero, cliente.cidade, cliente.estado, 'Brasil'].filter(Boolean).join(', ')
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-green-600 hover:text-green-800"
-                    >
-                      <Navigation className="w-3 h-3" />
-                      Abrir rota no Google Maps
-                    </a>
-                  )}
+                    {(cliente.endereco || cliente.cidade) && (
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                          [cliente.endereco, cliente.numero, cliente.cidade, cliente.estado, 'Brasil'].filter(Boolean).join(', ')
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-green-600 hover:text-green-700 font-medium transition-colors"
+                      >
+                        <Navigation className="w-4 h-4" />
+                        Abrir rota no Google Maps
+                      </a>
+                    )}
+                  </div>
                 </div>
               </Popup>
             </Marker>

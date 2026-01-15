@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Clientes
-// v2.15.0 - Header alinhado às colunas da tabela
+// v2.16.0 - Cidade/estado com botão clicável, mapa melhorado
 // =====================================================
 
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
@@ -1127,23 +1127,23 @@ export default function ClientesPage() {
                   <h3 className="font-semibold text-gray-900 dark:text-white truncate group-hover:text-quatrelati-blue-600 dark:group-hover:text-quatrelati-gold-400 transition-colors">
                     {cliente.nome}
                   </h3>
-                  <div className="flex items-center gap-1">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {cliente.cidade ? `${cliente.cidade}${cliente.estado ? ` - ${cliente.estado}` : ''}` : 'Sem localização'}
-                    </p>
-                    {(cliente.cidade || cliente.estado) && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          focusClienteNoMapa(cliente.id);
-                        }}
-                        className="p-0.5 rounded hover:bg-quatrelati-blue-100 dark:hover:bg-quatrelati-blue-900/30 text-quatrelati-blue-500 hover:text-quatrelati-blue-700 transition-colors flex-shrink-0"
-                        title="Ver no mapa"
-                      >
-                        <MapPin className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
+                  {(cliente.cidade || cliente.estado) ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        focusClienteNoMapa(cliente.id);
+                      }}
+                      className="flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700/50 hover:bg-quatrelati-blue-100 dark:hover:bg-quatrelati-blue-900/30 text-gray-600 dark:text-gray-400 hover:text-quatrelati-blue-600 dark:hover:text-quatrelati-blue-400 transition-colors"
+                      title="Ver no mapa"
+                    >
+                      <MapPin className="w-3 h-3" />
+                      <span className="text-xs font-medium truncate">
+                        {cliente.cidade}{cliente.estado && ` - ${cliente.estado}`}
+                      </span>
+                    </button>
+                  ) : (
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Sem localização</p>
+                  )}
                   <Badge variant={cliente.ativo ? 'success' : 'error'} className="mt-1">
                     {cliente.ativo ? 'Ativo' : 'Inativo'}
                   </Badge>
@@ -1303,23 +1303,23 @@ export default function ClientesPage() {
                         )}
                         <div>
                           <p className="font-medium text-gray-900 dark:text-white">{cliente.nome}</p>
-                          <div className="flex items-center gap-1">
-                            <p className="text-xs text-gray-500">
-                              {cliente.cidade}{cliente.estado && ` - ${cliente.estado}`}
-                            </p>
-                            {(cliente.cidade || cliente.estado) && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  focusClienteNoMapa(cliente.id);
-                                }}
-                                className="p-0.5 rounded hover:bg-quatrelati-blue-100 dark:hover:bg-quatrelati-blue-900/30 text-quatrelati-blue-500 hover:text-quatrelati-blue-700 transition-colors"
-                                title="Ver no mapa"
-                              >
-                                <MapPin className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
+                          {(cliente.cidade || cliente.estado) ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                focusClienteNoMapa(cliente.id);
+                              }}
+                              className="flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700/50 hover:bg-quatrelati-blue-100 dark:hover:bg-quatrelati-blue-900/30 text-gray-500 dark:text-gray-400 hover:text-quatrelati-blue-600 dark:hover:text-quatrelati-blue-400 transition-colors"
+                              title="Ver no mapa"
+                            >
+                              <MapPin className="w-3 h-3" />
+                              <span className="text-xs">
+                                {cliente.cidade}{cliente.estado && ` - ${cliente.estado}`}
+                              </span>
+                            </button>
+                          ) : (
+                            <p className="text-xs text-gray-400 mt-0.5">Sem localização</p>
+                          )}
                         </div>
                       </div>
                     </td>

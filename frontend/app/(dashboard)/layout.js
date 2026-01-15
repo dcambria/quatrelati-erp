@@ -2,10 +2,10 @@
 
 // =====================================================
 // Layout do Dashboard
-// v1.2.0 - Adiciona tour guiada após primeiro acesso
+// v1.3.0 - Fix tour guiada após primeiro acesso
 // =====================================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,8 +16,11 @@ import Sidebar from '../components/layout/Sidebar';
 import BureauLogo from '../components/common/BureauLogo';
 import { LoadingPage } from '../components/ui/Loading';
 import FirstAccessModal from '../components/ui/FirstAccessModal';
-import GuidedTour, { useShouldShowTour } from '../components/ui/GuidedTour';
+import GuidedTour from '../components/ui/GuidedTour';
 import { Menu } from 'lucide-react';
+
+// Chave localStorage para tour (por usuário)
+const getTourStorageKey = (userId) => `quatrelati_tour_completed_${userId || 'guest'}`;
 
 function MobileHeader() {
   const { isMobile, toggleMobileOpen } = useSidebar();
@@ -48,31 +51,50 @@ function MobileHeader() {
 
 function DashboardContent({ children }) {
   const { isCollapsed, isMobile } = useSidebar();
-  const { user, setUser } = useAuth();
+  const { user } = useAuth();
   const [showFirstAccessModal, setShowFirstAccessModal] = useState(false);
   const [showTour, setShowTour] = useState(false);
-  const { shouldShow: shouldShowTour } = useShouldShowTour();
+  const [firstAccessJustCompleted, setFirstAccessJustCompleted] = useState(false);
+
+  // Verificar se deve mostrar tour (por usuário)
+  const checkShouldShowTour = useCallback(() => {
+    if (!user?.id) return false;
+    const tourCompleted = localStorage.getItem(getTourStorageKey(user.id));
+    return !tourCompleted;
+  }, [user?.id]);
 
   // Verificar primeiro acesso quando user estiver disponível
   useEffect(() => {
     if (user?.primeiro_acesso) {
       setShowFirstAccessModal(true);
     }
-  }, [user]);
+  }, [user?.primeiro_acesso]);
+
+  // Iniciar tour após primeiro acesso ser concluído
+  useEffect(() => {
+    if (firstAccessJustCompleted && user?.id) {
+      // Pequeno delay para o modal fechar suavemente
+      const timer = setTimeout(() => {
+        if (checkShouldShowTour()) {
+          setShowTour(true);
+        }
+        setFirstAccessJustCompleted(false);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [firstAccessJustCompleted, user?.id, checkShouldShowTour]);
 
   const handleFirstAccessComplete = () => {
     setShowFirstAccessModal(false);
-    // Iniciar tour guiada após primeiro acesso
-    // Pequeno delay para o modal fechar suavemente
-    setTimeout(() => {
-      if (shouldShowTour) {
-        setShowTour(true);
-      }
-    }, 500);
+    setFirstAccessJustCompleted(true);
   };
 
   const handleTourComplete = () => {
     setShowTour(false);
+    // Marcar como completo no localStorage
+    if (user?.id) {
+      localStorage.setItem(getTourStorageKey(user.id), 'true');
+    }
   };
 
   const mainMargin = isMobile ? 'ml-0 pt-16' : (isCollapsed ? 'ml-20' : 'ml-72');

@@ -2,13 +2,14 @@
 
 // =====================================================
 // HorarioRecebimentoPicker - Seletor de dias e horários
-// v1.3.0 - Modo inline (sempre visível)
+// v1.4.0 - Adiciona Domingo
 // =====================================================
 
 import { useState, useEffect, forwardRef } from 'react';
 import { Clock } from 'lucide-react';
 
 const DIAS_SEMANA = [
+  { id: 'dom', label: 'Dom', full: 'Domingo' },
   { id: 'seg', label: 'Seg', full: 'Segunda' },
   { id: 'ter', label: 'Ter', full: 'Terça' },
   { id: 'qua', label: 'Qua', full: 'Quarta' },
@@ -44,6 +45,7 @@ const HorarioRecebimentoPicker = forwardRef(({ value, onChange, error, label = '
     }
 
     const diasEncontrados = [];
+    if (/dom|domingo/i.test(val)) diasEncontrados.push('dom');
     if (/seg|segunda/i.test(val)) diasEncontrados.push('seg');
     if (/ter|terça/i.test(val)) diasEncontrados.push('ter');
     if (/qua|quarta/i.test(val)) diasEncontrados.push('qua');
@@ -105,9 +107,11 @@ const HorarioRecebimentoPicker = forwardRef(({ value, onChange, error, label = '
     const saoConsecutivos = indices.every((val, i, arr) => i === 0 || val === arr[i - 1] + 1);
 
     let diasStr;
-    if (dias.length === 5 && !dias.includes('sab')) {
+    if (dias.length === 7) {
+      diasStr = 'Todos os dias';
+    } else if (dias.length === 5 && !dias.includes('sab') && !dias.includes('dom')) {
       diasStr = 'Seg-Sex';
-    } else if (dias.length === 6) {
+    } else if (dias.length === 6 && !dias.includes('dom')) {
       diasStr = 'Seg-Sáb';
     } else if (saoConsecutivos && dias.length > 2) {
       diasStr = `${diasOrdenados[0]}-${diasOrdenados[diasOrdenados.length - 1]}`;

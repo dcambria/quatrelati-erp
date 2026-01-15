@@ -1,6 +1,9 @@
 // =====================================================
 // Middleware de Log de Atividades
+// v1.1.0 - IP real + geolocalização com bandeira
 // =====================================================
+
+const { getRealIP, getCountryFromIP } = require('../utils/ipUtils');
 
 /**
  * Registra atividade no banco de dados
@@ -19,6 +22,7 @@ async function logActivity(db, options) {
         details,
         ipAddress,
         userAgent,
+        country,
     } = options;
 
     try {
@@ -36,9 +40,9 @@ async function logActivity(db, options) {
         await db.query(`
             INSERT INTO activity_logs (
                 user_id, user_nome, user_nivel, action, entity,
-                entity_id, entity_name, details, ip_address, user_agent
+                entity_id, entity_name, details, ip_address, user_agent, country
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         `, [
             userId,
             userNome,
@@ -50,6 +54,7 @@ async function logActivity(db, options) {
             details ? JSON.stringify(details) : null,
             ipAddress,
             userAgent,
+            country,
         ]);
     } catch (error) {
         console.error('Erro ao registrar log de atividade:', error);
@@ -81,6 +86,10 @@ function activityLogMiddleware(action, entity) {
                     let entityId = req.params.id || data?.id || data?.cliente?.id || data?.pedido?.id || data?.produto?.id || data?.usuario?.id;
                     let entityName = data?.cliente?.nome || data?.pedido?.numero_pedido || data?.produto?.nome || data?.usuario?.nome;
 
+                    // Obter IP real e país
+                    const realIP = getRealIP(req);
+                    const country = await getCountryFromIP(realIP);
+
                     await logActivity(req.db, {
                         userId: req.userId,
                         userNome: user?.nome,
@@ -94,8 +103,9 @@ function activityLogMiddleware(action, entity) {
                             path: req.originalUrl,
                             body: req.method !== 'GET' ? req.body : undefined,
                         },
-                        ipAddress: req.ip || req.connection?.remoteAddress,
+                        ipAddress: realIP,
                         userAgent: req.get('User-Agent'),
+                        country,
                     });
                 } catch (error) {
                     console.error('Erro no middleware de log:', error);

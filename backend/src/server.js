@@ -1,6 +1,6 @@
 // =====================================================
 // Sistema de Gestão de Pedidos - Laticínio Quatrelati
-// Backend API Server v1.3.0 - Error Logging
+// Backend API Server v1.4.0 - Trust Proxy + IP Real
 // =====================================================
 
 require('dotenv').config();
@@ -29,6 +29,10 @@ const seedPasswords = require('./utils/seedPasswords');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Confiar em headers do proxy reverso (Nginx/Cloudflare)
+// Necessário para capturar IP real via X-Forwarded-For, X-Real-IP, etc
+app.set('trust proxy', true);
 
 // Configuração do pool de conexão PostgreSQL
 const pool = new Pool({
@@ -96,7 +100,7 @@ app.use(globalErrorHandler);
 app.listen(PORT, async () => {
     console.log('=====================================================');
     console.log('  Sistema de Gestão de Pedidos - Laticínio Quatrelati');
-    console.log('  API Server v1.3.0');
+    console.log('  API Server v1.4.0');
     console.log('=====================================================');
     console.log(`  Servidor rodando em http://localhost:${PORT}`);
     console.log(`  Ambiente: ${process.env.NODE_ENV || 'development'}`);

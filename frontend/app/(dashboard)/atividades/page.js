@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Histórico de Atividades e Erros
-// v1.2.0 - Adicionado botão limpar logs
+// v1.3.0 - País com bandeirinha no log de IP
 // =====================================================
 
 import { useState, useEffect, useCallback } from 'react'
@@ -130,6 +130,17 @@ const errorTypeLabels = {
     not_found: 'Não Encontrado',
     server_error: 'Erro do Servidor',
     uncaught_error: 'Erro Não Tratado'
+}
+
+// Converte código de país (BR, US, PT) em emoji de bandeira
+const countryToFlag = (countryCode) => {
+    if (!countryCode || countryCode.length !== 2) return null
+    const code = countryCode.toUpperCase()
+    const offset = 127397 // Offset para Regional Indicator Symbol
+    return String.fromCodePoint(
+        code.charCodeAt(0) + offset,
+        code.charCodeAt(1) + offset
+    )
 }
 
 export default function AtividadesPage() {
@@ -655,7 +666,14 @@ export default function AtividadesPage() {
                                                         <div className="flex items-center gap-2">
                                                             <Monitor className="w-4 h-4 text-gray-400" />
                                                             <div>
-                                                                <p className="text-sm text-gray-900 dark:text-white">{log.ip_address || '-'}</p>
+                                                                <p className="text-sm text-gray-900 dark:text-white">
+                                                                    {log.country && (
+                                                                        <span className="mr-1.5" title={log.country}>
+                                                                            {countryToFlag(log.country)}
+                                                                        </span>
+                                                                    )}
+                                                                    {log.ip_address || '-'}
+                                                                </p>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -882,7 +900,14 @@ export default function AtividadesPage() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-sm text-gray-600 dark:text-gray-400">{log.ip_address || '-'}</span>
+                                                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                                                        {log.country && (
+                                                            <span className="mr-1.5" title={log.country}>
+                                                                {countryToFlag(log.country)}
+                                                            </span>
+                                                        )}
+                                                        {log.ip_address || '-'}
+                                                    </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center gap-2">

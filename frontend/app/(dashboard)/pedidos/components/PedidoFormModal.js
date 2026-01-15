@@ -1,6 +1,6 @@
 // =====================================================
 // Modal de Formulário de Pedido
-// v1.9.0 - Mini agenda inline + foto vendedor
+// v1.10.0 - Máscara de moeda no campo descarga/pallet
 // =====================================================
 
 'use client';
@@ -18,7 +18,33 @@ import Button from '../../../components/ui/Button';
 import Gravatar from '../../../components/ui/Gravatar';
 import HorarioRecebimentoPicker from '../../../components/ui/HorarioRecebimentoPicker';
 import { formatCurrency, calcularTotalPedido } from '../utils';
-import { precoPositivoSchema } from '../../../lib/validations';
+import { precoPositivoSchema, mascaraMoeda } from '../../../lib/validations';
+
+/**
+ * Converte valor em formato brasileiro (1.234,56) para número
+ * @param {string} valor - Valor formatado
+ * @returns {number|null}
+ */
+function moedaParaNumero(valor) {
+  if (!valor) return null;
+  // Remove pontos de milhar e substitui vírgula por ponto
+  const limpo = valor.replace(/\./g, '').replace(',', '.');
+  const numero = parseFloat(limpo);
+  return isNaN(numero) ? null : numero;
+}
+
+/**
+ * Formata número para formato brasileiro (1.234,56)
+ * @param {number|string} numero - Valor numérico
+ * @returns {string}
+ */
+function formatarMoedaBR(numero) {
+  if (!numero && numero !== 0) return '';
+  return parseFloat(numero).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
 
 const pedidoSchema = z.object({
   data_pedido: z.string().min(1, 'Data é obrigatória'),
@@ -88,7 +114,7 @@ export default function PedidoFormModal({
       data_entrega: editingPedido.data_entrega?.split('T')[0] || '',
       nf: editingPedido.nf || '',
       observacoes: editingPedido.observacoes || '',
-      preco_descarga_pallet: editingPedido.preco_descarga_pallet?.toString() || '',
+      preco_descarga_pallet: formatarMoedaBR(editingPedido.preco_descarga_pallet),
       horario_recebimento: editingPedido.horario_recebimento || '',
     });
 
@@ -200,7 +226,7 @@ export default function PedidoFormModal({
         data_entrega: data.data_entrega || null,
         nf: data.nf || null,
         observacoes: data.observacoes || null,
-        preco_descarga_pallet: data.preco_descarga_pallet ? parseFloat(data.preco_descarga_pallet) : null,
+        preco_descarga_pallet: moedaParaNumero(data.preco_descarga_pallet),
         horario_recebimento: data.horario_recebimento || null,
         itens: itensValidos.map(item => ({
           produto_id: parseInt(item.produto_id),
@@ -326,7 +352,7 @@ export default function PedidoFormModal({
             </button>
           </div>
 
-          <div className="space-y-2 max-h-[180px] overflow-y-auto">
+          <div className="space-y-2">
             {itens.map((item, index) => (
               <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
                 <select
@@ -388,16 +414,19 @@ export default function PedidoFormModal({
             <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
               Entrega
             </h4>
-            <div className="w-32">
-              <Input
-                label=""
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Descarga R$"
-                error={errors.preco_descarga_pallet?.message}
-                {...register('preco_descarga_pallet')}
-              />
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Descarga/Pallet:</span>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0,00"
+                  className="input-glass text-sm w-32 text-right pl-9"
+                  value={watch('preco_descarga_pallet') || ''}
+                  onChange={(e) => setValue('preco_descarga_pallet', mascaraMoeda(e.target.value))}
+                />
+              </div>
             </div>
           </div>
 

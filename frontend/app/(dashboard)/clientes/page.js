@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Clientes
-// v2.14.0 - Footer sticky no modal de formulário
+// v2.15.0 - Header alinhado às colunas da tabela
 // =====================================================
 
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
@@ -934,10 +934,20 @@ export default function ClientesPage() {
         {/* Cabeçalho das Colunas (apenas modo lista) */}
         {viewMode === 'list' && !loading && clientes.length > 0 && (
           <div className="bg-gray-50 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700">
-            <table className="w-full">
+            <table className="w-full table-fixed">
+              <colgroup>
+                <col className="w-12" />
+                <col className="w-[22%]" />
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
+                <col className="w-[15%]" />
+                <col className="w-[12%]" />
+                <col className="w-[10%]" />
+                <col className="w-[7%]" />
+              </colgroup>
               <thead>
                 <tr>
-                  <th className="px-3 py-2.5 w-10">
+                  <th className="px-3 py-2.5">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1242,7 +1252,17 @@ export default function ClientesPage() {
         /* Visualização em Lista - tbody apenas (cabeçalho está no sticky) */
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full table-fixed">
+              <colgroup>
+                <col className="w-12" />
+                <col className="w-[22%]" />
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
+                <col className="w-[15%]" />
+                <col className="w-[12%]" />
+                <col className="w-[10%]" />
+                <col className="w-[7%]" />
+              </colgroup>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {clientesOrdenados.map((cliente) => (
                   <tr

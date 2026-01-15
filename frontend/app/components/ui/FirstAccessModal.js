@@ -1,10 +1,10 @@
 'use client';
 // =====================================================
 // Modal de Primeiro Acesso
-// v1.0.1 - Corrige ordem de chamadas (senha antes do perfil)
+// v1.1.0 - Preenche telefone se já cadastrado pelo admin
 // =====================================================
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -49,6 +49,7 @@ export default function FirstAccessModal({ isOpen, onComplete }) {
     handleSubmit,
     control,
     watch,
+    reset,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(firstAccessSchema),
@@ -59,6 +60,18 @@ export default function FirstAccessModal({ isOpen, onComplete }) {
       confirmarSenha: '',
     },
   });
+
+  // Atualizar form quando user mudar (ex: telefone já cadastrado)
+  useEffect(() => {
+    if (user && isOpen) {
+      reset({
+        nome: user.nome || '',
+        telefone: user.telefone || '',
+        senha: '',
+        confirmarSenha: '',
+      });
+    }
+  }, [user, isOpen, reset]);
 
   const watchedPassword = watch('senha', '');
 

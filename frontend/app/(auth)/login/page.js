@@ -4,7 +4,7 @@
  * ===========================================
  * Quatrelati - Tela de Login
  * Design Apple HIG com Glassmorphism
- * v2.8.0 - Validação de senha forte
+ * v2.8.1 - Corrige tratamento de erros da API
  * ===========================================
  */
 
@@ -150,7 +150,7 @@ export default function LoginPage() {
       }
     } catch (error) {
       console.error('Erro ao solicitar recuperacao:', error);
-      toast.error(error.response?.data?.error || 'Erro ao processar solicitacao');
+      toast.error(error.message || 'Erro ao processar solicitacao');
     } finally {
       setLoading(false);
     }
@@ -166,7 +166,7 @@ export default function LoginPage() {
       toast.success('Codigo verificado! Defina sua nova senha.');
     } catch (error) {
       console.error('Erro ao verificar codigo:', error);
-      toast.error(error.response?.data?.error || 'Codigo invalido ou expirado');
+      toast.error(error.message || 'Codigo invalido ou expirado');
     } finally {
       setLoading(false);
     }
@@ -183,7 +183,7 @@ export default function LoginPage() {
       resetForm.reset();
     } catch (error) {
       console.error('Erro ao redefinir senha:', error);
-      toast.error(error.response?.data?.error || 'Erro ao redefinir senha');
+      toast.error(error.message || 'Erro ao redefinir senha');
     } finally {
       setLoading(false);
     }

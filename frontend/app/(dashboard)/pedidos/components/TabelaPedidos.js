@@ -1,6 +1,6 @@
 // =====================================================
 // Componente de Tabela de Pedidos
-// v1.0.0 - Tabela com ordenação e expansão
+// v1.1.0 - Clique abre visualização, não edição
 // =====================================================
 
 'use client';
@@ -25,6 +25,7 @@ export default function TabelaPedidos({
   pedidos,
   busca,
   canEdit,
+  onView,
   onEdit,
   onDelete,
   onMarcarEntregue,
@@ -171,16 +172,20 @@ export default function TabelaPedidos({
                     {/* Linha principal do pedido */}
                     <tr
                       className={`text-sm cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 ${isExpanded ? 'bg-blue-50/50 dark:bg-blue-900/10' : 'bg-white dark:bg-gray-900'}`}
-                      onClick={() => {
-                        if (allExpanded) {
-                          setAllExpanded(false);
-                          setExpandedPedido(pedido.id);
-                        } else {
-                          setExpandedPedido(isExpanded ? null : pedido.id);
-                        }
-                      }}
+                      onClick={() => onView(pedido)}
                     >
-                      <td className={`py-3 px-2 text-center border-l-4 ${borderColor}`}>
+                      <td
+                        className={`py-3 px-2 text-center border-l-4 ${borderColor}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (allExpanded) {
+                            setAllExpanded(false);
+                            setExpandedPedido(pedido.id);
+                          } else {
+                            setExpandedPedido(isExpanded ? null : pedido.id);
+                          }
+                        }}
+                      >
                         {isExpanded ? (
                           <ChevronUp className="w-4 h-4 text-blue-500 mx-auto" />
                         ) : (

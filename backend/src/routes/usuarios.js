@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Usuários
-// v1.4.0 - Admin pode gerenciar usuários (exceto superadmin)
+// v1.5.0 - Adiciona reset da tour guiada (superadmin)
 // =====================================================
 
 const express = require('express');
@@ -18,7 +18,7 @@ router.use(adminOnly);
 
 /**
  * GET /api/usuarios
- * Lista todos os usuários
+ * Lista todos os usuários (inclui último acesso)
  */
 router.get('/', async (req, res) => {
     try {
@@ -28,15 +28,25 @@ router.get('/', async (req, res) => {
         let params = [];
 
         if (ativo !== undefined) {
-            whereClause = 'WHERE ativo = $1';
+            whereClause = 'WHERE u.ativo = $1';
             params.push(ativo === 'true');
         }
 
+        // Busca usuários com último login (do activity_logs)
         const result = await req.db.query(`
-            SELECT id, nome, email, telefone, nivel, ativo, created_at, updated_at
-            FROM usuarios
+            SELECT
+                u.id, u.nome, u.email, u.telefone, u.nivel, u.ativo,
+                u.primeiro_acesso, u.created_at, u.updated_at,
+                (
+                    SELECT created_at
+                    FROM activity_logs
+                    WHERE user_id = u.id AND action = 'login'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                ) as ultimo_acesso
+            FROM usuarios u
             ${whereClause}
-            ORDER BY nome ASC
+            ORDER BY u.nome ASC
         `, params);
 
         res.json({ usuarios: result.rows });
@@ -365,6 +375,50 @@ router.post('/invite', activityLogMiddleware('enviar_convite', 'usuario'), async
     } catch (error) {
         console.error('Erro ao criar usuário com convite:', error);
         res.status(500).json({ error: 'Erro ao criar usuário com convite' });
+    }
+});
+
+/**
+ * POST /api/usuarios/:id/reset-tour
+ * Reseta a tour guiada para o usuário (superadmin only)
+ * O usuário verá novamente o primeiro acesso + tour guiada
+ */
+router.post('/:id/reset-tour', idValidation, activityLogMiddleware('reset_tour', 'usuario'), async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Apenas superadmin pode resetar a tour
+        if (req.userNivel !== 'superadmin') {
+            return res.status(403).json({ error: 'Apenas superadmin pode resetar a tour guiada' });
+        }
+
+        // Verificar se usuário existe
+        const usuarioResult = await req.db.query(
+            'SELECT id, nome, email FROM usuarios WHERE id = $1',
+            [id]
+        );
+
+        if (usuarioResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+
+        const usuario = usuarioResult.rows[0];
+
+        // Resetar primeiro_acesso para true
+        await req.db.query(
+            'UPDATE usuarios SET primeiro_acesso = true WHERE id = $1',
+            [id]
+        );
+
+        console.log(`[RESET-TOUR] Tour resetada para usuário: ${usuario.email}`);
+
+        res.json({
+            message: `Tour guiada resetada para ${usuario.nome}. No próximo acesso, o usuário verá a introdução.`,
+            usuario: { id: usuario.id, nome: usuario.nome }
+        });
+    } catch (error) {
+        console.error('Erro ao resetar tour:', error);
+        res.status(500).json({ error: 'Erro ao resetar tour guiada' });
     }
 });
 

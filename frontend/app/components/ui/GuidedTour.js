@@ -1,11 +1,12 @@
 'use client';
 // =====================================================
 // Tour Guiada do Sistema
-// v1.0.0 - Tour interativa após primeiro acesso
+// v1.1.0 - Chave localStorage por usuário
 // =====================================================
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   X,
   ChevronRight,
@@ -78,9 +79,13 @@ const TOUR_STEPS = [
   },
 ];
 
-const STORAGE_KEY = 'quatrelati_tour_completed';
+const STORAGE_KEY_PREFIX = 'quatrelati_tour_completed_';
+
+// Helper para obter chave específica do usuário
+const getStorageKey = (userId) => `${STORAGE_KEY_PREFIX}${userId || 'guest'}`;
 
 export default function GuidedTour({ isOpen, onComplete }) {
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [highlightRect, setHighlightRect] = useState(null);
   const [mounted, setMounted] = useState(false);
@@ -138,13 +143,13 @@ export default function GuidedTour({ isOpen, onComplete }) {
   };
 
   const handleFinish = () => {
-    localStorage.setItem(STORAGE_KEY, 'true');
+    localStorage.setItem(getStorageKey(user?.id), 'true');
     setCurrentStep(0);
     onComplete?.();
   };
 
   const handleSkip = () => {
-    localStorage.setItem(STORAGE_KEY, 'true');
+    localStorage.setItem(getStorageKey(user?.id), 'true');
     setCurrentStep(0);
     onComplete?.();
   };
@@ -324,18 +329,23 @@ export default function GuidedTour({ isOpen, onComplete }) {
   return createPortal(content, document.body);
 }
 
-// Hook para verificar se deve mostrar a tour
+// Hook para verificar se deve mostrar a tour (por usuário)
 export function useShouldShowTour() {
+  const { user } = useAuth();
   const [shouldShow, setShouldShow] = useState(false);
 
   useEffect(() => {
-    const tourCompleted = localStorage.getItem(STORAGE_KEY);
-    setShouldShow(!tourCompleted);
-  }, []);
+    if (user?.id) {
+      const tourCompleted = localStorage.getItem(getStorageKey(user.id));
+      setShouldShow(!tourCompleted);
+    }
+  }, [user?.id]);
 
   const resetTour = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setShouldShow(true);
+    if (user?.id) {
+      localStorage.removeItem(getStorageKey(user.id));
+      setShouldShow(true);
+    }
   };
 
   return { shouldShow, resetTour };

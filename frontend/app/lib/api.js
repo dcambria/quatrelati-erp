@@ -166,7 +166,7 @@ class ApiClient {
     return { data, status: response.status };
   }
 
-  // Download de arquivo (PDF)
+  // Download de arquivo (PDF) - abre em nova aba
   async download(endpoint, filename) {
     const url = `${this.baseUrl}${endpoint}`;
     let response = await fetch(url, {
@@ -200,14 +200,25 @@ class ApiClient {
     }
 
     const blob = await response.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(downloadUrl);
+    const pdfUrl = window.URL.createObjectURL(blob);
+
+    // Abrir PDF em nova aba
+    const newTab = window.open(pdfUrl, '_blank');
+
+    // Se o navegador bloqueou pop-up, fazer download tradicional
+    if (!newTab || newTab.closed || typeof newTab.closed === 'undefined') {
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Limpar URL após um tempo (para permitir visualização)
+    setTimeout(() => {
+      window.URL.revokeObjectURL(pdfUrl);
+    }, 60000);
   }
 }
 

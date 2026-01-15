@@ -1,6 +1,6 @@
 // =====================================================
 // Serviço de Exportação PDF/Excel
-// v1.3.0 - PDF clientes com endereço completo
+// v1.4.0 - Adiciona email na lista de clientes PDF
 // Este arquivo é excluído da cobertura de testes devido
 // à complexidade de mocking de PDFKit e streams.
 // =====================================================
@@ -758,11 +758,11 @@ async function exportarClientesPDF(res, { clientes, nomeVendedor }) {
     let currentY = 82;
 
     // ===== TABELA (sem coluna vendedor - agrupado) =====
-    const headers = ['Cliente', 'Contato', 'Telefone', 'Endereço', 'Pedidos'];
+    const headers = ['Cliente', 'Contato', 'Telefone', 'Email', 'Endereço', 'Pedidos'];
     const tableWidth = pageWidth - margin * 2;
     // Larguras ajustadas (total = 762)
-    const colWidths = [150, 100, 90, 350, 72];
-    const colAligns = ['left', 'left', 'left', 'left', 'right'];
+    const colWidths = [140, 90, 85, 140, 235, 72];
+    const colAligns = ['left', 'left', 'left', 'left', 'left', 'right'];
     const startX = margin;
     const rowHeight = 22;
     const vendedorHeaderHeight = 26;
@@ -859,6 +859,7 @@ async function exportarClientesPDF(res, { clientes, nomeVendedor }) {
                 cliente.nome || '-',
                 cliente.contato_nome || '-',
                 cliente.telefone || '-',
+                cliente.email || '-',
                 enderecoCompleto,
                 String(totalPedidos)
             ];
@@ -868,9 +869,12 @@ async function exportarClientesPDF(res, { clientes, nomeVendedor }) {
                 // Texto preto para todos os campos
                 if (i === 0) {
                     doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(8);
-                } else if (i === 4) {
+                } else if (i === 5) {
                     // Coluna Pedidos (última)
                     doc.fillColor(totalPedidos > 0 ? '#166534' : '#6B7280').font('Helvetica-Bold').fontSize(8);
+                } else if (i === 3) {
+                    // Coluna Email - cor azul discreto
+                    doc.fillColor('#4B5563').font('Helvetica').fontSize(7);
                 } else {
                     doc.fillColor('#1F2937').font('Helvetica').fontSize(8);
                 }

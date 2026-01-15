@@ -1,7 +1,7 @@
 'use client';
 // =====================================================
 // Pagina de Gestao de Pedidos
-// v2.3.0 - Passa usuário atual para formulário de pedido
+// v2.4.0 - Modal de visualização + clique abre detalhes
 // =====================================================
 
 import { useState, useEffect } from 'react';
@@ -28,7 +28,7 @@ import Modal from '../../components/ui/Modal';
 import { TableSkeleton } from '../../components/ui/Loading';
 
 // Componentes extraídos
-import { ResumoPedidos, TabelaPedidos, PedidoFormModal, PdfExportModal } from './components';
+import { ResumoPedidos, TabelaPedidos, PedidoFormModal, PedidoViewModal, PdfExportModal } from './components';
 import { MESES, isCurrentMonth } from './utils';
 
 export default function PedidosPage() {
@@ -92,6 +92,8 @@ export default function PedidosPage() {
   // Estados de modal
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPedido, setEditingPedido] = useState(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewingPedido, setViewingPedido] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [revertConfirm, setRevertConfirm] = useState(null);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
@@ -109,13 +111,13 @@ export default function PedidosPage() {
     carregarPedidos();
   }, [mes, ano, filtroStatus, filtroCliente, filtroProduto, vendedorGlobal]);
 
-  // Abrir pedido específico vindo da URL (dashboard)
+  // Abrir pedido específico vindo da URL (dashboard) - abre visualização
   useEffect(() => {
     if (urlPedidoId && pedidos.length > 0) {
       const pedido = pedidos.find(p => p.id === parseInt(urlPedidoId));
       if (pedido) {
-        setEditingPedido(pedido);
-        setModalOpen(true);
+        setViewingPedido(pedido);
+        setViewModalOpen(true);
       }
     }
   }, [urlPedidoId, pedidos]);
@@ -197,6 +199,16 @@ export default function PedidosPage() {
   };
 
   // Handlers de pedido
+  const abrirVisualizacao = (pedido) => {
+    setViewingPedido(pedido);
+    setViewModalOpen(true);
+  };
+
+  const fecharVisualizacao = () => {
+    setViewModalOpen(false);
+    setViewingPedido(null);
+  };
+
   const abrirModal = (pedido = null) => {
     setEditingPedido(pedido);
     setModalOpen(true);
@@ -500,6 +512,7 @@ export default function PedidosPage() {
             pedidos={pedidos}
             busca={busca}
             canEdit={canEdit}
+            onView={abrirVisualizacao}
             onEdit={abrirModal}
             onDelete={setDeleteConfirm}
             onMarcarEntregue={marcarEntregue}
@@ -509,7 +522,18 @@ export default function PedidosPage() {
         )}
       </div>
 
-      {/* Modal de Pedido */}
+      {/* Modal de Visualização */}
+      <PedidoViewModal
+        isOpen={viewModalOpen}
+        onClose={fecharVisualizacao}
+        pedido={viewingPedido}
+        canEdit={canEdit}
+        onEdit={abrirModal}
+        onBaixarPDF={baixarPDFPedido}
+        carregarPedidoCompleto={carregarPedidoCompleto}
+      />
+
+      {/* Modal de Edição */}
       <PedidoFormModal
         isOpen={modalOpen}
         onClose={fecharModal}

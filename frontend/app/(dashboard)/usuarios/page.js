@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Usuários
-// v1.4.0 - Footer sticky no modal de formulário
+// v1.6.0 - Melhora estilo dos botões de ação
 // =====================================================
 
 import { useState, useEffect } from 'react';
@@ -23,6 +23,8 @@ import {
   Phone,
   Send,
   Lock,
+  RotateCcw,
+  Clock,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -222,6 +224,16 @@ export default function UsuariosPage() {
     }
   };
 
+  const resetarTour = async (usuario) => {
+    try {
+      await api.post(`/usuarios/${usuario.id}/reset-tour`);
+      toast.success(`Tour guiada resetada para ${usuario.nome}`);
+    } catch (error) {
+      console.error('Erro ao resetar tour:', error);
+      toast.error(error.message || 'Erro ao resetar tour guiada');
+    }
+  };
+
   const excluirUsuario = async (id) => {
     try {
       await api.delete(`/usuarios/${id}`);
@@ -342,47 +354,82 @@ export default function UsuariosPage() {
                       <span>{usuario.telefone}</span>
                     </div>
                   )}
+                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-500">
+                    <Clock className="w-4 h-4 flex-shrink-0" />
+                    <span>
+                      {usuario.ultimo_acesso
+                        ? `Último acesso: ${new Date(usuario.ultimo_acesso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`
+                        : 'Nunca acessou'}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100 dark:border-gray-700/50">
                   {canEditUser(usuario) ? (
                     <>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600"
                         onClick={() => abrirModal(usuario)}
                       >
                         <Edit2 className="w-4 h-4" />
                         Editar
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => toggleAtivo(usuario)}
-                        className={usuario.ativo ? 'text-orange-600' : 'text-green-600'}
+                        className={usuario.ativo
+                          ? 'bg-orange-50 border-orange-200 text-orange-600 hover:bg-orange-100 dark:bg-orange-900/20 dark:border-orange-800 dark:hover:bg-orange-900/30'
+                          : 'bg-green-50 border-green-200 text-green-600 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:hover:bg-green-900/30'}
                       >
                         {usuario.ativo ? 'Desativar' : 'Ativar'}
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="text-red-600 hover:bg-red-500/10"
+                        className="bg-red-50 border-red-200 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:border-red-800 dark:hover:bg-red-900/30"
                         onClick={() => setDeleteConfirm(usuario)}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
+                      {/* Botão resetar tour - apenas superadmin */}
+                      {isSuperAdmin && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-purple-50 border-purple-200 text-purple-600 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800 dark:hover:bg-purple-900/30"
+                          onClick={() => resetarTour(usuario)}
+                          title="Resetar tour guiada"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </Button>
+                      )}
                     </>
                   ) : isCurrentUser ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => abrirModal(usuario)}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                      Editar
-                    </Button>
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600"
+                        onClick={() => abrirModal(usuario)}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Editar
+                      </Button>
+                      {isSuperAdmin && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-purple-50 border-purple-200 text-purple-600 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800 dark:hover:bg-purple-900/30"
+                          onClick={() => resetarTour(usuario)}
+                          title="Resetar tour guiada"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </>
                   ) : (
                     <div className="flex-1 flex items-center justify-center gap-2 text-sm text-gray-400">
                       <Lock className="w-4 h-4" />

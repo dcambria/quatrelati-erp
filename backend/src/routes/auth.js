@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Autenticação
-// v1.7.0 - Corrige race condition no primeiro acesso
+// v1.9.0 - Inclui telefone na resposta do login
 // =====================================================
 
 const express = require('express');
@@ -11,6 +11,7 @@ const crypto = require('crypto');
 const { loginValidation } = require('../middleware/validation');
 const { authMiddleware } = require('../middleware/auth');
 const { logActivity } = require('../middleware/activityLog');
+const { getRealIP, getCountryFromIP } = require('../utils/ipUtils');
 const {
     loginLimiter,
     forgotPasswordLimiter,
@@ -25,12 +26,18 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM;
 
 let twilioClient = null;
-try {
-    const twilio = require('twilio');
-    twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-    console.log('[TWILIO] Cliente inicializado com sucesso');
-} catch (error) {
-    console.error('[TWILIO] Erro ao inicializar cliente:', error.message);
+const twilioConfigured = TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_WHATSAPP_FROM;
+
+if (twilioConfigured) {
+    try {
+        const twilio = require('twilio');
+        twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+        console.log('[TWILIO] Cliente inicializado com sucesso');
+    } catch (error) {
+        console.error('[TWILIO] Erro ao inicializar cliente:', error.message);
+    }
+} else {
+    console.log('[TWILIO] Credenciais não configuradas - recuperação via WhatsApp desabilitada');
 }
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -46,9 +53,9 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Buscar usuário
+        // Buscar usuário (inclui telefone para FirstAccessModal)
         const result = await req.db.query(
-            'SELECT id, nome, email, senha_hash, nivel, ativo, pode_visualizar_todos, primeiro_acesso FROM usuarios WHERE email = $1',
+            'SELECT id, nome, email, telefone, senha_hash, nivel, ativo, pode_visualizar_todos, primeiro_acesso FROM usuarios WHERE email = $1',
             [email]
         );
 
@@ -92,6 +99,7 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
         );
 
         // Registrar login no activity log
+        const realIP = getRealIP(req);
         await logActivity(req.db, {
             userId: user.id,
             userNome: user.nome,
@@ -100,8 +108,9 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
             entity: 'auth',
             entityId: user.id,
             entityName: user.email,
-            ipAddress: req.ip || req.connection?.remoteAddress,
+            ipAddress: realIP,
             userAgent: req.get('User-Agent'),
+            country: await getCountryFromIP(realIP),
         });
 
         res.json({
@@ -110,6 +119,7 @@ router.post('/login', loginLimiter, loginValidation, async (req, res) => {
                 id: user.id,
                 nome: user.nome,
                 email: user.email,
+                telefone: user.telefone || null,
                 nivel: user.nivel,
                 pode_visualizar_todos: user.pode_visualizar_todos || false,
                 primeiro_acesso: user.primeiro_acesso || false
@@ -284,8 +294,9 @@ router.put('/profile', authMiddleware, async (req, res) => {
                 before: userBefore.rows[0],
                 after: { nome: user.nome, telefone: user.telefone }
             },
-            ipAddress: req.ip || req.connection?.remoteAddress,
+            ipAddress: getRealIP(req),
             userAgent: req.get('User-Agent'),
+            country: await getCountryFromIP(getRealIP(req)),
         });
 
         res.json({
@@ -486,8 +497,9 @@ router.post('/set-initial-password', authMiddleware, async (req, res) => {
             entity: 'auth',
             entityId: req.userId,
             entityName: user.email,
-            ipAddress: req.ip || req.connection?.remoteAddress,
+            ipAddress: getRealIP(req),
             userAgent: req.get('User-Agent'),
+            country: await getCountryFromIP(getRealIP(req)),
         });
 
         res.json({ message: 'Senha definida com sucesso' });
@@ -549,8 +561,9 @@ router.put('/change-password', authMiddleware, async (req, res) => {
             entity: 'auth',
             entityId: req.userId,
             entityName: user.email,
-            ipAddress: req.ip || req.connection?.remoteAddress,
+            ipAddress: getRealIP(req),
             userAgent: req.get('User-Agent'),
+            country: await getCountryFromIP(getRealIP(req)),
         });
 
         res.json({ message: 'Senha alterada com sucesso' });
@@ -566,6 +579,13 @@ router.put('/change-password', authMiddleware, async (req, res) => {
  */
 router.post('/forgot-password-whatsapp', whatsappRecoveryLimiter, async (req, res) => {
     try {
+        // Verificar se Twilio está configurado
+        if (!twilioConfigured) {
+            return res.status(503).json({
+                error: 'Recuperação via WhatsApp não está disponível no momento. Use a opção de email.'
+            });
+        }
+
         const { phone } = req.body;
 
         if (!phone) {
@@ -785,8 +805,9 @@ router.post('/reset-password', resetPasswordLimiter, async (req, res) => {
             entityId: recovery.user_id,
             entityName: recovery.email,
             details: { method: recovery.type },
-            ipAddress: req.ip || req.connection?.remoteAddress,
+            ipAddress: getRealIP(req),
             userAgent: req.get('User-Agent'),
+            country: await getCountryFromIP(getRealIP(req)),
         });
 
         res.json({ message: 'Senha redefinida com sucesso' });

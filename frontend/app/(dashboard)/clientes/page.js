@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Clientes
-// v2.16.0 - Cidade/estado com botão clicável, mapa melhorado
+// v2.17.0 - Coluna de Localização separada na tabela
 // =====================================================
 
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
@@ -937,13 +937,14 @@ export default function ClientesPage() {
             <table className="w-full table-fixed">
               <colgroup>
                 <col className="w-12" />
-                <col className="w-[22%]" />
-                <col className="w-[12%]" />
-                <col className="w-[12%]" />
-                <col className="w-[15%]" />
+                <col className="w-[18%]" />
                 <col className="w-[12%]" />
                 <col className="w-[10%]" />
-                <col className="w-[7%]" />
+                <col className="w-[10%]" />
+                <col className="w-[14%]" />
+                <col className="w-[10%]" />
+                <col className="w-[8%]" />
+                <col className="w-[6%]" />
               </colgroup>
               <thead>
                 <tr>
@@ -974,6 +975,15 @@ export default function ClientesPage() {
                     <div className="flex items-center gap-1">
                       Cliente
                       <SortIcon column="nome" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-2.5 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-colors"
+                    onClick={() => handleSort('cidade')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Localização
+                      <SortIcon column="cidade" />
                     </div>
                   </th>
                   <th
@@ -1255,13 +1265,14 @@ export default function ClientesPage() {
             <table className="w-full table-fixed">
               <colgroup>
                 <col className="w-12" />
-                <col className="w-[22%]" />
-                <col className="w-[12%]" />
-                <col className="w-[12%]" />
-                <col className="w-[15%]" />
+                <col className="w-[18%]" />
                 <col className="w-[12%]" />
                 <col className="w-[10%]" />
-                <col className="w-[7%]" />
+                <col className="w-[10%]" />
+                <col className="w-[14%]" />
+                <col className="w-[10%]" />
+                <col className="w-[8%]" />
+                <col className="w-[6%]" />
               </colgroup>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {clientesOrdenados.map((cliente) => (
@@ -1301,27 +1312,25 @@ export default function ClientesPage() {
                             <User className="w-5 h-5 text-quatrelati-gold-600" />
                           </div>
                         )}
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-white">{cliente.nome}</p>
-                          {(cliente.cidade || cliente.estado) ? (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                focusClienteNoMapa(cliente.id);
-                              }}
-                              className="flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700/50 hover:bg-quatrelati-blue-100 dark:hover:bg-quatrelati-blue-900/30 text-gray-500 dark:text-gray-400 hover:text-quatrelati-blue-600 dark:hover:text-quatrelati-blue-400 transition-colors"
-                              title="Ver no mapa"
-                            >
-                              <MapPin className="w-3 h-3" />
-                              <span className="text-xs">
-                                {cliente.cidade}{cliente.estado && ` - ${cliente.estado}`}
-                              </span>
-                            </button>
-                          ) : (
-                            <p className="text-xs text-gray-400 mt-0.5">Sem localização</p>
-                          )}
-                        </div>
+                        <p className="font-medium text-gray-900 dark:text-white truncate">{cliente.nome}</p>
                       </div>
+                    </td>
+                    {/* Localização */}
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      {(cliente.cidade || cliente.estado) ? (
+                        <button
+                          onClick={() => focusClienteNoMapa(cliente.id)}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700/50 hover:bg-quatrelati-blue-100 dark:hover:bg-quatrelati-blue-900/30 text-gray-600 dark:text-gray-400 hover:text-quatrelati-blue-600 dark:hover:text-quatrelati-blue-400 transition-colors"
+                          title="Ver no mapa"
+                        >
+                          <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span className="text-xs font-medium truncate">
+                            {cliente.cidade}{cliente.estado && ` - ${cliente.estado}`}
+                          </span>
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-400">-</span>
+                      )}
                     </td>
                     {/* Contato */}
                     <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">

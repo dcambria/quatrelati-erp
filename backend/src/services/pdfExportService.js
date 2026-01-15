@@ -1,6 +1,6 @@
 // =====================================================
 // Serviço de Exportação PDF/Excel
-// v1.4.0 - Adiciona email na lista de clientes PDF
+// v1.5.0 - Altura das linhas para endereços de 2 linhas
 // Este arquivo é excluído da cobertura de testes devido
 // à complexidade de mocking de PDFKit e streams.
 // =====================================================
@@ -764,7 +764,7 @@ async function exportarClientesPDF(res, { clientes, nomeVendedor }) {
     const colWidths = [140, 90, 85, 140, 235, 72];
     const colAligns = ['left', 'left', 'left', 'left', 'left', 'right'];
     const startX = margin;
-    const rowHeight = 22;
+    const rowHeight = 32;
     const vendedorHeaderHeight = 26;
 
     // Agrupar clientes por vendedor
@@ -879,7 +879,7 @@ async function exportarClientesPDF(res, { clientes, nomeVendedor }) {
                     doc.fillColor('#1F2937').font('Helvetica').fontSize(8);
                 }
 
-                doc.text(String(valor), xPos + 4, currentY + 6, { width: colWidths[i] - 8, align: colAligns[i], lineBreak: false });
+                doc.text(String(valor), xPos + 4, currentY + 8, { width: colWidths[i] - 8, align: colAligns[i], lineBreak: i === 4 });
                 xPos += colWidths[i];
             });
 

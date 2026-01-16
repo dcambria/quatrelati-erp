@@ -1,6 +1,6 @@
 // =====================================================
 // Modal de Formulário de Pedido
-// v1.12.0 - Asterisco em campos obrigatórios
+// v1.13.0 - Alerta para data de entrega no passado
 // =====================================================
 
 'use client';
@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, X, User, ChevronDown } from 'lucide-react';
+import { Plus, X, User, ChevronDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Modal from '../../../components/ui/Modal';
 import Input from '../../../components/ui/Input';
@@ -92,6 +92,11 @@ export default function PedidoFormModal({
   } = useForm({
     resolver: zodResolver(pedidoSchema),
   });
+
+  // Verificar se data de entrega é no passado
+  const dataEntrega = watch('data_entrega');
+  const hoje = new Date().toISOString().split('T')[0];
+  const isDataPassado = dataEntrega && dataEntrega < hoje;
 
   // Carregar dados do pedido ao abrir para edição
   useEffect(() => {
@@ -341,6 +346,16 @@ export default function PedidoFormModal({
               {...register('nf')}
             />
           </div>
+
+          {/* Alerta de data no passado */}
+          {isDataPassado && (
+            <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                <strong>Atenção:</strong> A data de entrega é anterior à data de hoje. Útil para cadastrar histórico de pedidos.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Seção: Produtos */}

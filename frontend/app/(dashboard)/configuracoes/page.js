@@ -259,7 +259,16 @@ export default function ConfiguracoesPage() {
             link.remove();
             window.URL.revokeObjectURL(downloadUrl);
 
-            const total = response.data.total_registros || response.data.dados?.length || 0;
+            // Calcular total de registros baseado no tipo de exportacao
+            let total = 0;
+            if (tipo === 'completo') {
+                // Backup completo tem estrutura diferente
+                total = (response.data.clientes?.total || 0) +
+                        (response.data.produtos?.total || 0) +
+                        (response.data.pedidos?.total || 0);
+            } else {
+                total = response.data.total_registros || response.data.dados?.length || 0;
+            }
             toast.success(`${tipo.charAt(0).toUpperCase() + tipo.slice(1)} exportado! (${total} registros)`);
         } catch (error) {
             console.error('Erro ao exportar:', error);

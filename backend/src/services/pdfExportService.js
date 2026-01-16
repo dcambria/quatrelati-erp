@@ -99,6 +99,10 @@ async function exportarPedidosPDF(res, { pedidos, totais, itensPorPedido, mes, a
         doc.text('QUATRELATI', margin, 25, { lineBreak: false });
     }
 
+    // Terminologia baseada no tipo de documento
+    const termoSingular = tipoDoc === 'orcamentos' ? 'Orçamento' : tipoDoc === 'cancelados' ? 'Item' : 'Pedido';
+    const termoPlural = tipoDoc === 'orcamentos' ? 'orçamentos' : tipoDoc === 'cancelados' ? 'itens' : 'pedidos';
+
     // Título e período à direita
     const tituloDoc = tipoDoc === 'orcamentos' ? 'Relatório de Orçamentos' : tipoDoc === 'cancelados' ? 'Relatório de Cancelados' : 'Relatório de Pedidos';
     doc.fillColor('#1F2937').fontSize(14).font('Helvetica-Bold');
@@ -132,7 +136,7 @@ async function exportarPedidosPDF(res, { pedidos, totais, itensPorPedido, mes, a
     doc.fillColor('#92400E').font('Helvetica-Bold').fontSize(9);
     doc.text('A ENTREGAR', margin + 10, currentY + 6, { lineBreak: false });
     doc.fillColor('#78350F').font('Helvetica').fontSize(8);
-    doc.text(`${totais.pedidos_pendentes} pedidos  |  ${parseFloat(totais.peso_pendente).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg  |  ${parseInt(totais.unidades_pendente).toLocaleString('pt-BR')} cx`, margin + 10, currentY + 18, { lineBreak: false });
+    doc.text(`${totais.pedidos_pendentes} ${termoPlural}  |  ${parseFloat(totais.peso_pendente).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg  |  ${parseInt(totais.unidades_pendente).toLocaleString('pt-BR')} cx`, margin + 10, currentY + 18, { lineBreak: false });
     doc.font('Helvetica-Bold').fontSize(10);
     doc.text(parseFloat(totais.valor_pendente).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), margin + blockWidth - 100, currentY + 12, { width: 90, align: 'right', lineBreak: false });
 
@@ -142,14 +146,14 @@ async function exportarPedidosPDF(res, { pedidos, totais, itensPorPedido, mes, a
     doc.fillColor('#166534').font('Helvetica-Bold').fontSize(9);
     doc.text('ENTREGUE', entregueX + 10, currentY + 6, { lineBreak: false });
     doc.fillColor('#14532D').font('Helvetica').fontSize(8);
-    doc.text(`${totais.pedidos_entregues} pedidos  |  ${parseFloat(totais.peso_entregue).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg  |  ${parseInt(totais.unidades_entregue).toLocaleString('pt-BR')} cx`, entregueX + 10, currentY + 18, { lineBreak: false });
+    doc.text(`${totais.pedidos_entregues} ${termoPlural}  |  ${parseFloat(totais.peso_entregue).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg  |  ${parseInt(totais.unidades_entregue).toLocaleString('pt-BR')} cx`, entregueX + 10, currentY + 18, { lineBreak: false });
     doc.font('Helvetica-Bold').fontSize(10);
     doc.text(parseFloat(totais.valor_entregue).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), entregueX + blockWidth - 100, currentY + 12, { width: 90, align: 'right', lineBreak: false });
 
     currentY += 50;
 
     // ===== TABELA =====
-    const headers = ['Pedido', 'Data', 'Cliente', 'N.F.', 'Peso', 'Cx', 'R$ Unit.', 'Total', 'Entrega', 'Status'];
+    const headers = [termoSingular, 'Data', 'Cliente', 'N.F.', 'Peso', 'Cx', 'R$ Unit.', 'Total', 'Entrega', 'Status'];
     const tableWidth = pageWidth - margin * 2;
     const colWidths = [58, 58, 200, 55, 68, 42, 62, 90, 62, 67];
     const colAligns = ['left', 'center', 'left', 'center', 'right', 'right', 'right', 'right', 'center', 'center'];
@@ -194,7 +198,7 @@ async function exportarPedidosPDF(res, { pedidos, totais, itensPorPedido, mes, a
         const dataEntrega = pedido.data_entrega ? format(new Date(pedido.data_entrega), 'dd/MM/yy') : '-';
 
         const valores = [
-            `#${pedido.numero_pedido || ''}`,
+            pedido.numero_pedido ? `#${pedido.numero_pedido}` : (tipoDoc === 'orcamentos' ? 'Orç.' : '-'),
             dataPedido,
             (pedido.cliente_nome || '').substring(0, 32),
             pedido.nf || '-',
@@ -255,7 +259,8 @@ async function exportarPedidosPDF(res, { pedidos, totais, itensPorPedido, mes, a
     const col7 = col5 + 42 + 62;
 
     doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(9);
-    doc.text(`${pedidosGeral} Pedidos`, col0 + 4, currentY + 7);
+    const termoPluralCapitalizado = tipoDoc === 'orcamentos' ? 'Orçamentos' : tipoDoc === 'cancelados' ? 'Itens' : 'Pedidos';
+    doc.text(`${pedidosGeral} ${termoPluralCapitalizado}`, col0 + 4, currentY + 7);
     doc.text(`${pesoGeral.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg`, col4, currentY + 7, { width: 68, align: 'right' });
     doc.text(`${caixasGeral.toLocaleString('pt-BR')} Cx`, col5, currentY + 7, { width: 50, align: 'right' });
     doc.fontSize(10);

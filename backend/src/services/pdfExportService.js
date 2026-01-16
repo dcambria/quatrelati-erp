@@ -56,7 +56,7 @@ const drawBureauLogo = (doc, x, y, scale = 0.12) => {
 /**
  * Exporta lista de pedidos filtrados para PDF
  */
-async function exportarPedidosPDF(res, { pedidos, totais, itensPorPedido, mes, ano, nomeVendedor }) {
+async function exportarPedidosPDF(res, { pedidos, totais, itensPorPedido, mes, ano, nomeVendedor, tipoDoc = 'pedidos' }) {
     const logoUrl = 'https://s3.amazonaws.com/bureau-it.com/quatrelati/logo-pdf.png';
 
     let logoBuffer = null;
@@ -100,10 +100,11 @@ async function exportarPedidosPDF(res, { pedidos, totais, itensPorPedido, mes, a
     }
 
     // Título e período à direita
+    const tituloDoc = tipoDoc === 'orcamentos' ? 'Relatório de Orçamentos' : tipoDoc === 'cancelados' ? 'Relatório de Cancelados' : 'Relatório de Pedidos';
     doc.fillColor('#1F2937').fontSize(14).font('Helvetica-Bold');
-    doc.text('Relatório de Pedidos', pageWidth - margin - 210, 15, { width: 210, align: 'right', lineBreak: false });
+    doc.text(tituloDoc, pageWidth - margin - 210, 15, { width: 210, align: 'right', lineBreak: false });
 
-    let periodoTexto = 'Todos os pedidos';
+    let periodoTexto = tipoDoc === 'orcamentos' ? 'Todos os orçamentos' : tipoDoc === 'cancelados' ? 'Todos os cancelados' : 'Todos os pedidos';
     if (mes && ano) {
         const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
             'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];

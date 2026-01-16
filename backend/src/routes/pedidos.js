@@ -209,13 +209,27 @@ router.get('/', pedidosQueryValidation, vendedorFilterMiddleware, async (req, re
  */
 router.get('/exportar/pdf', pedidosQueryValidation, vendedorFilterMiddleware, async (req, res) => {
     try {
-        let { mes, ano, cliente_id, produto_id, status, vendedor_id } = req.query;
+        let { mes, ano, cliente_id, produto_id, status, vendedor_id, apenas_orcamentos, apenas_cancelados } = req.query;
 
         const filteredVendedorId = req.getVendedorId(vendedor_id);
 
         let whereConditions = [];
         let params = [];
         let paramIndex = 1;
+
+        // Filtro de cancelados - prioridade sobre outros filtros
+        if (apenas_cancelados === 'true') {
+            whereConditions.push('p.cancelado = true');
+        } else {
+            // Filtra por orçamentos vs pedidos
+            if (apenas_orcamentos === 'true') {
+                whereConditions.push('p.is_orcamento = true');
+            } else {
+                whereConditions.push('p.is_orcamento = false');
+            }
+            // Não mostra cancelados nas listagens normais
+            whereConditions.push('p.cancelado = false');
+        }
 
         if (mes && ano) {
             whereConditions.push(`EXTRACT(MONTH FROM p.data_entrega) = $${paramIndex} AND EXTRACT(YEAR FROM p.data_entrega) = $${paramIndex + 1}`);
@@ -306,13 +320,17 @@ router.get('/exportar/pdf', pedidosQueryValidation, vendedorFilterMiddleware, as
             });
         }
 
+        // Determina o tipo de documento
+        const tipoDoc = apenas_cancelados === 'true' ? 'cancelados' : apenas_orcamentos === 'true' ? 'orcamentos' : 'pedidos';
+
         await exportarPedidosPDF(res, {
             pedidos: result.rows,
             totais,
             itensPorPedido,
             mes,
             ano,
-            nomeVendedor
+            nomeVendedor,
+            tipoDoc
         });
     } catch (error) {
         console.error('Erro ao exportar PDF:', error);

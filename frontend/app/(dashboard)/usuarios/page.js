@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useVendedorFilter } from '../../contexts/VendedorFilterContext';
 import Header from '../../components/layout/Header';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -58,6 +59,7 @@ const NIVEIS = [
 
 export default function UsuariosPage() {
   const { isSuperAdmin, isAdmin, user: currentUser } = useAuth();
+  const { carregarVendedores } = useVendedorFilter();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [usuarios, setUsuarios] = useState([]);
@@ -230,6 +232,8 @@ export default function UsuariosPage() {
       await api.put(`/usuarios/${usuario.id}`, { is_vendedor: !usuario.is_vendedor });
       toast.success(`${usuario.nome} ${usuario.is_vendedor ? 'removido da' : 'adicionado à'} equipe de vendas`);
       carregarUsuarios();
+      // Atualiza a lista de vendedores no contexto global (para "Ver Como" e formulários)
+      if (carregarVendedores) carregarVendedores();
     } catch (error) {
       console.error('Erro ao alterar status de vendedor:', error);
       toast.error(error.message || 'Erro ao alterar status de vendedor');

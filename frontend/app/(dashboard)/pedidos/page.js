@@ -342,8 +342,12 @@ export default function PedidosPage() {
       } else if (!ignorarFiltroGlobal && vendedorGlobal) {
         url += `&vendedor_id=${vendedorGlobal}`;
       }
+      // Filtros de aba
+      if (abaAtiva === 'orcamentos') url += `&apenas_orcamentos=true`;
+      if (abaAtiva === 'cancelados') url += `&apenas_cancelados=true`;
 
-      await api.download(url, `pedidos-${ano}-${mes.toString().padStart(2, '0')}.pdf`);
+      const tipoDoc = abaAtiva === 'orcamentos' ? 'orcamentos' : abaAtiva === 'cancelados' ? 'cancelados' : 'pedidos';
+      await api.download(url, `${tipoDoc}-${ano}-${mes.toString().padStart(2, '0')}.pdf`);
       toast.success('PDF gerado com sucesso');
       setPdfModalOpen(false);
     } catch (error) {
@@ -362,6 +366,9 @@ export default function PedidosPage() {
       } else if (!ignorarFiltroGlobal && vendedorGlobal) {
         url += `&vendedor_id=${vendedorGlobal}`;
       }
+      // Filtros de aba
+      if (abaAtiva === 'orcamentos') url += `&apenas_orcamentos=true`;
+      if (abaAtiva === 'cancelados') url += `&apenas_cancelados=true`;
 
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
       const token = localStorage.getItem('accessToken');

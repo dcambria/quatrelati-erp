@@ -263,9 +263,11 @@ export default function ConfiguracoesPage() {
             let total = 0;
             if (tipo === 'completo') {
                 // Backup completo tem estrutura diferente
-                total = (response.data.clientes?.total || 0) +
-                        (response.data.produtos?.total || 0) +
-                        (response.data.pedidos?.total || 0);
+                const cTotal = response.data.clientes?.total || 0;
+                const pTotal = response.data.produtos?.total || 0;
+                const pedTotal = response.data.pedidos?.total || 0;
+                total = cTotal + pTotal + pedTotal;
+                console.log('[DEBUG] Backup completo:', { cTotal, pTotal, pedTotal, total, data: response.data });
             } else {
                 total = response.data.total_registros || response.data.dados?.length || 0;
             }

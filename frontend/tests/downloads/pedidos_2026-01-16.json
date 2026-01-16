@@ -1,0 +1,46 @@
+{
+  "tipo": "pedidos",
+  "versao": "1.0",
+  "data_exportacao": "2026-01-16T04:08:49.616Z",
+  "filtros": {},
+  "total_registros": 1,
+  "dados": [
+    {
+      "id": 2,
+      "data_pedido": "2025-12-02T00:00:00.000Z",
+      "cliente_id": 1,
+      "numero_pedido": "251242",
+      "nf": null,
+      "data_entrega": "2026-02-01T00:00:00.000Z",
+      "data_entrega_real": null,
+      "produto_id": 1,
+      "quantidade_caixas": 1400,
+      "peso_kg": "7000.000",
+      "preco_unitario": "19.00",
+      "total": "133000.00",
+      "entregue": false,
+      "observacoes": null,
+      "created_by": null,
+      "created_at": "2026-01-13T22:23:45.836Z",
+      "updated_at": "2026-01-13T22:23:45.836Z",
+      "preco_descarga_pallet": null,
+      "horario_recebimento": null,
+      "cliente_nome": "GVINAH",
+      "cliente_cnpj": null,
+      "vendedor_nome": null,
+      "itens": [
+        {
+          "id": 2,
+          "pedido_id": 2,
+          "produto_id": 1,
+          "quantidade_caixas": 1400,
+          "peso_kg": "7000.000",
+          "preco_unitario": "19.00",
+          "subtotal": "133000.00",
+          "created_at": "2026-01-13T22:23:45.836Z",
+          "produto_nome": "Comum Sem Sal - Bloco 5kg"
+        }
+      ]
+    }
+  ]
+}

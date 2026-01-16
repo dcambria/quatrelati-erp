@@ -1,12 +1,12 @@
 {
   "tipo": "backup_completo",
   "versao": "1.0",
-  "data_exportacao": "2026-01-16T00:25:30.152Z",
+  "data_exportacao": "2026-01-16T04:32:44.259Z",
   "clientes": {
     "total": 25,
     "dados": [
       {
-        "id": 7,
+        "id": 49,
         "nome": "ALLFOOD/YEMA",
         "razao_social": "",
         "cnpj_cpf": "",
@@ -22,19 +22,19 @@
         "logo_url": null,
         "ativo": true,
         "created_by": null,
-        "vendedor_id": 2,
-        "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-15T15:27:32.645Z",
-        "numero": "310",
-        "complemento": "",
-        "cep_entrega": "",
-        "numero_entrega": "",
-        "complemento_entrega": "",
-        "cidade_entrega": "",
-        "estado_entrega": ""
+        "vendedor_id": null,
+        "created_at": "2026-01-16T04:07:59.958Z",
+        "updated_at": "2026-01-16T04:07:59.958Z",
+        "numero": null,
+        "complemento": null,
+        "cep_entrega": null,
+        "numero_entrega": null,
+        "complemento_entrega": null,
+        "cidade_entrega": null,
+        "estado_entrega": null
       },
       {
-        "id": 8,
+        "id": 50,
         "nome": "APETITO",
         "razao_social": "",
         "cnpj_cpf": "",
@@ -50,16 +50,16 @@
         "logo_url": null,
         "ativo": true,
         "created_by": null,
-        "vendedor_id": 2,
-        "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-15T17:20:48.470Z",
-        "numero": "13",
-        "complemento": "",
-        "cep_entrega": "",
-        "numero_entrega": "",
-        "complemento_entrega": "",
-        "cidade_entrega": "",
-        "estado_entrega": ""
+        "vendedor_id": null,
+        "created_at": "2026-01-16T04:07:59.960Z",
+        "updated_at": "2026-01-16T04:07:59.960Z",
+        "numero": null,
+        "complemento": null,
+        "cep_entrega": null,
+        "numero_entrega": null,
+        "complemento_entrega": null,
+        "cidade_entrega": null,
+        "estado_entrega": null
       },
       {
         "id": 25,
@@ -80,7 +80,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.962Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -108,7 +108,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.970Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -136,7 +136,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.971Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -164,7 +164,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.974Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -192,7 +192,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.976Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -220,7 +220,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.977Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -248,7 +248,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.979Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -276,7 +276,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.980Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -304,7 +304,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.981Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -332,7 +332,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.983Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -360,7 +360,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.984Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -388,7 +388,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.986Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -416,7 +416,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.987Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -444,7 +444,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.989Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -472,7 +472,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.990Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -482,7 +482,7 @@
         "estado_entrega": null
       },
       {
-        "id": 9,
+        "id": 7,
         "nome": "MPA-APETITO",
         "razao_social": "",
         "cnpj_cpf": "",
@@ -500,8 +500,8 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
-        "numero": "",
+        "updated_at": "2026-01-16T04:07:59.991Z",
+        "numero": "310",
         "complemento": "",
         "cep_entrega": "",
         "numero_entrega": "",
@@ -528,7 +528,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.992Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -556,7 +556,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.994Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -584,7 +584,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:07:59.995Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -612,7 +612,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:08:00.043Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -640,7 +640,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:08:00.079Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -668,7 +668,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:08:00.120Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -696,7 +696,7 @@
         "created_by": null,
         "vendedor_id": 2,
         "created_at": "2026-01-13T22:23:45.834Z",
-        "updated_at": "2026-01-14T17:57:20.246Z",
+        "updated_at": "2026-01-16T04:08:00.130Z",
         "numero": null,
         "complemento": null,
         "cep_entrega": null,
@@ -719,7 +719,7 @@
         "ativo": true,
         "imagem_url": null,
         "created_at": "2026-01-13T22:23:45.833Z",
-        "updated_at": "2026-01-15T21:06:24.894Z"
+        "updated_at": "2026-01-16T03:58:04.331Z"
       },
       {
         "id": 1,
@@ -730,7 +730,7 @@
         "ativo": true,
         "imagem_url": null,
         "created_at": "2026-01-13T22:23:45.833Z",
-        "updated_at": "2026-01-15T21:06:48.339Z"
+        "updated_at": "2026-01-16T03:58:04.335Z"
       },
       {
         "id": 6,
@@ -741,7 +741,7 @@
         "ativo": true,
         "imagem_url": null,
         "created_at": "2026-01-13T22:23:45.833Z",
-        "updated_at": "2026-01-14T19:37:32.850Z"
+        "updated_at": "2026-01-16T03:58:04.338Z"
       },
       {
         "id": 5,
@@ -752,7 +752,7 @@
         "ativo": true,
         "imagem_url": null,
         "created_at": "2026-01-13T22:23:45.833Z",
-        "updated_at": "2026-01-14T19:37:38.032Z"
+        "updated_at": "2026-01-16T03:58:04.340Z"
       },
       {
         "id": 7,
@@ -763,7 +763,7 @@
         "ativo": false,
         "imagem_url": null,
         "created_at": "2026-01-13T22:23:45.833Z",
-        "updated_at": "2026-01-14T17:27:43.802Z"
+        "updated_at": "2026-01-16T03:58:04.342Z"
       },
       {
         "id": 8,
@@ -774,7 +774,7 @@
         "ativo": false,
         "imagem_url": null,
         "created_at": "2026-01-13T22:23:45.833Z",
-        "updated_at": "2026-01-14T17:27:52.463Z"
+        "updated_at": "2026-01-16T03:58:04.344Z"
       },
       {
         "id": 4,
@@ -785,7 +785,7 @@
         "ativo": true,
         "imagem_url": null,
         "created_at": "2026-01-13T22:23:45.833Z",
-        "updated_at": "2026-01-15T21:07:14.415Z"
+        "updated_at": "2026-01-16T03:58:04.346Z"
       },
       {
         "id": 3,
@@ -796,7 +796,7 @@
         "ativo": true,
         "imagem_url": null,
         "created_at": "2026-01-13T22:23:45.833Z",
-        "updated_at": "2026-01-15T21:07:24.849Z"
+        "updated_at": "2026-01-16T03:58:04.348Z"
       }
     ]
   },

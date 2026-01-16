@@ -1,6 +1,6 @@
 // =====================================================
 // Modal de Formulário de Pedido
-// v1.11.0 - Data entrega obrigatória + vendedor na criação
+// v1.12.0 - Asterisco em campos obrigatórios
 // =====================================================
 
 'use client';
@@ -314,6 +314,7 @@ export default function PedidoFormModal({
           <Select
             label="Cliente"
             error={errors.cliente_id?.message}
+            required
             options={clientes.map(c => ({ value: c.id, label: c.nome }))}
             {...register('cliente_id')}
           />
@@ -324,6 +325,7 @@ export default function PedidoFormModal({
               label="Data Pedido"
               type="date"
               error={errors.data_pedido?.message}
+              required
               {...register('data_pedido')}
             />
             <Input
@@ -345,7 +347,7 @@ export default function PedidoFormModal({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-              Produtos
+              Produtos <span className="text-red-500">*</span>
             </h4>
             <button
               type="button"
@@ -363,8 +365,9 @@ export default function PedidoFormModal({
                   value={item.produto_id}
                   onChange={(e) => atualizarItem(index, 'produto_id', e.target.value)}
                   className="input-glass text-sm flex-1"
+                  required
                 >
-                  <option value="">Selecione o produto</option>
+                  <option value="">Produto *</option>
                   {produtos.map(p => (
                     <option key={p.id} value={p.id}>
                       {p.nome} ({p.peso_caixa_kg}kg)
@@ -376,8 +379,9 @@ export default function PedidoFormModal({
                   min="1"
                   value={item.quantidade_caixas}
                   onChange={(e) => atualizarItem(index, 'quantidade_caixas', e.target.value)}
-                  placeholder="Qtd"
+                  placeholder="Qtd *"
                   className="input-glass text-sm w-20 text-center"
+                  required
                 />
                 <input
                   type="number"
@@ -385,8 +389,9 @@ export default function PedidoFormModal({
                   min="0"
                   value={item.preco_unitario}
                   onChange={(e) => atualizarItem(index, 'preco_unitario', e.target.value)}
-                  placeholder="R$/kg"
+                  placeholder="R$/kg *"
                   className="input-glass text-sm w-24 text-right"
+                  required
                 />
                 {itens.length > 1 && (
                   <button

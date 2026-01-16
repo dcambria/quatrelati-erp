@@ -305,30 +305,44 @@ router.post('/importar/clientes', upload.single('arquivo'), async (req, res) => 
 
         for (const cliente of dados.dados) {
             try {
-                // Verificar se cliente existe pelo CNPJ/CPF
-                const existente = await req.db.query(
-                    'SELECT id FROM clientes WHERE cnpj_cpf = $1',
-                    [cliente.cnpj_cpf]
-                );
+                // Verificar se cliente existe por CNPJ/CPF (se preenchido) ou por nome
+                let existente = { rows: [] };
+
+                if (cliente.cnpj_cpf && cliente.cnpj_cpf.trim() !== '') {
+                    // Buscar por CNPJ/CPF
+                    existente = await req.db.query(
+                        'SELECT id FROM clientes WHERE cnpj_cpf = $1',
+                        [cliente.cnpj_cpf]
+                    );
+                }
+
+                // Se nao encontrou por CNPJ/CPF, buscar por nome exato
+                if (existente.rows.length === 0) {
+                    existente = await req.db.query(
+                        'SELECT id FROM clientes WHERE UPPER(nome) = UPPER($1)',
+                        [cliente.nome]
+                    );
+                }
 
                 if (existente.rows.length > 0) {
-                    // Atualizar
+                    // Atualizar pelo ID encontrado
                     await req.db.query(`
                         UPDATE clientes SET
-                            nome = $1, razao_social = $2, telefone = $3, email = $4,
-                            endereco = $5, cidade = $6, estado = $7, cep = $8,
-                            contato_nome = $9, observacoes = $10, ativo = $11,
-                            endereco_entrega = $12, updated_at = CURRENT_TIMESTAMP
-                        WHERE cnpj_cpf = $13
+                            nome = $1, razao_social = $2, cnpj_cpf = $3, telefone = $4, email = $5,
+                            endereco = $6, cidade = $7, estado = $8, cep = $9,
+                            contato_nome = $10, observacoes = $11, ativo = $12,
+                            endereco_entrega = $13, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = $14
                     `, [
-                        cliente.nome, cliente.razao_social, cliente.telefone, cliente.email,
-                        cliente.endereco, cliente.cidade, cliente.estado, cliente.cep,
+                        cliente.nome, cliente.razao_social, cliente.cnpj_cpf,
+                        cliente.telefone, cliente.email, cliente.endereco,
+                        cliente.cidade, cliente.estado, cliente.cep,
                         cliente.contato_nome, cliente.observacoes, cliente.ativo !== false,
-                        cliente.endereco_entrega, cliente.cnpj_cpf
+                        cliente.endereco_entrega, existente.rows[0].id
                     ]);
                     atualizados++;
                 } else {
-                    // Inserir
+                    // Inserir novo cliente
                     await req.db.query(`
                         INSERT INTO clientes (
                             nome, razao_social, cnpj_cpf, telefone, email,

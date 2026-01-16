@@ -1,7 +1,7 @@
 'use client';
 // =====================================================
 // Pagina de Gestao de Pedidos
-// v2.4.1 - Atualização automática dos cards após ações
+// v2.5.0 - Orçamentos + Cancelamento + Exclusão superadmin
 // =====================================================
 
 import { useState, useEffect } from 'react';
@@ -17,6 +17,10 @@ import {
   X,
   CalendarDays,
   ShoppingCart,
+  FileText,
+  Ban,
+  RotateCcw,
+  ArrowRight,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -34,8 +38,11 @@ import { MESES, isCurrentMonth } from './utils';
 
 export default function PedidosPage() {
   const searchParams = useSearchParams();
-  const { canEdit, canViewAll, user } = useAuth();
+  const { canEdit, canViewAll, user, isSuperAdmin } = useAuth();
   const { vendedorId: vendedorGlobal } = useVendedorFilter();
+
+  // Aba ativa: 'pedidos' ou 'orcamentos'
+  const [abaAtiva, setAbaAtiva] = useState('pedidos');
 
   // Ler parâmetros da URL (vindos do dashboard)
   const urlMes = searchParams.get('mes');
@@ -97,6 +104,8 @@ export default function PedidosPage() {
   const [viewingPedido, setViewingPedido] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [revertConfirm, setRevertConfirm] = useState(null);
+  const [cancelConfirm, setCancelConfirm] = useState(null);
+  const [motivoCancelamento, setMotivoCancelamento] = useState('');
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [pdfVendedorId, setPdfVendedorId] = useState('');
   const [pdfMode, setPdfMode] = useState('download');
@@ -110,7 +119,7 @@ export default function PedidosPage() {
 
   useEffect(() => {
     carregarPedidos();
-  }, [mes, ano, filtroStatus, filtroCliente, filtroProduto, vendedorGlobal]);
+  }, [mes, ano, filtroStatus, filtroCliente, filtroProduto, vendedorGlobal, abaAtiva]);
 
   // Abrir pedido específico vindo da URL (dashboard) - abre visualização
   useEffect(() => {
@@ -159,6 +168,7 @@ export default function PedidosPage() {
       if (filtroCliente) url += `&cliente_id=${filtroCliente}`;
       if (filtroProduto) url += `&produto_id=${filtroProduto}`;
       if (vendedorGlobal) url += `&vendedor_id=${vendedorGlobal}`;
+      if (abaAtiva === 'orcamentos') url += `&apenas_orcamentos=true`;
 
       const res = await api.get(url);
       setPedidos(res.data.pedidos);
@@ -263,11 +273,46 @@ export default function PedidosPage() {
       await api.delete(`/pedidos/${id}`);
       toast.success('Pedido excluído com sucesso');
       setDeleteConfirm(null);
-      // Recarregar pedidos e totais para atualizar os cards
       carregarPedidos();
     } catch (error) {
       console.error('Erro ao excluir pedido:', error);
-      toast.error('Erro ao excluir pedido');
+      toast.error(error.message || 'Erro ao excluir pedido');
+    }
+  };
+
+  const cancelarPedido = async (id) => {
+    try {
+      await api.patch(`/pedidos/${id}/cancelar`, { motivo: motivoCancelamento });
+      toast.success('Pedido cancelado com sucesso');
+      setCancelConfirm(null);
+      setMotivoCancelamento('');
+      carregarPedidos();
+    } catch (error) {
+      console.error('Erro ao cancelar pedido:', error);
+      toast.error(error.message || 'Erro ao cancelar pedido');
+    }
+  };
+
+  const reativarPedido = async (id) => {
+    try {
+      await api.patch(`/pedidos/${id}/reativar`);
+      toast.success('Pedido reativado com sucesso');
+      carregarPedidos();
+    } catch (error) {
+      console.error('Erro ao reativar pedido:', error);
+      toast.error(error.message || 'Erro ao reativar pedido');
+    }
+  };
+
+  const converterOrcamento = async (id) => {
+    try {
+      await api.patch(`/pedidos/${id}/converter-orcamento`);
+      toast.success('Orçamento convertido em pedido com sucesso');
+      setAbaAtiva('pedidos');
+      carregarPedidos();
+    } catch (error) {
+      console.error('Erro ao converter orçamento:', error);
+      toast.error(error.message || 'Erro ao converter orçamento');
     }
   };
 
@@ -365,13 +410,15 @@ export default function PedidosPage() {
   return (
     <div className="p-6 space-y-6">
       <Header
-        title="Pedidos"
+        title={abaAtiva === 'pedidos' ? 'Pedidos' : 'Orçamentos'}
         stats={[
           {
-            icon: ShoppingCart,
+            icon: abaAtiva === 'pedidos' ? ShoppingCart : FileText,
             label: 'Total',
             value: pedidos.length,
-            color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+            color: abaAtiva === 'pedidos'
+              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+              : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
           }
         ]}
         actions={
@@ -439,12 +486,40 @@ export default function PedidosPage() {
             {canEdit && (
               <Button onClick={() => abrirModal()} className="!px-2 sm:!px-4">
                 <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline ml-1">Novo Pedido</span>
+                <span className="hidden sm:inline ml-1">
+                  {abaAtiva === 'pedidos' ? 'Novo Pedido' : 'Novo Orçamento'}
+                </span>
               </Button>
             )}
           </div>
         }
       />
+
+      {/* Abas: Pedidos | Orçamentos */}
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => setAbaAtiva('pedidos')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            abaAtiva === 'pedidos'
+              ? 'border-quatrelati-gold-500 text-quatrelati-gold-600 dark:text-quatrelati-gold-400'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+          }`}
+        >
+          <ShoppingCart className="w-4 h-4" />
+          Pedidos
+        </button>
+        <button
+          onClick={() => setAbaAtiva('orcamentos')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            abaAtiva === 'orcamentos'
+              ? 'border-quatrelati-blue-500 text-quatrelati-blue-600 dark:text-quatrelati-blue-400'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          Orçamentos
+        </button>
+      </div>
 
       {/* Filtros */}
       {showFilters && (
@@ -520,9 +595,14 @@ export default function PedidosPage() {
             pedidos={pedidos}
             busca={busca}
             canEdit={canEdit}
+            isSuperAdmin={isSuperAdmin}
+            isOrcamento={abaAtiva === 'orcamentos'}
             onView={abrirVisualizacao}
             onEdit={abrirModal}
             onDelete={setDeleteConfirm}
+            onCancelar={setCancelConfirm}
+            onReativar={reativarPedido}
+            onConverterOrcamento={converterOrcamento}
             onMarcarEntregue={marcarEntregue}
             onReverterEntrega={setRevertConfirm}
             onBaixarPDF={baixarPDFPedido}
@@ -596,6 +676,46 @@ export default function PedidosPage() {
             onClick={() => reverterEntrega(revertConfirm?.id)}
           >
             Reverter Entrega
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Modal de Cancelamento */}
+      <Modal
+        isOpen={!!cancelConfirm}
+        onClose={() => { setCancelConfirm(null); setMotivoCancelamento(''); }}
+        title="Cancelar Pedido"
+        size="sm"
+      >
+        <p className="text-gray-600 dark:text-gray-400 mb-4">
+          Tem certeza que deseja cancelar o pedido <strong>{cancelConfirm?.numero_pedido || `#${cancelConfirm?.id}`}</strong>?
+        </p>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Motivo do cancelamento (opcional)
+          </label>
+          <textarea
+            value={motivoCancelamento}
+            onChange={(e) => setMotivoCancelamento(e.target.value)}
+            placeholder="Informe o motivo do cancelamento..."
+            className="input-glass w-full resize-none"
+            rows={2}
+          />
+        </div>
+        <p className="text-sm text-amber-600 dark:text-amber-400 mb-4">
+          <Ban className="w-4 h-4 inline mr-1" />
+          O número do pedido permanecerá bloqueado e não poderá ser reutilizado.
+        </p>
+        <div className="flex justify-end gap-3">
+          <Button variant="ghost" onClick={() => { setCancelConfirm(null); setMotivoCancelamento(''); }}>
+            Voltar
+          </Button>
+          <Button
+            className="bg-amber-500 hover:bg-amber-600 text-white"
+            onClick={() => cancelarPedido(cancelConfirm?.id)}
+          >
+            <Ban className="w-4 h-4 mr-1" />
+            Cancelar Pedido
           </Button>
         </div>
       </Modal>

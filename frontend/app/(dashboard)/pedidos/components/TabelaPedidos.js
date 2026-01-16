@@ -1,6 +1,6 @@
 // =====================================================
 // Componente de Tabela de Pedidos
-// v1.1.0 - Clique abre visualização, não edição
+// v1.2.0 - Cancelamento, Orçamentos, Superadmin exclusão
 // =====================================================
 
 'use client';
@@ -16,6 +16,9 @@ import {
   Undo2,
   FileText,
   Package,
+  Ban,
+  RotateCcw,
+  FileCheck,
 } from 'lucide-react';
 import Gravatar from '../../../components/ui/Gravatar';
 import IconeProduto from './IconeProduto';
@@ -25,9 +28,14 @@ export default function TabelaPedidos({
   pedidos,
   busca,
   canEdit,
+  isSuperAdmin = false,
+  isOrcamento = false,
   onView,
   onEdit,
   onDelete,
+  onCancelar,
+  onReativar,
+  onConverterOrcamento,
   onMarcarEntregue,
   onReverterEntrega,
   onBaixarPDF,
@@ -113,7 +121,7 @@ export default function TabelaPedidos({
                 </button>
               </th>
               <th onClick={() => alternarOrdenacao('numero_pedido')} className="py-3 px-3 text-left cursor-pointer hover:bg-white/10">
-                <div className="flex items-center gap-1">Pedido <IconeOrdenacao coluna="numero_pedido" /></div>
+                <div className="flex items-center gap-1">{isOrcamento ? 'Orçamento' : 'Pedido'} <IconeOrdenacao coluna="numero_pedido" /></div>
               </th>
               <th onClick={() => alternarOrdenacao('data_pedido')} className="py-3 px-3 text-left cursor-pointer hover:bg-white/10">
                 <div className="flex items-center gap-1">Data <IconeOrdenacao coluna="data_pedido" /></div>
@@ -146,7 +154,9 @@ export default function TabelaPedidos({
             <tbody>
               <tr>
                 <td colSpan={11} className="text-center py-12 text-gray-400">
-                  {busca ? 'Nenhum pedido encontrado para esta busca' : 'Nenhum pedido neste período'}
+                  {busca
+                    ? `Nenhum ${isOrcamento ? 'orçamento' : 'pedido'} encontrado para esta busca`
+                    : `Nenhum ${isOrcamento ? 'orçamento' : 'pedido'} neste período`}
                 </td>
               </tr>
             </tbody>
@@ -158,7 +168,16 @@ export default function TabelaPedidos({
                 const hasObs = !!pedido.observacoes;
                 const isFirst = index === 0;
                 const pedidoAtrasado = isAtrasado(pedido);
-                const borderColor = pedido.entregue ? 'border-l-green-500' : pedidoAtrasado ? 'border-l-red-500' : 'border-l-amber-500';
+                const pedidoCancelado = pedido.cancelado === true;
+                const borderColor = pedidoCancelado
+                  ? 'border-l-gray-400'
+                  : isOrcamento
+                    ? 'border-l-purple-500'
+                    : pedido.entregue
+                      ? 'border-l-green-500'
+                      : pedidoAtrasado
+                        ? 'border-l-red-500'
+                        : 'border-l-amber-500';
 
                 return (
                   <React.Fragment key={pedido.id}>
@@ -193,8 +212,22 @@ export default function TabelaPedidos({
                         )}
                       </td>
                       <td className="py-3 px-3">
-                        <div className="font-mono font-semibold text-gray-900 dark:text-white">#{pedido.numero_pedido}</div>
-                        {hasItens && !isExpanded && (
+                        <div className={`font-mono font-semibold ${pedidoCancelado ? 'text-gray-400 line-through' : isOrcamento ? 'text-purple-600 dark:text-purple-400' : 'text-gray-900 dark:text-white'}`}>
+                          {isOrcamento && !pedido.numero_pedido ? (
+                            <span className="flex items-center gap-1">
+                              <FileCheck className="w-3.5 h-3.5" />
+                              Orçamento
+                            </span>
+                          ) : (
+                            <>#{pedido.numero_pedido}</>
+                          )}
+                        </div>
+                        {pedidoCancelado && (
+                          <span className="text-[10px] text-gray-400 italic">
+                            Cancelado
+                          </span>
+                        )}
+                        {hasItens && !isExpanded && !pedidoCancelado && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -206,7 +239,7 @@ export default function TabelaPedidos({
                             Ver produtos <ChevronDown className="w-3 h-3" />
                           </button>
                         )}
-                        {hasItens && isExpanded && (
+                        {hasItens && isExpanded && !pedidoCancelado && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -231,7 +264,15 @@ export default function TabelaPedidos({
                       </td>
                       <td className="py-3 px-3 text-center text-gray-500">{formatDate(pedido.data_entrega)}</td>
                       <td className="py-3 px-3 text-center">
-                        {pedido.entregue ? (
+                        {pedidoCancelado ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                            Cancelado
+                          </span>
+                        ) : isOrcamento ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                            Orçamento
+                          </span>
+                        ) : pedido.entregue ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
                             Entregue
                           </span>
@@ -272,41 +313,104 @@ export default function TabelaPedidos({
                       </td>
                       <td colSpan={4} className="py-2 px-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
-                          <ActionButton
-                            icon={FileText}
-                            tooltip="Baixar PDF"
-                            color="purple"
-                            onClick={() => onBaixarPDF(pedido)}
-                          />
-                          {canEdit && (
+                          {/* Pedidos cancelados: apenas reativar e excluir (superadmin) */}
+                          {pedidoCancelado ? (
                             <>
-                              {!pedido.entregue ? (
+                              {canEdit && onReativar && (
                                 <ActionButton
-                                  icon={Check}
-                                  tooltip="Marcar entregue"
+                                  icon={RotateCcw}
+                                  tooltip="Reativar pedido"
                                   color="green"
-                                  onClick={() => onMarcarEntregue(pedido)}
-                                />
-                              ) : (
-                                <ActionButton
-                                  icon={Undo2}
-                                  tooltip="Reverter pendente"
-                                  color="amber"
-                                  onClick={() => onReverterEntrega(pedido)}
+                                  onClick={() => onReativar(pedido)}
                                 />
                               )}
+                              {isSuperAdmin && onDelete && (
+                                <ActionButton
+                                  icon={Trash2}
+                                  tooltip="Excluir definitivamente"
+                                  color="red"
+                                  onClick={() => onDelete(pedido)}
+                                />
+                              )}
+                            </>
+                          ) : isOrcamento ? (
+                            /* Orçamentos: converter, editar, excluir (superadmin) */
+                            <>
+                              {canEdit && onConverterOrcamento && (
+                                <ActionButton
+                                  icon={FileCheck}
+                                  tooltip="Converter em Pedido"
+                                  color="green"
+                                  onClick={() => onConverterOrcamento(pedido)}
+                                />
+                              )}
+                              {canEdit && (
+                                <ActionButton
+                                  icon={Edit2}
+                                  tooltip="Editar"
+                                  color="blue"
+                                  onClick={() => onEdit(pedido)}
+                                />
+                              )}
+                              {isSuperAdmin && onDelete && (
+                                <ActionButton
+                                  icon={Trash2}
+                                  tooltip="Excluir"
+                                  color="red"
+                                  onClick={() => onDelete(pedido)}
+                                />
+                              )}
+                            </>
+                          ) : (
+                            /* Pedidos ativos: todas as ações */
+                            <>
                               <ActionButton
-                                icon={Edit2}
-                                tooltip="Editar"
-                                color="blue"
-                                onClick={() => onEdit(pedido)}
+                                icon={FileText}
+                                tooltip="Baixar PDF"
+                                color="purple"
+                                onClick={() => onBaixarPDF(pedido)}
                               />
-                              <ActionButton
-                                icon={Trash2}
-                                tooltip="Excluir"
-                                color="red"
-                                onClick={() => onDelete(pedido)}
-                              />
+                              {canEdit && (
+                                <>
+                                  {!pedido.entregue ? (
+                                    <ActionButton
+                                      icon={Check}
+                                      tooltip="Marcar entregue"
+                                      color="green"
+                                      onClick={() => onMarcarEntregue(pedido)}
+                                    />
+                                  ) : (
+                                    <ActionButton
+                                      icon={Undo2}
+                                      tooltip="Reverter pendente"
+                                      color="amber"
+                                      onClick={() => onReverterEntrega(pedido)}
+                                    />
+                                  )}
+                                  <ActionButton
+                                    icon={Edit2}
+                                    tooltip="Editar"
+                                    color="blue"
+                                    onClick={() => onEdit(pedido)}
+                                  />
+                                  {onCancelar && (
+                                    <ActionButton
+                                      icon={Ban}
+                                      tooltip="Cancelar pedido"
+                                      color="amber"
+                                      onClick={() => onCancelar(pedido)}
+                                    />
+                                  )}
+                                  {isSuperAdmin && onDelete && (
+                                    <ActionButton
+                                      icon={Trash2}
+                                      tooltip="Excluir definitivamente"
+                                      color="red"
+                                      onClick={() => onDelete(pedido)}
+                                    />
+                                  )}
+                                </>
+                              )}
                             </>
                           )}
                         </div>

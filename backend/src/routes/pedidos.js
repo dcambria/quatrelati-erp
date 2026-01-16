@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Pedidos
-// v2.1.0 - Número de pedido sequencial (nunca reutiliza)
+// v2.2.0 - Orçamentos + Cancelamento + Exclusão superadmin
 // =====================================================
 
 const express = require('express');
@@ -29,6 +29,8 @@ router.get('/', pedidosQueryValidation, vendedorFilterMiddleware, async (req, re
             produto_id,
             vendedor_id,
             status,
+            incluir_cancelados,
+            apenas_orcamentos,
             page = 1,
             limit = 50
         } = req.query;
@@ -43,6 +45,18 @@ router.get('/', pedidosQueryValidation, vendedorFilterMiddleware, async (req, re
             whereConditions.push(vendedorFilter.clause);
             params.push(vendedorFilter.param);
             paramIndex = vendedorFilter.newIndex;
+        }
+
+        // Filtro de orçamentos vs pedidos
+        if (apenas_orcamentos === 'true') {
+            whereConditions.push('p.is_orcamento = true');
+        } else {
+            whereConditions.push('p.is_orcamento = false');
+        }
+
+        // Filtro de cancelados (por padrão não mostra cancelados)
+        if (incluir_cancelados !== 'true') {
+            whereConditions.push('p.cancelado = false');
         }
 
         // Filtro por mês/ano (baseado na data de entrega)
@@ -490,6 +504,7 @@ router.post('/', activityLogMiddleware('criar', 'pedido'), async (req, res) => {
             observacoes,
             preco_descarga_pallet,
             horario_recebimento,
+            is_orcamento = false, // Se true, cria orçamento sem número
             itens // Array de { produto_id, quantidade_caixas, preco_unitario }
         } = req.body;
 
@@ -504,26 +519,36 @@ router.post('/', activityLogMiddleware('criar', 'pedido'), async (req, res) => {
             return res.status(400).json({ error: 'Pelo menos um item é obrigatório' });
         }
 
+        // Orçamentos não precisam de data de entrega
+        if (!is_orcamento && !data_entrega) {
+            client.release();
+            return res.status(400).json({ error: 'Data de entrega é obrigatória para pedidos' });
+        }
+
         // Iniciar transação
         await client.query('BEGIN');
 
-        // Gerar número do pedido (YYMMXX) - sequencial nunca se repete
-        const dataPedido = new Date(data_pedido);
-        const ano = dataPedido.getFullYear().toString().slice(-2);
-        const mes = (dataPedido.getMonth() + 1).toString().padStart(2, '0');
-        const anoMes = `${ano}${mes}`;
+        let numeroPedido = null;
 
-        // Incrementar e obter próximo sequencial (atômico, nunca reutiliza números)
-        const seqResult = await client.query(`
-            INSERT INTO pedido_sequencias (ano_mes, ultimo_sequencial)
-            VALUES ($1, 1)
-            ON CONFLICT (ano_mes) DO UPDATE
-            SET ultimo_sequencial = pedido_sequencias.ultimo_sequencial + 1
-            RETURNING ultimo_sequencial
-        `, [anoMes]);
+        // Gerar número do pedido apenas se NÃO for orçamento
+        if (!is_orcamento) {
+            const dataPedidoObj = new Date(data_pedido);
+            const ano = dataPedidoObj.getFullYear().toString().slice(-2);
+            const mes = (dataPedidoObj.getMonth() + 1).toString().padStart(2, '0');
+            const anoMes = `${ano}${mes}`;
 
-        const sequencial = seqResult.rows[0].ultimo_sequencial;
-        const numeroPedido = `${anoMes}${sequencial.toString().padStart(2, '0')}`;
+            // Incrementar e obter próximo sequencial (atômico, nunca reutiliza números)
+            const seqResult = await client.query(`
+                INSERT INTO pedido_sequencias (ano_mes, ultimo_sequencial)
+                VALUES ($1, 1)
+                ON CONFLICT (ano_mes) DO UPDATE
+                SET ultimo_sequencial = pedido_sequencias.ultimo_sequencial + 1
+                RETURNING ultimo_sequencial
+            `, [anoMes]);
+
+            const sequencial = seqResult.rows[0].ultimo_sequencial;
+            numeroPedido = `${anoMes}${sequencial.toString().padStart(2, '0')}`;
+        }
 
         // Calcular totais dos itens
         let totalGeral = 0;
@@ -560,18 +585,18 @@ router.post('/', activityLogMiddleware('criar', 'pedido'), async (req, res) => {
             quantidadeGeral += parseInt(item.quantidade_caixas);
         }
 
-        // Inserir pedido
+        // Inserir pedido/orçamento
         const result = await client.query(`
             INSERT INTO pedidos (
                 data_pedido, cliente_id, numero_pedido, nf, data_entrega,
                 quantidade_caixas, peso_kg, preco_unitario,
-                total, observacoes, preco_descarga_pallet, horario_recebimento, created_by
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                total, observacoes, preco_descarga_pallet, horario_recebimento, created_by, is_orcamento
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING *
         `, [
-            data_pedido, cliente_id, numeroPedido, nf, data_entrega,
+            data_pedido, cliente_id, numeroPedido, nf, data_entrega || null,
             quantidadeGeral, pesoGeral, itensProcessados[0]?.preco_unitario || 0,
-            totalGeral, observacoes, preco_descarga_pallet || null, horario_recebimento || null, req.userId
+            totalGeral, observacoes, preco_descarga_pallet || null, horario_recebimento || null, req.userId, is_orcamento
         ]);
 
         const pedidoId = result.rows[0].id;
@@ -828,26 +853,198 @@ router.put('/:id', idValidation, activityLogMiddleware('atualizar', 'pedido'), a
  * DELETE /api/pedidos/:id
  * Excluir pedido
  */
+/**
+ * DELETE /api/pedidos/:id
+ * Excluir pedido (APENAS SUPERADMIN) - libera o número para reutilização
+ */
 router.delete('/:id', idValidation, activityLogMiddleware('excluir', 'pedido'), async (req, res) => {
     try {
+        // Apenas superadmin pode excluir pedidos
+        if (req.userNivel !== 'superadmin') {
+            return res.status(403).json({ error: 'Apenas superadministradores podem excluir pedidos. Use a opção de cancelar.' });
+        }
+
         const { id } = req.params;
 
+        // Buscar pedido para obter o número
+        const pedidoResult = await req.db.query(
+            'SELECT numero_pedido FROM pedidos WHERE id = $1',
+            [id]
+        );
+
+        if (pedidoResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Pedido não encontrado' });
+        }
+
+        const numeroPedido = pedidoResult.rows[0].numero_pedido;
+
+        // Excluir itens do pedido primeiro
+        await req.db.query('DELETE FROM pedido_itens WHERE pedido_id = $1', [id]);
+
+        // Excluir pedido
         const result = await req.db.query(
             'DELETE FROM pedidos WHERE id = $1 RETURNING *',
             [id]
         );
+
+        // Liberar o número do pedido (decrementar sequência se for o último)
+        if (numeroPedido) {
+            const anoMes = numeroPedido.substring(0, 4);
+            const sequencial = parseInt(numeroPedido.substring(4));
+
+            // Verificar se é o último sequencial usado
+            const ultimoResult = await req.db.query(
+                'SELECT ultimo_sequencial FROM pedido_sequencias WHERE ano_mes = $1',
+                [anoMes]
+            );
+
+            if (ultimoResult.rows.length > 0 && ultimoResult.rows[0].ultimo_sequencial === sequencial) {
+                // É o último, pode decrementar
+                await req.db.query(
+                    'UPDATE pedido_sequencias SET ultimo_sequencial = ultimo_sequencial - 1 WHERE ano_mes = $1 AND ultimo_sequencial > 0',
+                    [anoMes]
+                );
+            }
+        }
+
+        res.json({
+            message: 'Pedido excluído com sucesso. Número liberado para reutilização.',
+            pedido: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Erro ao excluir pedido:', error);
+        res.status(500).json({ error: 'Erro ao excluir pedido' });
+    }
+});
+
+/**
+ * PATCH /api/pedidos/:id/cancelar
+ * Cancelar pedido (vendedor, admin, superadmin) - número permanece bloqueado
+ */
+router.patch('/:id/cancelar', idValidation, activityLogMiddleware('cancelar', 'pedido'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { motivo } = req.body;
+
+        const result = await req.db.query(`
+            UPDATE pedidos
+            SET cancelado = true, motivo_cancelamento = $1
+            WHERE id = $2
+            RETURNING *
+        `, [motivo || 'Cancelado pelo usuário', id]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Pedido não encontrado' });
         }
 
         res.json({
-            message: 'Pedido excluído com sucesso',
+            message: 'Pedido cancelado com sucesso',
             pedido: result.rows[0]
         });
     } catch (error) {
-        console.error('Erro ao excluir pedido:', error);
-        res.status(500).json({ error: 'Erro ao excluir pedido' });
+        console.error('Erro ao cancelar pedido:', error);
+        res.status(500).json({ error: 'Erro ao cancelar pedido' });
+    }
+});
+
+/**
+ * PATCH /api/pedidos/:id/reativar
+ * Reativar pedido cancelado (admin, superadmin)
+ */
+router.patch('/:id/reativar', idValidation, activityLogMiddleware('reativar', 'pedido'), async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Apenas admin ou superadmin pode reativar
+        if (!['admin', 'superadmin'].includes(req.userNivel)) {
+            return res.status(403).json({ error: 'Apenas administradores podem reativar pedidos cancelados' });
+        }
+
+        const result = await req.db.query(`
+            UPDATE pedidos
+            SET cancelado = false, motivo_cancelamento = NULL
+            WHERE id = $1
+            RETURNING *
+        `, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Pedido não encontrado' });
+        }
+
+        res.json({
+            message: 'Pedido reativado com sucesso',
+            pedido: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Erro ao reativar pedido:', error);
+        res.status(500).json({ error: 'Erro ao reativar pedido' });
+    }
+});
+
+/**
+ * PATCH /api/pedidos/:id/converter-orcamento
+ * Converter orçamento em pedido (gera número de pedido)
+ */
+router.patch('/:id/converter-orcamento', idValidation, activityLogMiddleware('converter_orcamento', 'pedido'), async (req, res) => {
+    const client = await req.db.connect();
+
+    try {
+        const { id } = req.params;
+
+        await client.query('BEGIN');
+
+        // Verificar se é um orçamento
+        const orcamentoResult = await client.query(
+            'SELECT * FROM pedidos WHERE id = $1 AND is_orcamento = true',
+            [id]
+        );
+
+        if (orcamentoResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            client.release();
+            return res.status(404).json({ error: 'Orçamento não encontrado ou já é um pedido' });
+        }
+
+        const orcamento = orcamentoResult.rows[0];
+
+        // Gerar número do pedido baseado na data do pedido
+        const dataPedido = new Date(orcamento.data_pedido);
+        const ano = dataPedido.getFullYear().toString().slice(-2);
+        const mes = (dataPedido.getMonth() + 1).toString().padStart(2, '0');
+        const anoMes = `${ano}${mes}`;
+
+        // Incrementar e obter próximo sequencial
+        const seqResult = await client.query(`
+            INSERT INTO pedido_sequencias (ano_mes, ultimo_sequencial)
+            VALUES ($1, 1)
+            ON CONFLICT (ano_mes) DO UPDATE
+            SET ultimo_sequencial = pedido_sequencias.ultimo_sequencial + 1
+            RETURNING ultimo_sequencial
+        `, [anoMes]);
+
+        const sequencial = seqResult.rows[0].ultimo_sequencial;
+        const numeroPedido = `${anoMes}${sequencial.toString().padStart(2, '0')}`;
+
+        // Converter orçamento em pedido
+        const result = await client.query(`
+            UPDATE pedidos
+            SET is_orcamento = false, numero_pedido = $1
+            WHERE id = $2
+            RETURNING *
+        `, [numeroPedido, id]);
+
+        await client.query('COMMIT');
+        client.release();
+
+        res.json({
+            message: 'Orçamento convertido em pedido com sucesso',
+            pedido: result.rows[0]
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        client.release();
+        console.error('Erro ao converter orçamento:', error);
+        res.status(500).json({ error: 'Erro ao converter orçamento em pedido' });
     }
 });
 

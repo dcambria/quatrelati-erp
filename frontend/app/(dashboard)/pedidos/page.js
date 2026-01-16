@@ -750,7 +750,7 @@ export default function PedidosPage() {
         pdfMode={pdfMode}
         pdfVendedorId={pdfVendedorId}
         setPdfVendedorId={setPdfVendedorId}
-        usuarios={usuarios}
+        usuarios={usuarios.filter(u => u.is_vendedor === true)}
         onConfirm={confirmarExportarPDF}
       />
     </div>

@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Clientes
-// v2.17.0 - Coluna de Localização separada na tabela
+// v2.18.0 - Campo Vendedor movido para final do form
 // =====================================================
 
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
@@ -1562,17 +1562,6 @@ export default function ClientesPage() {
                   {...register('contato_nome')}
                 />
               </div>
-              {isAdmin && (
-                <Select
-                  label="Vendedor Responsável"
-                  options={usuarios.filter(u => ['vendedor', 'admin', 'superadmin'].includes(u.nivel)).map(u => ({
-                    value: u.id,
-                    label: u.nome
-                  }))}
-                  placeholder="Selecione..."
-                  {...register('vendedor_id')}
-                />
-              )}
             </div>
 
           {/* Endereço Principal */}
@@ -1756,6 +1745,24 @@ export default function ClientesPage() {
               </>
             )}
           </div>
+
+          {/* Vendedor Responsável */}
+          {isAdmin && (
+            <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide flex items-center gap-2">
+                <UserCircle className="w-4 h-4" />
+                Vendedor Responsável
+              </h4>
+              <Select
+                options={usuarios.filter(u => ['vendedor', 'admin', 'superadmin'].includes(u.nivel)).map(u => ({
+                  value: u.id,
+                  label: u.nome
+                }))}
+                placeholder="Selecione..."
+                {...register('vendedor_id')}
+              />
+            </div>
+          )}
 
           {/* Observações */}
           <div className="space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">

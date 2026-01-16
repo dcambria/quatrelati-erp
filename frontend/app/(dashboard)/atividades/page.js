@@ -896,11 +896,16 @@ export default function AtividadesPage() {
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center gap-2">
                                                         <User className="w-4 h-4 text-gray-400" />
-                                                        <span className="text-sm text-gray-900 dark:text-white">{log.user_nome || 'Anônimo'}</span>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm text-gray-900 dark:text-white">{log.user_nome || 'Anônimo'}</span>
+                                                            {log.attempted_email && (
+                                                                <span className="text-xs text-red-500 dark:text-red-400">{log.attempted_email}</span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                                                    <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center">
                                                         {log.country && (
                                                             <span className="mr-1.5" title={log.country}>
                                                                 {countryToFlag(log.country)}

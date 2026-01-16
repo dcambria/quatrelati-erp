@@ -1,6 +1,6 @@
 // =====================================================
 // Sistema de Gestão de Pedidos - Laticínio Quatrelati
-// Backend API Server v1.4.0 - Trust Proxy + IP Real
+// Backend API Server v1.5.0 - Orçamentos + Cancelamento
 // =====================================================
 
 require('dotenv').config();
@@ -100,7 +100,7 @@ app.use(globalErrorHandler);
 app.listen(PORT, async () => {
     console.log('=====================================================');
     console.log('  Sistema de Gestão de Pedidos - Laticínio Quatrelati');
-    console.log('  API Server v1.4.0');
+    console.log('  API Server v1.5.0');
     console.log('=====================================================');
     console.log(`  Servidor rodando em http://localhost:${PORT}`);
     console.log(`  Ambiente: ${process.env.NODE_ENV || 'development'}`);

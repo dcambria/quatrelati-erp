@@ -300,7 +300,7 @@ export default function PedidoFormModal({
           Cancelar
         </Button>
         <Button type="submit" form="pedido-form" loading={saving}>
-          {editingPedido ? 'Salvar' : 'Criar Pedido'}
+          {editingPedido ? 'Salvar' : `Criar ${isOrcamento ? 'Orçamento' : 'Pedido'}`}
         </Button>
       </div>
     </div>

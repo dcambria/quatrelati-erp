@@ -322,7 +322,7 @@ export default function TabelaPedidos({
                                   icon={RotateCcw}
                                   tooltip="Reativar pedido"
                                   color="green"
-                                  onClick={() => onReativar(pedido)}
+                                  onClick={() => onReativar(pedido.id)}
                                 />
                               )}
                               {isSuperAdmin && onDelete && (
@@ -342,7 +342,7 @@ export default function TabelaPedidos({
                                   icon={FileCheck}
                                   tooltip="Converter em Pedido"
                                   color="green"
-                                  onClick={() => onConverterOrcamento(pedido)}
+                                  onClick={() => onConverterOrcamento(pedido.id)}
                                 />
                               )}
                               {canEdit && (

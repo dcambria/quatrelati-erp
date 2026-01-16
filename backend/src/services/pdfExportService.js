@@ -1,6 +1,6 @@
 // =====================================================
 // Serviço de Exportação PDF/Excel
-// v1.5.0 - Altura das linhas para endereços de 2 linhas
+// v1.6.0 - Terminologia dinâmica para orçamentos/cancelados
 // Este arquivo é excluído da cobertura de testes devido
 // à complexidade de mocking de PDFKit e streams.
 // =====================================================

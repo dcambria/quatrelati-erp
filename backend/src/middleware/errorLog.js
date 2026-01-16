@@ -1,7 +1,55 @@
 // =====================================================
 // Middleware de Log de Erros
-// v1.0.0 - Registra erros e validações falhas
+// v1.1.0 - Geolocalização de IP + log de email em login
 // =====================================================
+
+// Cache de geolocalização para evitar chamadas repetidas
+const geoCache = new Map();
+const GEO_CACHE_TTL = 3600000; // 1 hora
+
+/**
+ * Obtém o país do IP via API gratuita
+ * @param {string} ip - Endereço IP
+ * @returns {Promise<string|null>} Código do país (BR, US, etc)
+ */
+async function getCountryFromIP(ip) {
+    if (!ip || ip === '::1' || ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
+        return 'BR'; // IPs locais assumem Brasil
+    }
+
+    // Limpar IP (remover ::ffff: prefix do IPv6-mapped IPv4)
+    const cleanIP = ip.replace(/^::ffff:/, '');
+
+    // Verificar cache
+    const cached = geoCache.get(cleanIP);
+    if (cached && cached.timestamp > Date.now() - GEO_CACHE_TTL) {
+        return cached.country;
+    }
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 2000); // 2s timeout
+
+        const response = await fetch(`http://ip-api.com/json/${cleanIP}?fields=countryCode`, {
+            signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        if (response.ok) {
+            const data = await response.json();
+            const country = data.countryCode || null;
+
+            // Salvar no cache
+            geoCache.set(cleanIP, { country, timestamp: Date.now() });
+
+            return country;
+        }
+    } catch (error) {
+        // Silenciosamente falha - geolocalização é opcional
+    }
+
+    return null;
+}
 
 /**
  * Registra erro no banco de dados
@@ -22,16 +70,20 @@ async function logError(db, options) {
         stackTrace,
         ipAddress,
         userAgent,
+        attemptedEmail,
     } = options;
 
     try {
+        // Obter país do IP (assíncrono mas não bloqueia)
+        const country = await getCountryFromIP(ipAddress);
+
         await db.query(`
             INSERT INTO error_logs (
                 user_id, user_nome, user_nivel, error_type, error_message,
                 endpoint, method, request_body, validation_errors,
-                stack_trace, ip_address, user_agent
+                stack_trace, ip_address, user_agent, country, attempted_email
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         `, [
             userId,
             userNome,
@@ -45,6 +97,8 @@ async function logError(db, options) {
             stackTrace,
             ipAddress,
             userAgent,
+            country,
+            attemptedEmail,
         ]);
     } catch (error) {
         console.error('Erro ao registrar log de erro:', error);
@@ -115,6 +169,12 @@ function errorLogMiddleware() {
                     // Extrair erros de validação
                     const validationErrors = data?.details || null;
 
+                    // Extrair email de tentativas de login
+                    let attemptedEmail = null;
+                    if (req.originalUrl.includes('/auth/login') && req.body?.email) {
+                        attemptedEmail = req.body.email;
+                    }
+
                     await logError(req.db, {
                         userId: req.userId || null,
                         userNome,
@@ -128,6 +188,7 @@ function errorLogMiddleware() {
                         stackTrace: null,
                         ipAddress: req.ip || req.connection?.remoteAddress,
                         userAgent: req.get('User-Agent'),
+                        attemptedEmail,
                     });
                 } catch (error) {
                     console.error('Erro no middleware de error log:', error);
@@ -163,6 +224,7 @@ function globalErrorHandler(err, req, res, next) {
             stackTrace: err.stack,
             ipAddress: req.ip || req.connection?.remoteAddress,
             userAgent: req.get('User-Agent'),
+            attemptedEmail: null,
         }).catch(e => console.error('Falha ao logar erro:', e));
     }
 

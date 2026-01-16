@@ -316,12 +316,15 @@ describe('Error Log Middleware', () => {
             consoleSpy.mockRestore();
         });
 
-        it('deve usar err.message quando disponível', () => {
+        it('deve usar err.message quando disponível', async () => {
             const err = new Error('Mensagem específica');
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
             mockRes.status = jest.fn().mockReturnThis();
 
             globalErrorHandler(err, mockReq, mockRes, mockNext);
+
+            // Aguardar a promise de logError resolver
+            await new Promise(resolve => setImmediate(resolve));
 
             expect(mockDb.query).toHaveBeenCalled();
             consoleSpy.mockRestore();

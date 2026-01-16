@@ -11,6 +11,7 @@ describe('Pedidos Routes Integration', () => {
     let app;
     let mockPool;
     let adminToken;
+    let superadminToken;
     let userToken;
 
     beforeEach(() => {
@@ -21,6 +22,7 @@ describe('Pedidos Routes Integration', () => {
         app.use('/api/pedidos', pedidosRoutes);
 
         adminToken = generateTestToken({ id: 1, nivel: 'admin', pode_visualizar_todos: true });
+        superadminToken = generateTestToken({ id: 1, nivel: 'superadmin', pode_visualizar_todos: true });
         userToken = generateTestToken({ id: 2, nivel: 'vendedor', pode_visualizar_todos: false });
     });
 
@@ -199,8 +201,11 @@ describe('Pedidos Routes Integration', () => {
             // Transaction queries (via client.query):
             // 1. BEGIN
             mockClient.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
-            // 2. SELECT ultimo numero do mês
-            mockClient.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+            // 2. INSERT...ON CONFLICT para obter sequencial (pedido_sequencias)
+            mockClient.query.mockResolvedValueOnce({
+                rows: [{ ultimo_sequencial: 1 }],
+                rowCount: 1
+            });
             // 3. SELECT produto info
             mockClient.query.mockResolvedValueOnce({
                 rows: [{ peso_caixa_kg: 10.5, preco_padrao: 100.00 }],
@@ -246,6 +251,7 @@ describe('Pedidos Routes Integration', () => {
                 .set('Authorization', `Bearer ${adminToken}`)
                 .send({
                     data_pedido: '2026-01-15',
+                    data_entrega: '2026-01-20',
                     cliente_id: 1,
                     itens: [{
                         produto_id: 1,
@@ -323,7 +329,7 @@ describe('Pedidos Routes Integration', () => {
     });
 
     describe('DELETE /api/pedidos/:id', () => {
-        it('deve excluir pedido existente', async () => {
+        it('deve excluir pedido existente (superadmin)', async () => {
             mockPool.query.mockResolvedValueOnce({
                 rows: [{ id: 1 }],
                 rowCount: 1
@@ -331,7 +337,7 @@ describe('Pedidos Routes Integration', () => {
 
             const response = await request(app)
                 .delete('/api/pedidos/1')
-                .set('Authorization', `Bearer ${adminToken}`);
+                .set('Authorization', `Bearer ${superadminToken}`);
 
             expect(response.status).toBe(200);
         });
@@ -341,9 +347,17 @@ describe('Pedidos Routes Integration', () => {
 
             const response = await request(app)
                 .delete('/api/pedidos/999')
-                .set('Authorization', `Bearer ${adminToken}`);
+                .set('Authorization', `Bearer ${superadminToken}`);
 
             expect(response.status).toBe(404);
+        });
+
+        it('deve rejeitar exclusão por admin (não superadmin)', async () => {
+            const response = await request(app)
+                .delete('/api/pedidos/1')
+                .set('Authorization', `Bearer ${adminToken}`);
+
+            expect(response.status).toBe(403);
         });
     });
 
@@ -520,7 +534,7 @@ describe('Pedidos Routes Integration', () => {
 
             // BEGIN
             mockClient.query.mockResolvedValueOnce({ rows: [] });
-            // SELECT ultimo numero - throws error
+            // INSERT...ON CONFLICT para sequencial - throws error
             mockClient.query.mockRejectedValueOnce(new Error('DB Error'));
             // ROLLBACK
             mockClient.query.mockResolvedValueOnce({ rows: [] });
@@ -530,6 +544,7 @@ describe('Pedidos Routes Integration', () => {
                 .set('Authorization', `Bearer ${adminToken}`)
                 .send({
                     data_pedido: '2026-01-15',
+                    data_entrega: '2026-01-20',
                     cliente_id: 1,
                     itens: [{
                         produto_id: 1,
@@ -705,7 +720,7 @@ describe('Pedidos Routes Integration', () => {
 
             const response = await request(app)
                 .delete('/api/pedidos/1')
-                .set('Authorization', `Bearer ${adminToken}`);
+                .set('Authorization', `Bearer ${superadminToken}`);
 
             expect(response.status).toBe(500);
         });
@@ -746,9 +761,9 @@ describe('Pedidos Routes Integration', () => {
 
             // BEGIN
             mockClient.query.mockResolvedValueOnce({ rows: [] });
-            // SELECT ultimo numero - retorna pedido existente
+            // INSERT...ON CONFLICT para obter sequencial (já existe, incrementa)
             mockClient.query.mockResolvedValueOnce({
-                rows: [{ numero_pedido: '26010105' }],
+                rows: [{ ultimo_sequencial: 6 }],
                 rowCount: 1
             });
             // SELECT produto
@@ -782,6 +797,7 @@ describe('Pedidos Routes Integration', () => {
                 .set('Authorization', `Bearer ${adminToken}`)
                 .send({
                     data_pedido: '2026-01-15',
+                    data_entrega: '2026-01-20',
                     cliente_id: 1,
                     itens: [{
                         produto_id: 1,
@@ -802,8 +818,11 @@ describe('Pedidos Routes Integration', () => {
 
             // BEGIN
             mockClient.query.mockResolvedValueOnce({ rows: [] });
-            // SELECT ultimo numero
-            mockClient.query.mockResolvedValueOnce({ rows: [] });
+            // INSERT...ON CONFLICT para obter sequencial
+            mockClient.query.mockResolvedValueOnce({
+                rows: [{ ultimo_sequencial: 1 }],
+                rowCount: 1
+            });
             // SELECT produto
             mockClient.query.mockResolvedValueOnce({
                 rows: [{ peso_caixa_kg: 10.5, preco_padrao: 100 }],
@@ -821,6 +840,7 @@ describe('Pedidos Routes Integration', () => {
                 .set('Authorization', `Bearer ${adminToken}`)
                 .send({
                     data_pedido: '2026-01-15',
+                    data_entrega: '2026-01-20',
                     cliente_id: 1,
                     itens: [{
                         produto_id: 1,

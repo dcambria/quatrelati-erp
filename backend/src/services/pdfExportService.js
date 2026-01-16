@@ -198,7 +198,7 @@ async function exportarPedidosPDF(res, { pedidos, totais, itensPorPedido, mes, a
         const dataEntrega = pedido.data_entrega ? format(new Date(pedido.data_entrega), 'dd/MM/yy') : '-';
 
         const valores = [
-            pedido.numero_pedido ? `#${pedido.numero_pedido}` : (tipoDoc === 'orcamentos' ? 'Orç.' : '-'),
+            pedido.numero_pedido ? `#${pedido.numero_pedido}` : '-',
             dataPedido,
             (pedido.cliente_nome || '').substring(0, 32),
             pedido.nf || '-',

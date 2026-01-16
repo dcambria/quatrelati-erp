@@ -555,14 +555,27 @@ router.post('/', activityLogMiddleware('criar', 'pedido'), async (req, res) => {
 
         let numeroPedido = null;
 
-        // Gerar número do pedido apenas se NÃO for orçamento
-        if (!is_orcamento) {
-            const dataPedidoObj = new Date(data_pedido);
-            const ano = dataPedidoObj.getFullYear().toString().slice(-2);
-            const mes = (dataPedidoObj.getMonth() + 1).toString().padStart(2, '0');
-            const anoMes = `${ano}${mes}`;
+        // Gerar número para pedidos e orçamentos
+        const dataPedidoObj = new Date(data_pedido);
+        const ano = dataPedidoObj.getFullYear().toString().slice(-2);
+        const mes = (dataPedidoObj.getMonth() + 1).toString().padStart(2, '0');
+        const anoMes = `${ano}${mes}`;
 
-            // Incrementar e obter próximo sequencial (atômico, nunca reutiliza números)
+        if (is_orcamento) {
+            // Orçamentos: prefixo "O" + AAMM + sequencial
+            const chaveSeq = `O${anoMes}`;
+            const seqResult = await client.query(`
+                INSERT INTO pedido_sequencias (ano_mes, ultimo_sequencial)
+                VALUES ($1, 1)
+                ON CONFLICT (ano_mes) DO UPDATE
+                SET ultimo_sequencial = pedido_sequencias.ultimo_sequencial + 1
+                RETURNING ultimo_sequencial
+            `, [chaveSeq]);
+
+            const sequencial = seqResult.rows[0].ultimo_sequencial;
+            numeroPedido = `O${anoMes}${sequencial.toString().padStart(2, '0')}`;
+        } else {
+            // Pedidos: AAMM + sequencial
             const seqResult = await client.query(`
                 INSERT INTO pedido_sequencias (ano_mes, ultimo_sequencial)
                 VALUES ($1, 1)

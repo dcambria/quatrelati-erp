@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Usuários
-// v1.6.0 - Melhora estilo dos botões de ação
+// v1.7.0 - Campo is_vendedor para identificar vendedores
 // =====================================================
 
 import { useState, useEffect } from 'react';
@@ -25,6 +25,7 @@ import {
   Lock,
   RotateCcw,
   Clock,
+  Briefcase,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -224,6 +225,17 @@ export default function UsuariosPage() {
     }
   };
 
+  const toggleVendedor = async (usuario) => {
+    try {
+      await api.put(`/usuarios/${usuario.id}`, { is_vendedor: !usuario.is_vendedor });
+      toast.success(`${usuario.nome} ${usuario.is_vendedor ? 'removido da' : 'adicionado à'} equipe de vendas`);
+      carregarUsuarios();
+    } catch (error) {
+      console.error('Erro ao alterar status de vendedor:', error);
+      toast.error(error.message || 'Erro ao alterar status de vendedor');
+    }
+  };
+
   const resetarTour = async (usuario) => {
     try {
       await api.post(`/usuarios/${usuario.id}/reset-tour`);
@@ -329,9 +341,17 @@ export default function UsuariosPage() {
                       </p>
                     </div>
                   </div>
-                  <Badge variant={usuario.ativo ? 'success' : 'error'}>
-                    {usuario.ativo ? 'Ativo' : 'Inativo'}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant={usuario.ativo ? 'success' : 'error'}>
+                      {usuario.ativo ? 'Ativo' : 'Inativo'}
+                    </Badge>
+                    {usuario.is_vendedor && (
+                      <Badge variant="warning" className="!bg-amber-100 !text-amber-700 dark:!bg-amber-900/30 dark:!text-amber-400">
+                        <Briefcase className="w-3 h-3 mr-1" />
+                        Vendedor
+                      </Badge>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2 mb-4">
@@ -393,6 +413,18 @@ export default function UsuariosPage() {
                         onClick={() => setDeleteConfirm(usuario)}
                       >
                         <Trash2 className="w-4 h-4" />
+                      </Button>
+                      {/* Botão toggle vendedor */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleVendedor(usuario)}
+                        className={usuario.is_vendedor
+                          ? 'bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-800 dark:hover:bg-amber-900/30'
+                          : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:hover:bg-gray-700'}
+                        title={usuario.is_vendedor ? 'Remover da equipe de vendas' : 'Adicionar à equipe de vendas'}
+                      >
+                        <Briefcase className="w-4 h-4" />
                       </Button>
                       {/* Botão resetar tour - apenas superadmin */}
                       {isSuperAdmin && (

@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Usuários
-// v1.5.0 - Adiciona reset da tour guiada (superadmin)
+// v1.6.0 - Campo is_vendedor para identificar vendedores
 // =====================================================
 
 const express = require('express');
@@ -36,7 +36,7 @@ router.get('/', async (req, res) => {
         const result = await req.db.query(`
             SELECT
                 u.id, u.nome, u.email, u.telefone, u.nivel, u.ativo,
-                u.primeiro_acesso, u.created_at, u.updated_at,
+                u.primeiro_acesso, u.is_vendedor, u.created_at, u.updated_at,
                 (
                     SELECT created_at
                     FROM activity_logs
@@ -65,7 +65,7 @@ router.get('/:id', idValidation, async (req, res) => {
         const { id } = req.params;
 
         const result = await req.db.query(`
-            SELECT id, nome, email, telefone, nivel, ativo, created_at, updated_at
+            SELECT id, nome, email, telefone, nivel, ativo, is_vendedor, created_at, updated_at
             FROM usuarios
             WHERE id = $1
         `, [id]);
@@ -87,7 +87,7 @@ router.get('/:id', idValidation, async (req, res) => {
  */
 router.post('/', usuarioValidation, activityLogMiddleware('criar', 'usuario'), async (req, res) => {
     try {
-        const { nome, email, telefone, senha, nivel = 'vendedor' } = req.body;
+        const { nome, email, telefone, senha, nivel = 'vendedor', is_vendedor = false } = req.body;
 
         // Verificar se email já existe
         const emailExiste = await req.db.query(
@@ -103,10 +103,10 @@ router.post('/', usuarioValidation, activityLogMiddleware('criar', 'usuario'), a
         const senhaHash = await bcrypt.hash(senha, 10);
 
         const result = await req.db.query(`
-            INSERT INTO usuarios (nome, email, telefone, senha_hash, nivel)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, nome, email, telefone, nivel, ativo, created_at
-        `, [nome, email, telefone || null, senhaHash, nivel]);
+            INSERT INTO usuarios (nome, email, telefone, senha_hash, nivel, is_vendedor)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, nome, email, telefone, nivel, ativo, is_vendedor, created_at
+        `, [nome, email, telefone || null, senhaHash, nivel, is_vendedor]);
 
         res.status(201).json({
             message: 'Usuário criado com sucesso',
@@ -125,7 +125,7 @@ router.post('/', usuarioValidation, activityLogMiddleware('criar', 'usuario'), a
 router.put('/:id', idValidation, usuarioUpdateValidation, activityLogMiddleware('atualizar', 'usuario'), async (req, res) => {
     try {
         const { id } = req.params;
-        const { nome, email, telefone, senha, nivel, ativo } = req.body;
+        const { nome, email, telefone, senha, nivel, ativo, is_vendedor } = req.body;
 
         // Verificar se usuário existe
         const usuarioAtual = await req.db.query(
@@ -177,10 +177,11 @@ router.put('/:id', idValidation, usuarioUpdateValidation, activityLogMiddleware(
                 telefone = COALESCE($3, telefone),
                 senha_hash = $4,
                 nivel = COALESCE($5, nivel),
-                ativo = COALESCE($6, ativo)
-            WHERE id = $7
-            RETURNING id, nome, email, telefone, nivel, ativo, created_at, updated_at
-        `, [nome, email, telefone, senhaHash, nivel, ativo, id]);
+                ativo = COALESCE($6, ativo),
+                is_vendedor = COALESCE($7, is_vendedor)
+            WHERE id = $8
+            RETURNING id, nome, email, telefone, nivel, ativo, is_vendedor, created_at, updated_at
+        `, [nome, email, telefone, senhaHash, nivel, ativo, is_vendedor, id]);
 
         res.json({
             message: 'Usuário atualizado com sucesso',

@@ -1,7 +1,7 @@
 'use client';
 // =====================================================
 // Contexto de Filtro Global de Vendedor
-// v1.1.0 - Inclui todos os usuários no filtro VER COMO
+// v1.2.0 - Filtra apenas usuários com is_vendedor=true
 // =====================================================
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -22,18 +22,16 @@ export function VendedorFilterProvider({ children }) {
 
     setLoading(true);
     try {
-      // Buscar todos os usuários ativos e filtrar
+      // Buscar todos os usuários ativos
       const response = await api.get('/usuarios?ativo=true');
       const usuarios = response.data.usuarios || [];
 
-      // Incluir todos os usuários ativos (vendedor, admin, superadmin)
-      const vendedoresMap = new Map();
-      usuarios.forEach(u => vendedoresMap.set(u.id, u));
-
-      const todosVendedores = Array.from(vendedoresMap.values())
+      // Filtrar apenas usuários marcados como vendedor (is_vendedor = true)
+      const vendedoresAtivos = usuarios
+        .filter(u => u.is_vendedor === true)
         .sort((a, b) => a.nome.localeCompare(b.nome));
 
-      setVendedores(todosVendedores);
+      setVendedores(vendedoresAtivos);
     } catch (error) {
       console.error('Erro ao carregar vendedores:', error);
     } finally {

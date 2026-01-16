@@ -1,6 +1,6 @@
 // =====================================================
 // Modal de Formulário de Pedido
-// v1.10.0 - Máscara de moeda no campo descarga/pallet
+// v1.11.0 - Data entrega obrigatória + vendedor na criação
 // =====================================================
 
 'use client';
@@ -49,7 +49,7 @@ function formatarMoedaBR(numero) {
 const pedidoSchema = z.object({
   data_pedido: z.string().min(1, 'Data é obrigatória'),
   cliente_id: z.string().min(1, 'Cliente é obrigatório'),
-  data_entrega: z.string().optional(),
+  data_entrega: z.string().min(1, 'Data de entrega é obrigatória'),
   nf: z.string().optional(),
   observacoes: z.string().optional(),
   preco_descarga_pallet: precoPositivoSchema,
@@ -235,8 +235,8 @@ export default function PedidoFormModal({
         })),
       };
 
-      // Incluir vendedor se selecionado (apenas na edição)
-      if (editingPedido && vendedorSelecionado) {
+      // Incluir vendedor se selecionado (criação e edição)
+      if (vendedorSelecionado) {
         payload.created_by = parseInt(vendedorSelecionado);
       }
 
@@ -253,11 +253,14 @@ export default function PedidoFormModal({
   // Encontrar vendedor selecionado
   const vendedorSelecionadoObj = usuarios.find(u => u.id === parseInt(vendedorSelecionado));
 
+  // Filtrar apenas usuários marcados como vendedores
+  const vendedoresDisponiveis = usuarios.filter(u => u.is_vendedor === true);
+
   const footerButtons = (
     <div className="flex items-center justify-between">
-      {/* Vendedor com foto no footer (apenas edição) */}
+      {/* Vendedor com foto no footer (criação e edição) */}
       <div className="flex items-center gap-2">
-        {editingPedido && canEdit && (
+        {canEdit && (
           <div className="flex items-center gap-2">
             {vendedorSelecionadoObj && (
               <Gravatar
@@ -274,7 +277,7 @@ export default function PedidoFormModal({
                 className="appearance-none bg-transparent text-sm text-gray-600 dark:text-gray-400 focus:outline-none cursor-pointer hover:text-gray-900 dark:hover:text-white pr-5"
               >
                 <option value="">Vendedor...</option>
-                {usuarios.map(u => (
+                {vendedoresDisponiveis.map(u => (
                   <option key={u.id} value={u.id}>
                     {u.nome}
                   </option>
@@ -327,6 +330,7 @@ export default function PedidoFormModal({
               label="Data Entrega"
               type="date"
               error={errors.data_entrega?.message}
+              required
               {...register('data_entrega')}
             />
             <Input

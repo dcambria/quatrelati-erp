@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Configurações do Sistema
-// v1.0.1 - Corrige importação de produtos
+// v1.0.2 - Corrige exportacao de pedidos (remove pr.codigo)
 // Apenas superadmins podem acessar
 // =====================================================
 
@@ -168,7 +168,7 @@ router.get('/exportar/pedidos', async (req, res) => {
         const pedidosComItens = await Promise.all(
             pedidosResult.rows.map(async (pedido) => {
                 const itensResult = await req.db.query(`
-                    SELECT pi.*, pr.nome as produto_nome, pr.codigo as produto_codigo
+                    SELECT pi.*, pr.nome as produto_nome
                     FROM pedido_itens pi
                     LEFT JOIN produtos pr ON pi.produto_id = pr.id
                     WHERE pi.pedido_id = $1

@@ -31,6 +31,7 @@ router.get('/', pedidosQueryValidation, vendedorFilterMiddleware, async (req, re
             status,
             incluir_cancelados,
             apenas_orcamentos,
+            apenas_cancelados,
             page = 1,
             limit = 50
         } = req.query;
@@ -47,16 +48,22 @@ router.get('/', pedidosQueryValidation, vendedorFilterMiddleware, async (req, re
             paramIndex = vendedorFilter.newIndex;
         }
 
-        // Filtro de orçamentos vs pedidos
-        if (apenas_orcamentos === 'true') {
-            whereConditions.push('p.is_orcamento = true');
+        // Filtro de cancelados - prioridade sobre outros filtros
+        if (apenas_cancelados === 'true') {
+            // Aba Cancelados: mostra todos os cancelados (pedidos e orçamentos)
+            whereConditions.push('p.cancelado = true');
         } else {
-            whereConditions.push('p.is_orcamento = false');
-        }
+            // Abas normais: filtra por orçamentos vs pedidos
+            if (apenas_orcamentos === 'true') {
+                whereConditions.push('p.is_orcamento = true');
+            } else {
+                whereConditions.push('p.is_orcamento = false');
+            }
 
-        // Filtro de cancelados (por padrão não mostra cancelados)
-        if (incluir_cancelados !== 'true') {
-            whereConditions.push('p.cancelado = false');
+            // Não mostra cancelados nas abas normais (a menos que explicitamente solicitado)
+            if (incluir_cancelados !== 'true') {
+                whereConditions.push('p.cancelado = false');
+            }
         }
 
         // Filtro por mês/ano (baseado na data de entrega)

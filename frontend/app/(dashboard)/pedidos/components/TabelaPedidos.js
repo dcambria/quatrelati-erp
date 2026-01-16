@@ -30,6 +30,7 @@ export default function TabelaPedidos({
   canEdit,
   isSuperAdmin = false,
   isOrcamento = false,
+  isCancelados = false,
   onView,
   onEdit,
   onDelete,
@@ -121,7 +122,7 @@ export default function TabelaPedidos({
                 </button>
               </th>
               <th onClick={() => alternarOrdenacao('numero_pedido')} className="py-3 px-3 text-left cursor-pointer hover:bg-white/10">
-                <div className="flex items-center gap-1">{isOrcamento ? 'Orçamento' : 'Pedido'} <IconeOrdenacao coluna="numero_pedido" /></div>
+                <div className="flex items-center gap-1">{isCancelados ? 'Item' : isOrcamento ? 'Orçamento' : 'Pedido'} <IconeOrdenacao coluna="numero_pedido" /></div>
               </th>
               <th onClick={() => alternarOrdenacao('data_pedido')} className="py-3 px-3 text-left cursor-pointer hover:bg-white/10">
                 <div className="flex items-center gap-1">Data <IconeOrdenacao coluna="data_pedido" /></div>
@@ -155,8 +156,8 @@ export default function TabelaPedidos({
               <tr>
                 <td colSpan={11} className="text-center py-12 text-gray-400">
                   {busca
-                    ? `Nenhum ${isOrcamento ? 'orçamento' : 'pedido'} encontrado para esta busca`
-                    : `Nenhum ${isOrcamento ? 'orçamento' : 'pedido'} neste período`}
+                    ? `Nenhum ${isCancelados ? 'item cancelado' : isOrcamento ? 'orçamento' : 'pedido'} encontrado para esta busca`
+                    : `Nenhum ${isCancelados ? 'item cancelado' : isOrcamento ? 'orçamento' : 'pedido'} neste período`}
                 </td>
               </tr>
             </tbody>

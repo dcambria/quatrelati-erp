@@ -1,6 +1,6 @@
 // =====================================================
-// Modal de Formulário de Pedido
-// v1.13.0 - Alerta para data de entrega no passado
+// Modal de Formulário de Pedido/Orçamento
+// v1.14.0 - Suporte a orçamentos (is_orcamento)
 // =====================================================
 
 'use client';
@@ -76,6 +76,7 @@ export default function PedidoFormModal({
   canEdit,
   onSave,
   carregarPedidoCompleto,
+  isOrcamento = false,
 }) {
   const [saving, setSaving] = useState(false);
   const [itens, setItens] = useState([{ produto_id: '', quantidade_caixas: '', preco_unitario: '' }]);
@@ -219,7 +220,7 @@ export default function PedidoFormModal({
     );
 
     if (itensValidos.length === 0) {
-      toast.error('Adicione pelo menos um produto ao pedido');
+      toast.error(`Adicione pelo menos um produto ao ${isOrcamento ? 'orçamento' : 'pedido'}`);
       return;
     }
 
@@ -233,6 +234,7 @@ export default function PedidoFormModal({
         observacoes: data.observacoes || null,
         preco_descarga_pallet: moedaParaNumero(data.preco_descarga_pallet),
         horario_recebimento: data.horario_recebimento || null,
+        is_orcamento: isOrcamento,
         itens: itensValidos.map(item => ({
           produto_id: parseInt(item.produto_id),
           quantidade_caixas: parseInt(item.quantidade_caixas),
@@ -248,8 +250,8 @@ export default function PedidoFormModal({
       await onSave(payload, editingPedido?.id);
       fecharModal();
     } catch (error) {
-      console.error('Erro ao salvar pedido:', error);
-      toast.error(error.message || 'Erro ao salvar pedido');
+      console.error(`Erro ao salvar ${isOrcamento ? 'orçamento' : 'pedido'}:`, error);
+      toast.error(error.message || `Erro ao salvar ${isOrcamento ? 'orçamento' : 'pedido'}`);
     } finally {
       setSaving(false);
     }
@@ -308,7 +310,7 @@ export default function PedidoFormModal({
     <Modal
       isOpen={isOpen}
       onClose={fecharModal}
-      title={editingPedido ? 'Editar Pedido' : 'Novo Pedido'}
+      title={editingPedido ? `Editar ${isOrcamento ? 'Orçamento' : 'Pedido'}` : `Novo ${isOrcamento ? 'Orçamento' : 'Pedido'}`}
       size="lg"
       footer={footerButtons}
     >

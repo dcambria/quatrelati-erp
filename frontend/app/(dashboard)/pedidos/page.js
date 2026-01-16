@@ -1,7 +1,7 @@
 'use client';
 // =====================================================
 // Pagina de Gestao de Pedidos
-// v2.5.0 - Orçamentos + Cancelamento + Exclusão superadmin
+// v2.6.0 - Aba Cancelados + fix criação orçamentos
 // =====================================================
 
 import { useState, useEffect } from 'react';
@@ -41,7 +41,7 @@ export default function PedidosPage() {
   const { canEdit, canViewAll, user, isSuperAdmin } = useAuth();
   const { vendedorId: vendedorGlobal } = useVendedorFilter();
 
-  // Aba ativa: 'pedidos' ou 'orcamentos'
+  // Aba ativa: 'pedidos', 'orcamentos' ou 'cancelados'
   const [abaAtiva, setAbaAtiva] = useState('pedidos');
 
   // Ler parâmetros da URL (vindos do dashboard)
@@ -169,6 +169,7 @@ export default function PedidosPage() {
       if (filtroProduto) url += `&produto_id=${filtroProduto}`;
       if (vendedorGlobal) url += `&vendedor_id=${vendedorGlobal}`;
       if (abaAtiva === 'orcamentos') url += `&apenas_orcamentos=true`;
+      if (abaAtiva === 'cancelados') url += `&apenas_cancelados=true`;
 
       const res = await api.get(url);
       setPedidos(res.data.pedidos);
@@ -410,15 +411,17 @@ export default function PedidosPage() {
   return (
     <div className="p-6 space-y-6">
       <Header
-        title={abaAtiva === 'pedidos' ? 'Pedidos' : 'Orçamentos'}
+        title={abaAtiva === 'pedidos' ? 'Pedidos' : abaAtiva === 'orcamentos' ? 'Orçamentos' : 'Cancelados'}
         stats={[
           {
-            icon: abaAtiva === 'pedidos' ? ShoppingCart : FileText,
+            icon: abaAtiva === 'pedidos' ? ShoppingCart : abaAtiva === 'orcamentos' ? FileText : Ban,
             label: 'Total',
             value: pedidos.length,
             color: abaAtiva === 'pedidos'
               ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-              : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+              : abaAtiva === 'orcamentos'
+                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
           }
         ]}
         actions={
@@ -483,7 +486,7 @@ export default function PedidosPage() {
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline ml-1">PDF</span>
             </Button>
-            {canEdit && (
+            {canEdit && abaAtiva !== 'cancelados' && (
               <Button onClick={() => abrirModal()} className="!px-2 sm:!px-4">
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline ml-1">
@@ -495,7 +498,7 @@ export default function PedidosPage() {
         }
       />
 
-      {/* Abas: Pedidos | Orçamentos */}
+      {/* Abas: Pedidos | Orçamentos | Cancelados */}
       <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
         <button
           onClick={() => setAbaAtiva('pedidos')}
@@ -518,6 +521,17 @@ export default function PedidosPage() {
         >
           <FileText className="w-4 h-4" />
           Orçamentos
+        </button>
+        <button
+          onClick={() => setAbaAtiva('cancelados')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            abaAtiva === 'cancelados'
+              ? 'border-gray-500 text-gray-600 dark:text-gray-400'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+          }`}
+        >
+          <Ban className="w-4 h-4" />
+          Cancelados
         </button>
       </div>
 
@@ -597,6 +611,7 @@ export default function PedidosPage() {
             canEdit={canEdit}
             isSuperAdmin={isSuperAdmin}
             isOrcamento={abaAtiva === 'orcamentos'}
+            isCancelados={abaAtiva === 'cancelados'}
             onView={abrirVisualizacao}
             onEdit={abrirModal}
             onDelete={setDeleteConfirm}
@@ -633,6 +648,7 @@ export default function PedidosPage() {
         canEdit={canEdit}
         onSave={salvarPedido}
         carregarPedidoCompleto={carregarPedidoCompleto}
+        isOrcamento={abaAtiva === 'orcamentos'}
       />
 
       {/* Modal de Confirmação de Exclusão */}

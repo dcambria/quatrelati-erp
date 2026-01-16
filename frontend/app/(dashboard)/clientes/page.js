@@ -799,6 +799,14 @@ export default function ClientesPage() {
       {/* Header usando componente padrão */}
       <Header
         title="Clientes"
+        stats={[
+          {
+            icon: User,
+            label: 'Total',
+            value: clientes.length,
+            color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+          }
+        ]}
         actions={
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Button variant="secondary" onClick={exportarPdf} disabled={exportingPdf || clientes.length === 0} className="!px-2 sm:!px-4">

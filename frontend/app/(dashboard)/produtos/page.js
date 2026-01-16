@@ -229,6 +229,14 @@ export default function ProdutosPage() {
     <div className="p-6 space-y-6">
       <Header
         title="Produtos"
+        stats={[
+          {
+            icon: Package,
+            label: 'Total',
+            value: produtos.length,
+            color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+          }
+        ]}
         actions={
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Button onClick={() => abrirModal()} className="!px-2 sm:!px-4">

@@ -16,6 +16,7 @@ import {
   Search,
   X,
   CalendarDays,
+  ShoppingCart,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -365,6 +366,14 @@ export default function PedidosPage() {
     <div className="p-6 space-y-6">
       <Header
         title="Pedidos"
+        stats={[
+          {
+            icon: ShoppingCart,
+            label: 'Total',
+            value: pedidos.length,
+            color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+          }
+        ]}
         actions={
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {/* Navegação de mês */}

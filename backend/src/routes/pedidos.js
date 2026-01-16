@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Pedidos
-// v2.0.4 - Corrige ordem das rotas (exportar antes de :id)
+// v2.1.0 - Número de pedido sequencial (nunca reutiliza)
 // =====================================================
 
 const express = require('express');
@@ -507,27 +507,23 @@ router.post('/', activityLogMiddleware('criar', 'pedido'), async (req, res) => {
         // Iniciar transação
         await client.query('BEGIN');
 
-        // Gerar número do pedido (YYMMXX)
+        // Gerar número do pedido (YYMMXX) - sequencial nunca se repete
         const dataPedido = new Date(data_pedido);
         const ano = dataPedido.getFullYear().toString().slice(-2);
         const mes = (dataPedido.getMonth() + 1).toString().padStart(2, '0');
+        const anoMes = `${ano}${mes}`;
 
-        // Buscar último número do mês
-        const ultimoNumero = await client.query(`
-            SELECT numero_pedido
-            FROM pedidos
-            WHERE numero_pedido LIKE $1
-            ORDER BY numero_pedido DESC
-            LIMIT 1
-        `, [`${ano}${mes}%`]);
+        // Incrementar e obter próximo sequencial (atômico, nunca reutiliza números)
+        const seqResult = await client.query(`
+            INSERT INTO pedido_sequencias (ano_mes, ultimo_sequencial)
+            VALUES ($1, 1)
+            ON CONFLICT (ano_mes) DO UPDATE
+            SET ultimo_sequencial = pedido_sequencias.ultimo_sequencial + 1
+            RETURNING ultimo_sequencial
+        `, [anoMes]);
 
-        let sequencial = 1;
-        if (ultimoNumero.rows.length > 0) {
-            const ultimoSeq = parseInt(ultimoNumero.rows[0].numero_pedido.slice(-2));
-            sequencial = ultimoSeq + 1;
-        }
-
-        const numeroPedido = `${ano}${mes}${sequencial.toString().padStart(2, '0')}`;
+        const sequencial = seqResult.rows[0].ultimo_sequencial;
+        const numeroPedido = `${anoMes}${sequencial.toString().padStart(2, '0')}`;
 
         // Calcular totais dos itens
         let totalGeral = 0;

@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Usuários
-// v1.6.0 - Campo is_vendedor para identificar vendedores
+// v1.7.0 - Corrige exclusão de usuário com logs vinculados
 // =====================================================
 
 const express = require('express');
@@ -244,7 +244,11 @@ router.delete('/:id', idValidation, activityLogMiddleware('excluir', 'usuario'),
         }
 
         // Hard delete se não criou pedidos
+        // Remover registros relacionados antes de excluir o usuário
         await req.db.query('DELETE FROM refresh_tokens WHERE user_id = $1', [id]);
+        await req.db.query('DELETE FROM magic_links WHERE user_id = $1', [id]);
+        await req.db.query('DELETE FROM activity_logs WHERE user_id = $1', [id]);
+        await req.db.query('DELETE FROM error_logs WHERE user_id = $1', [id]);
 
         const result = await req.db.query(
             'DELETE FROM usuarios WHERE id = $1 RETURNING id, nome, email',

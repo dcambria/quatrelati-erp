@@ -576,18 +576,20 @@ export default function UsuariosPage() {
         onClose={() => setDeleteConfirm(null)}
         title="Confirmar Exclusão"
         size="sm"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setDeleteConfirm(null)}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={() => excluirUsuario(deleteConfirm?.id)}>
+              Excluir
+            </Button>
+          </div>
+        }
       >
-        <p className="text-gray-600 dark:text-gray-400 mb-6">
+        <p className="text-gray-600 dark:text-gray-400">
           Tem certeza que deseja excluir/desativar o usuário <strong>{deleteConfirm?.nome}</strong>?
         </p>
-        <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={() => setDeleteConfirm(null)}>
-            Cancelar
-          </Button>
-          <Button variant="danger" onClick={() => excluirUsuario(deleteConfirm?.id)}>
-            Excluir
-          </Button>
-        </div>
       </Modal>
     </div>
   );

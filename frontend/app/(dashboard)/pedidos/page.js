@@ -664,19 +664,21 @@ export default function PedidosPage() {
         onClose={() => setDeleteConfirm(null)}
         title="Confirmar Exclusão"
         size="sm"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setDeleteConfirm(null)}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={() => excluirPedido(deleteConfirm?.id)}>
+              Excluir
+            </Button>
+          </div>
+        }
       >
-        <p className="text-gray-600 dark:text-gray-400 mb-6">
+        <p className="text-gray-600 dark:text-gray-400">
           Tem certeza que deseja excluir o pedido <strong>{deleteConfirm?.numero_pedido}</strong>?
           Esta ação não pode ser desfeita.
         </p>
-        <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={() => setDeleteConfirm(null)}>
-            Cancelar
-          </Button>
-          <Button variant="danger" onClick={() => excluirPedido(deleteConfirm?.id)}>
-            Excluir
-          </Button>
-        </div>
       </Modal>
 
       {/* Modal de Confirmação de Reverter Entrega */}
@@ -685,22 +687,24 @@ export default function PedidosPage() {
         onClose={() => setRevertConfirm(null)}
         title="Reverter Entrega"
         size="sm"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setRevertConfirm(null)}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+              onClick={() => reverterEntrega(revertConfirm?.id)}
+            >
+              Reverter Entrega
+            </Button>
+          </div>
+        }
       >
-        <p className="text-gray-600 dark:text-gray-400 mb-6">
+        <p className="text-gray-600 dark:text-gray-400">
           Tem certeza que deseja reverter a entrega do pedido <strong>{revertConfirm?.numero_pedido}</strong>?
           O status voltará para <strong>Pendente</strong>.
         </p>
-        <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={() => setRevertConfirm(null)}>
-            Cancelar
-          </Button>
-          <Button
-            className="bg-amber-500 hover:bg-amber-600 text-white"
-            onClick={() => reverterEntrega(revertConfirm?.id)}
-          >
-            Reverter Entrega
-          </Button>
-        </div>
       </Modal>
 
       {/* Modal de Cancelamento */}
@@ -709,37 +713,41 @@ export default function PedidosPage() {
         onClose={() => { setCancelConfirm(null); setMotivoCancelamento(''); }}
         title="Cancelar Pedido"
         size="sm"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => { setCancelConfirm(null); setMotivoCancelamento(''); }}>
+              Voltar
+            </Button>
+            <Button
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+              onClick={() => cancelarPedido(cancelConfirm?.id)}
+            >
+              <Ban className="w-4 h-4 mr-1" />
+              Cancelar Pedido
+            </Button>
+          </div>
+        }
       >
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
-          Tem certeza que deseja cancelar o pedido <strong>{cancelConfirm?.numero_pedido || `#${cancelConfirm?.id}`}</strong>?
-        </p>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Motivo do cancelamento (opcional)
-          </label>
-          <textarea
-            value={motivoCancelamento}
-            onChange={(e) => setMotivoCancelamento(e.target.value)}
-            placeholder="Informe o motivo do cancelamento..."
-            className="input-glass w-full resize-none"
-            rows={2}
-          />
-        </div>
-        <p className="text-sm text-amber-600 dark:text-amber-400 mb-4">
-          <Ban className="w-4 h-4 inline mr-1" />
-          O número do pedido permanecerá bloqueado e não poderá ser reutilizado.
-        </p>
-        <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={() => { setCancelConfirm(null); setMotivoCancelamento(''); }}>
-            Voltar
-          </Button>
-          <Button
-            className="bg-amber-500 hover:bg-amber-600 text-white"
-            onClick={() => cancelarPedido(cancelConfirm?.id)}
-          >
-            <Ban className="w-4 h-4 mr-1" />
-            Cancelar Pedido
-          </Button>
+        <div className="space-y-4">
+          <p className="text-gray-600 dark:text-gray-400">
+            Tem certeza que deseja cancelar o pedido <strong>{cancelConfirm?.numero_pedido || `#${cancelConfirm?.id}`}</strong>?
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Motivo do cancelamento (opcional)
+            </label>
+            <textarea
+              value={motivoCancelamento}
+              onChange={(e) => setMotivoCancelamento(e.target.value)}
+              placeholder="Informe o motivo do cancelamento..."
+              className="input-glass w-full resize-none"
+              rows={2}
+            />
+          </div>
+          <p className="text-sm text-amber-600 dark:text-amber-400">
+            <Ban className="w-4 h-4 inline mr-1" />
+            O número do pedido permanecerá bloqueado e não poderá ser reutilizado.
+          </p>
         </div>
       </Modal>
 

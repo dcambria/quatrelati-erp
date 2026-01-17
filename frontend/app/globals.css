@@ -319,7 +319,6 @@
 
   /* Scrollbar elegante no conteúdo do modal */
   .modal-content .overflow-y-auto {
-    scrollbar-gutter: stable;
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
   }

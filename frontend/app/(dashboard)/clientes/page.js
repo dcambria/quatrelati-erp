@@ -1924,8 +1924,18 @@ export default function ClientesPage() {
         onClose={() => setDeleteConfirm(null)}
         title="Confirmar Exclusão"
         size="sm"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setDeleteConfirm(null)}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={() => excluirCliente(deleteConfirm?.id)}>
+              Excluir
+            </Button>
+          </div>
+        }
       >
-        <p className="text-gray-600 dark:text-gray-400 mb-6">
+        <p className="text-gray-600 dark:text-gray-400">
           Tem certeza que deseja excluir o cliente <strong>{deleteConfirm?.nome}</strong>?
           {deleteConfirm?.total_pedidos > 0 && (
             <span className="block mt-2 text-amber-600">
@@ -1933,14 +1943,6 @@ export default function ClientesPage() {
             </span>
           )}
         </p>
-        <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={() => setDeleteConfirm(null)}>
-            Cancelar
-          </Button>
-          <Button variant="danger" onClick={() => excluirCliente(deleteConfirm?.id)}>
-            Excluir
-          </Button>
-        </div>
       </Modal>
     </div>
   );

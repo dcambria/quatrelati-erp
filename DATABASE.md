@@ -246,13 +246,50 @@ Located in `/db/migrations/`:
 
 ## Backup
 
+### Backup Automático (Produção)
+
+Backup diário automático configurado via cron no servidor EC2:
+
+| Item | Valor |
+|------|-------|
+| Script | `/usr/local/bin/quatrelati-backup.sh` |
+| Horário | Todo dia às **03:00** (horário servidor) |
+| Retenção | **30 dias** com rotação automática |
+| Formato | `.sql.gz` (pg_dump comprimido com gzip) |
+| Destino | `/var/www/vhosts/laticinioquatrelati.com.br/erp.laticinioquatrelati.com.br/backups/` |
+| Log | `/var/log/quatrelati-backup.log` |
+
+Entrada no crontab (`sudo crontab -l`):
+```
+0 3 * * * /usr/local/bin/quatrelati-backup.sh
+```
+
+### Comandos Manuais
+
 ```bash
-# Backup (producao)
+# Backup manual (produção)
+sudo docker exec quatrelati-db pg_dump -U quatrelati quatrelati_pedidos | gzip > backup-$(date +%Y%m%d).sql.gz
+
+# Backup não comprimido (produção)
 sudo docker exec quatrelati-db pg_dump -U quatrelati quatrelati_pedidos > backup.sql
 
 # Backup (desenvolvimento)
 docker exec quatrelati-postgres pg_dump -U quatrelati quatrelati > backup.sql
 
-# Restore
-docker exec -i quatrelati-postgres psql -U quatrelati quatrelati < backup.sql
+# Listar backups disponíveis
+sudo ls -lah /var/www/vhosts/laticinioquatrelati.com.br/erp.laticinioquatrelati.com.br/backups/
+
+# Ver log de backups
+sudo cat /var/log/quatrelati-backup.log
+```
+
+### Restore
+
+```bash
+# Restore de backup comprimido (CUIDADO: apaga dados atuais)
+# Consulte o usuário antes de executar!
+gunzip -c backup-YYYYMMDD.sql.gz | sudo docker exec -i quatrelati-db psql -U quatrelati quatrelati_pedidos
+
+# Restore não comprimido
+sudo docker exec -i quatrelati-db psql -U quatrelati quatrelati_pedidos < backup.sql
 ```

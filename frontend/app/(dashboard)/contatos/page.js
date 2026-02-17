@@ -59,9 +59,9 @@ export default function ContatosPage() {
       if (statusFiltro) params.set('status', statusFiltro);
       params.set('limit', '100');
 
-      const data = await api.get(`/contatos?${params.toString()}`);
-      setContatos(data.contatos || []);
-      setTotal(data.total || 0);
+      const res = await api.get(`/contatos?${params.toString()}`);
+      setContatos(res.data.contatos || []);
+      setTotal(res.data.total || 0);
     } catch (error) {
       toast.error('Erro ao carregar contatos');
     } finally {

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-02-17
+
+### Added
+- Módulo Contatos do Site: lista leads do formulário institucional no ERP
+- Notificação automática por email para wilson@laticinioquatrelati.com.br ao receber novo contato
+- Remetente de notificação: customercare@bit-bpo.com (AWS SES, domínio bit-bpo.com)
+- Badge de contatos novos no menu lateral (atualiza a cada 60s)
+- Integração site → ERP: formulário salva dados em `contatos_site` via API Key
+- Backup automático diário (03:00) com retenção de 30 dias e rotação automática
+- Script `/usr/local/bin/quatrelati-backup.sh` instalado no servidor EC2
+- `site/.env.prod` criado no servidor com variáveis de ambiente de produção
+
+### Fixed
+- Container site sem variáveis de ambiente (ERP_API_URL, ERP_API_KEY, SES_FROM_EMAIL)
+- Página /contatos exibia "0 contatos" por usar `data.contatos` ao invés de `res.data.contatos`
+- Backend desatualizado (v1.2.0 sem rota /api/contatos): rebuild e redeploy
+
 ## [2.2.0] - 2026-01-14
 
 ### Added

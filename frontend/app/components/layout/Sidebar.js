@@ -8,6 +8,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Package,
@@ -24,6 +25,7 @@ import {
   Eye,
   XCircle,
   Activity,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -36,6 +38,7 @@ const menuItems = [
   { href: '/pedidos', label: 'Pedidos', icon: ShoppingCart },
   { href: '/clientes', label: 'Clientes', icon: Users },
   { href: '/produtos', label: 'Produtos', icon: Package },
+  { href: '/contatos', label: 'Contatos', icon: MessageSquare, badge: true },
 ];
 
 const adminItems = [
@@ -46,6 +49,33 @@ const superadminItems = [
   { href: '/atividades', label: 'Atividades', icon: Activity, superadminOnly: true },
   { href: '/configuracoes', label: 'Configuracoes', icon: Settings, superadminOnly: true },
 ];
+
+function useContatosNovos() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+        if (!token) return;
+        const res = await fetch('/api/contatos/novos/count', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCount(data.count || 0);
+        }
+      } catch {
+        // silencioso
+      }
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return count;
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -60,6 +90,8 @@ export default function Sidebar() {
     canFilter,
     isFiltering,
   } = useVendedorFilter();
+
+  const contatosNovos = useContatosNovos();
 
   const isActive = (href) => {
     if (href === '/') return pathname === '/';
@@ -244,7 +276,16 @@ export default function Sidebar() {
                   title={isCollapsed && !isMobile ? item.label : undefined}
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
-                  {(!isCollapsed || isMobile) && <span className="font-medium">{item.label}</span>}
+                  {(!isCollapsed || isMobile) && (
+                    <>
+                      <span className="font-medium flex-1">{item.label}</span>
+                      {item.badge && contatosNovos > 0 && (
+                        <span className="bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none">
+                          {contatosNovos > 99 ? '99+' : contatosNovos}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </Link>
               );
             })}

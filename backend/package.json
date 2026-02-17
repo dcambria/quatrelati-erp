@@ -1,6 +1,6 @@
 {
   "name": "quatrelati-api",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "API do Sistema de Gestão de Pedidos - Laticínio Quatrelati",
   "main": "src/server.js",
   "scripts": {

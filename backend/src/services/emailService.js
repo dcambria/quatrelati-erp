@@ -354,7 +354,76 @@ Fabricando Manteiga para Industria e Food Service
     }
 }
 
+/**
+ * Envia email de contato do site institucional via AWS SES
+ */
+async function sendContactEmail({ nome, empresa, email, telefone, mensagem }) {
+    const CONTATO_TO = process.env.CONTATO_EMAIL || 'daniel.cambria@gmail.com';
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#f0f4f8;">
+  <table role="presentation" style="width:100%;background:#f0f4f8;">
+    <tr><td align="center" style="padding:40px 20px;">
+      <table role="presentation" style="width:100%;max-width:520px;">
+        <tr>
+          <td style="padding:32px 40px;text-align:center;background:linear-gradient(135deg,#314c97 0%,#0d2436 100%);border-radius:16px 16px 0 0;">
+            <img src="https://s3.amazonaws.com/bureau-it.com/quatrelati/logo-email.png" alt="Quatrelati" style="max-width:180px;height:auto;">
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#fff;padding:40px;">
+            <h2 style="margin:0 0 24px;color:#0d2436;font-size:20px;">Novo contato pelo site</h2>
+            <table style="width:100%;border-collapse:collapse;">
+              <tr><td style="padding:10px 0;border-bottom:1px solid #f3f3f3;color:#6B7280;font-size:13px;width:120px;">Nome</td><td style="padding:10px 0;border-bottom:1px solid #f3f3f3;color:#1F2937;font-size:14px;font-weight:600;">${nome}</td></tr>
+              <tr><td style="padding:10px 0;border-bottom:1px solid #f3f3f3;color:#6B7280;font-size:13px;">Empresa</td><td style="padding:10px 0;border-bottom:1px solid #f3f3f3;color:#1F2937;font-size:14px;">${empresa}</td></tr>
+              <tr><td style="padding:10px 0;border-bottom:1px solid #f3f3f3;color:#6B7280;font-size:13px;">E-mail</td><td style="padding:10px 0;border-bottom:1px solid #f3f3f3;color:#314c97;font-size:14px;"><a href="mailto:${email}" style="color:#314c97;">${email}</a></td></tr>
+              <tr><td style="padding:10px 0;border-bottom:1px solid #f3f3f3;color:#6B7280;font-size:13px;">Telefone</td><td style="padding:10px 0;border-bottom:1px solid #f3f3f3;color:#1F2937;font-size:14px;">${telefone}</td></tr>
+              <tr><td style="padding:10px 0;color:#6B7280;font-size:13px;vertical-align:top;">Mensagem</td><td style="padding:10px 0;color:#1F2937;font-size:14px;line-height:1.6;">${mensagem.replace(/\n/g, '<br>')}</td></tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 40px;text-align:center;background:#F9FAFB;border-radius:0 0 16px 16px;border-top:1px solid #E5E7EB;">
+            <p style="margin:0;color:#9CA3AF;font-size:12px;">Quatrelati Alimentos — Site Institucional</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+    const textBody = `Novo contato pelo site — Quatrelati\n\nNome: ${nome}\nEmpresa: ${empresa}\nE-mail: ${email}\nTelefone: ${telefone}\n\nMensagem:\n${mensagem}`;
+
+    const params = {
+        Source: `Quatrelati Site <${FROM_EMAIL}>`,
+        Destination: { ToAddresses: [CONTATO_TO] },
+        ReplyToAddresses: [email],
+        Message: {
+            Subject: { Data: `Orçamento: ${nome} — ${empresa}`, Charset: 'UTF-8' },
+            Body: {
+                Html: { Data: htmlBody, Charset: 'UTF-8' },
+                Text: { Data: textBody, Charset: 'UTF-8' },
+            },
+        },
+    };
+
+    try {
+        const command = new SendEmailCommand(params);
+        const response = await sesClient.send(command);
+        console.log(`[EMAIL] Contato site enviado via SES. MessageId: ${response.MessageId}`);
+        return { messageId: response.MessageId };
+    } catch (error) {
+        console.error('[EMAIL] Erro ao enviar contato via SES:', error.message);
+        throw error;
+    }
+}
+
 module.exports = {
     sendMagicLinkEmail,
     sendInviteEmail,
+    sendContactEmail,
 };

@@ -1,6 +1,6 @@
 # =====================================================
 # Docker Compose para Deploy em Plesk
-# v1.0.0 - Produção com Cloudflare
+# v1.1.0 - Inclui serviço site (landing page)
 # =====================================================
 # Uso: docker compose -f docker-compose.plesk.yml up -d
 
@@ -50,6 +50,7 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      SITE_API_KEY: ${SITE_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,6 +85,26 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    networks:
+      - quatrelati-network
+
+  site:
+    build:
+      context: ./site
+      dockerfile: Dockerfile
+      target: production
+    container_name: quatrelati-site
+    restart: always
+    ports:
+      - "127.0.0.1:3100:3100"
+    env_file:
+      - ./site/.env.prod
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - quatrelati-network
 

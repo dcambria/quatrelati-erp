@@ -23,6 +23,8 @@ const dashboardRoutes = require('./routes/dashboard');
 const uploadRoutes = require('./routes/upload');
 const logsRoutes = require('./routes/logs');
 const configuracoesRoutes = require('./routes/configuracoes');
+const contactRoutes = require('./routes/contact');
+const contatosRoutes = require('./routes/contatos');
 
 // Importar utilitários
 const seedPasswords = require('./utils/seedPasswords');
@@ -84,6 +86,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/configuracoes', configuracoesRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/contatos', contatosRoutes);
 
 // Middleware de tratamento de erros 404
 app.use((req, res, next) => {

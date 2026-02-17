@@ -1,6 +1,6 @@
 # =====================================================
 # Docker Compose para Deploy em Plesk
-# v1.1.1 - Site service consome imagem do GHCR (quatrelati-site CI/CD)
+# v1.2.0 - CI/CD via GHCR (backend + frontend imagens versionadas)
 # =====================================================
 # Uso: docker compose -f docker-compose.plesk.yml up -d
 
@@ -25,10 +25,7 @@ services:
       - quatrelati-network
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: production
+    image: ghcr.io/dcambria/quatrelati-erp-backend:latest
     container_name: quatrelati-backend
     restart: always
     ports:
@@ -64,12 +61,7 @@ services:
       - quatrelati-network
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: production
-      args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    image: ghcr.io/dcambria/quatrelati-erp-frontend:latest
     container_name: quatrelati-frontend
     restart: always
     ports:

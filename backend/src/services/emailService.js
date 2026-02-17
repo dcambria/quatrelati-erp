@@ -2,11 +2,12 @@
  * ===========================================
  * Quatrelati - Email Service
  * Envio de emails via AWS SES
- * v2.3.1 - Corrige botão em branco no email de convite (dark mode)
+ * v2.4.0 - sendReplyEmail com suporte a anexos (nodemailer SES transport)
  * ===========================================
  */
 
-const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
+const nodemailer = require('nodemailer');
+const { SESClient, SendEmailCommand, SendRawEmailCommand } = require('@aws-sdk/client-ses');
 
 // Configurar cliente SES (usa IAM role automaticamente em EC2/Docker)
 const sesClient = new SESClient({
@@ -429,8 +430,9 @@ async function sendContactEmail({ nome, empresa, email, telefone, mensagem }) {
  * @param {string} assunto - Assunto do email
  * @param {string} corpo - Corpo em texto simples
  * @param {string} remetenteNome - Nome do atendente que enviou
+ * @param {Array} attachments - Arquivos anexados (objetos multer: { originalname, buffer, mimetype })
  */
-async function sendReplyEmail(to, toName, assunto, corpo, remetenteNome) {
+async function sendReplyEmail(to, toName, assunto, corpo, remetenteNome, attachments = []) {
     if (isTestEmail(to)) {
         console.log(`[EMAIL] Pulando reply para email de teste: ${to}`);
         return { skipped: true, reason: 'test_email' };
@@ -476,19 +478,43 @@ async function sendReplyEmail(to, toName, assunto, corpo, remetenteNome) {
 
     const textBody = `Olá, ${firstName}!\n\n${corpo}\n\n--\n${remetenteNome}\nLaticinio Quatrelati`;
 
-    const params = {
-        Source: `${FROM_NAME} <${FROM_EMAIL}>`,
-        Destination: { ToAddresses: [to] },
-        Message: {
-            Subject: { Data: assunto, Charset: 'UTF-8' },
-            Body: {
-                Html: { Data: htmlBody, Charset: 'UTF-8' },
-                Text: { Data: textBody, Charset: 'UTF-8' },
-            },
-        },
-    };
-
     try {
+        if (attachments.length > 0) {
+            // Com anexos: usar nodemailer SES transport (gera MIME raw com anexos)
+            const transporter = nodemailer.createTransport({
+                SES: { ses: sesClient, aws: { SendRawEmailCommand } },
+            });
+
+            const info = await transporter.sendMail({
+                from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+                to,
+                subject: assunto,
+                html: htmlBody,
+                text: textBody,
+                attachments: attachments.map(f => ({
+                    filename: f.originalname,
+                    content: f.buffer,
+                    contentType: f.mimetype,
+                })),
+            });
+
+            console.log(`[EMAIL] Reply com ${attachments.length} anexo(s) enviado para: ${to}`);
+            return { messageId: info.messageId };
+        }
+
+        // Sem anexos: usar SendEmailCommand (mais simples)
+        const params = {
+            Source: `${FROM_NAME} <${FROM_EMAIL}>`,
+            Destination: { ToAddresses: [to] },
+            Message: {
+                Subject: { Data: assunto, Charset: 'UTF-8' },
+                Body: {
+                    Html: { Data: htmlBody, Charset: 'UTF-8' },
+                    Text: { Data: textBody, Charset: 'UTF-8' },
+                },
+            },
+        };
+
         const command = new SendEmailCommand(params);
         const response = await sesClient.send(command);
         console.log(`[EMAIL] Reply enviado para: ${to} — MessageId: ${response.MessageId}`);

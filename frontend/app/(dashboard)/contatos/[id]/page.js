@@ -2,7 +2,7 @@
 
 // =====================================================
 // Detalhe de Contato do Site
-// v1.1.0 - WhatsApp button, timeline de histórico e modal de email
+// v1.2.0 - Suporte a anexos no email
 // =====================================================
 
 import { useState, useEffect, useCallback } from 'react';
@@ -24,6 +24,7 @@ import {
   ExternalLink,
   Send,
   MessageCircle,
+  Paperclip,
 } from 'lucide-react';
 import api from '../../../lib/api';
 import Header from '../../../components/layout/Header';
@@ -63,6 +64,7 @@ export default function ContatoDetalhePage() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [enviandoEmail, setEnviandoEmail] = useState(false);
   const [emailForm, setEmailForm] = useState({ assunto: '', corpo: '' });
+  const [emailAnexos, setEmailAnexos] = useState([]);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
@@ -99,10 +101,15 @@ export default function ContatoDetalhePage() {
     }
     try {
       setEnviandoEmail(true);
-      await api.post(`/contatos/${id}/email`, emailForm);
+      const formData = new FormData();
+      formData.append('assunto', emailForm.assunto);
+      formData.append('corpo', emailForm.corpo);
+      emailAnexos.forEach(f => formData.append('arquivos', f));
+      await api.upload(`/contatos/${id}/email`, formData);
       toast.success('Email enviado com sucesso!');
       setShowEmailModal(false);
       setEmailForm({ assunto: '', corpo: '' });
+      setEmailAnexos([]);
       fetchHistorico();
     } catch {
       toast.error('Erro ao enviar email');
@@ -338,6 +345,7 @@ export default function ContatoDetalhePage() {
                   icon={<Send className="w-4 h-4" />}
                   onClick={() => {
                     setEmailForm({ assunto: `Re: Contato de ${contato.nome}`, corpo: '' });
+                    setEmailAnexos([]);
                     setShowEmailModal(true);
                   }}
                 >
@@ -482,6 +490,39 @@ export default function ContatoDetalhePage() {
               className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               placeholder="Escreva sua mensagem..."
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Anexos (opcional, máx. 5 arquivos · 10 MB cada)
+            </label>
+            <label className="flex items-center gap-2 w-full px-3 py-2 text-sm border border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
+              <Paperclip className="w-4 h-4 text-gray-400 shrink-0" />
+              <span className="text-gray-500 dark:text-gray-400">
+                {emailAnexos.length > 0 ? `${emailAnexos.length} arquivo(s) selecionado(s)` : 'Clique para anexar arquivos'}
+              </span>
+              <input
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => setEmailAnexos(prev => [...prev, ...Array.from(e.target.files)].slice(0, 5))}
+              />
+            </label>
+            {emailAnexos.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {emailAnexos.map((f, i) => (
+                  <li key={i} className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded px-2 py-1">
+                    <span className="truncate">{f.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setEmailAnexos(a => a.filter((_, j) => j !== i))}
+                      className="ml-2 text-red-400 hover:text-red-600 shrink-0"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <div className="flex gap-3 justify-end pt-2">
             <Button variant="outline" type="button" onClick={() => setShowEmailModal(false)}>

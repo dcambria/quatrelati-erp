@@ -1,17 +1,24 @@
 // =====================================================
 // Rotas de Contatos do Site
-// v1.1.0 - Rate limiting, idValidation, activityLog e transação atômica
+// v1.2.0 - Suporte a anexos no email (multer memoryStorage)
 // =====================================================
 
 const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
+const multer = require('multer');
 const { authMiddleware } = require('../middleware/auth');
 const { apiKeyMiddleware } = require('../middleware/apiKey');
 const { idValidation } = require('../middleware/validation');
 const { activityLogMiddleware } = require('../middleware/activityLog');
 const { sendReplyEmail } = require('../services/emailService');
 const { logActivity } = require('../middleware/activityLog');
+
+// Multer para upload de anexos de email (memória, sem gravar em disco)
+const emailUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB por arquivo
+});
 
 // Rate limiter para o endpoint público de recebimento de contatos
 const contatosLimiter = rateLimit({
@@ -256,7 +263,7 @@ router.get('/:id/historico', idValidation, async (req, res) => {
  * Envia email de resposta para o contato via SES
  * Body: { assunto, corpo }
  */
-router.post('/:id/email', idValidation, async (req, res) => {
+router.post('/:id/email', idValidation, emailUpload.array('arquivos', 5), async (req, res) => {
     try {
         const { id } = req.params;
         const { assunto, corpo } = req.body;
@@ -286,7 +293,7 @@ router.post('/:id/email', idValidation, async (req, res) => {
         );
         const remetenteNome = remetenteResult.rows[0]?.nome || 'Equipe Quatrelati';
 
-        await sendReplyEmail(email, nome, assunto, corpo, remetenteNome);
+        await sendReplyEmail(email, nome, assunto, corpo, remetenteNome, req.files || []);
 
         // Registrar no activity_log via helper (nomes de colunas corretos)
         await logActivity(req.db, {
@@ -302,7 +309,8 @@ router.post('/:id/email', idValidation, async (req, res) => {
             userAgent: req.get('User-Agent'),
         });
 
-        console.log(`[CONTATOS] Email enviado para ${email} pelo usuário ${req.userId}`);
+        const numAnexos = (req.files || []).length;
+        console.log(`[CONTATOS] Email enviado para ${email} pelo usuário ${req.userId}${numAnexos ? ` (${numAnexos} anexo(s))` : ''}`);
         return res.json({ success: true });
     } catch (error) {
         console.error('[CONTATOS] Erro ao enviar email:', error.message);

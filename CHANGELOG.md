@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-02-17
+
+### Added
+- Tela /contatos/[id]: botão WhatsApp direto para ligar/responder ao contato
+- Tela /contatos/[id]: modal de envio de email de resposta direto do ERP via SES
+- Tela /contatos/[id]: timeline/histórico de mudanças de status e ações
+- Backend: `GET /api/contatos/:id/historico` — histórico via activity_logs
+- Backend: `POST /api/contatos/:id/email` — resposta por email via SES
+- emailService: `sendReplyEmail()` — email de resposta estilizado para o contato
+- Lista /contatos: badges de status visuais (pill colorida + ícone + borda lateral)
+
+### Fixed
+- Tela /contatos/[id]: campos em branco (bug api.js wrapper — `res.data` ao invés de `data`)
+- Tela /contatos/[id]: `result.data.cliente_nome` ao invés de `result.cliente_nome` no converter
+
 ## [2.3.0] - 2026-02-17
 
 ### Added

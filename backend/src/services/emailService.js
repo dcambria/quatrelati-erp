@@ -422,8 +422,86 @@ async function sendContactEmail({ nome, empresa, email, telefone, mensagem }) {
     }
 }
 
+/**
+ * Envia email de resposta para um contato do site
+ * @param {string} to - Email do destinatário (contato)
+ * @param {string} toName - Nome do contato
+ * @param {string} assunto - Assunto do email
+ * @param {string} corpo - Corpo em texto simples
+ * @param {string} remetenteNome - Nome do atendente que enviou
+ */
+async function sendReplyEmail(to, toName, assunto, corpo, remetenteNome) {
+    if (isTestEmail(to)) {
+        console.log(`[EMAIL] Pulando reply para email de teste: ${to}`);
+        return { skipped: true, reason: 'test_email' };
+    }
+
+    const firstName = toName.split(' ')[0];
+
+    const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#f0f4f8;">
+  <table role="presentation" style="width:100%;background:#f0f4f8;">
+    <tr><td align="center" style="padding:40px 20px;">
+      <table role="presentation" style="width:100%;max-width:520px;">
+        <tr>
+          <td style="padding:32px 40px;text-align:center;background:linear-gradient(135deg,#314c97 0%,#0d2436 100%);border-radius:16px 16px 0 0;">
+            <img src="https://s3.amazonaws.com/bureau-it.com/quatrelati/logo-email.png" alt="Quatrelati" style="max-width:180px;height:auto;">
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#fff;padding:40px;">
+            <p style="margin:0 0 8px;color:#6B7280;font-size:13px;">Olá, ${firstName}!</p>
+            <p style="margin:0 0 32px;color:#1F2937;font-size:15px;line-height:1.7;white-space:pre-wrap;">${corpo.replace(/\n/g, '<br>')}</p>
+            <hr style="margin:32px 0;border:none;border-top:1px solid #E5E7EB;">
+            <p style="margin:0;color:#9CA3AF;font-size:12px;">
+              Atenciosamente,<br>
+              <strong>${remetenteNome}</strong><br>
+              Laticinio Quatrelati
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 40px;text-align:center;background:#F9FAFB;border-radius:0 0 16px 16px;border-top:1px solid #E5E7EB;">
+            <p style="margin:0;color:#9CA3AF;font-size:12px;">Quatrelati Alimentos — Fabricando Manteiga para Industria e Food Service</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+    const textBody = `Olá, ${firstName}!\n\n${corpo}\n\n--\n${remetenteNome}\nLaticinio Quatrelati`;
+
+    const params = {
+        Source: `${FROM_NAME} <${FROM_EMAIL}>`,
+        Destination: { ToAddresses: [to] },
+        Message: {
+            Subject: { Data: assunto, Charset: 'UTF-8' },
+            Body: {
+                Html: { Data: htmlBody, Charset: 'UTF-8' },
+                Text: { Data: textBody, Charset: 'UTF-8' },
+            },
+        },
+    };
+
+    try {
+        const command = new SendEmailCommand(params);
+        const response = await sesClient.send(command);
+        console.log(`[EMAIL] Reply enviado para: ${to} — MessageId: ${response.MessageId}`);
+        return { messageId: response.MessageId };
+    } catch (error) {
+        console.error('[EMAIL] Erro ao enviar reply via SES:', error.message);
+        throw error;
+    }
+}
+
 module.exports = {
     sendMagicLinkEmail,
     sendInviteEmail,
     sendContactEmail,
+    sendReplyEmail,
 };

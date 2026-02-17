@@ -2,7 +2,7 @@
 
 // =====================================================
 // Página de Contatos do Site
-// v1.0.0 - Lista e gestão de mensagens do formulário
+// v1.1.0 - Lista e gestão de mensagens do formulário
 // =====================================================
 
 import { useState, useEffect, useCallback } from 'react';
@@ -23,16 +23,39 @@ import Header from '../../components/layout/Header';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
-import Badge from '../../components/ui/Badge';
 import Loading from '../../components/ui/Loading';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const STATUS_CONFIG = {
-  novo: { label: 'Novo', variant: 'blue' },
-  em_atendimento: { label: 'Em atendimento', variant: 'yellow' },
-  convertido: { label: 'Convertido', variant: 'green' },
-  descartado: { label: 'Descartado', variant: 'gray' },
+  novo: {
+    label: 'Novo',
+    variant: 'blue',
+    icon: '⭐',
+    badgeClass: 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-600 text-white shadow-sm',
+    borderColor: 'border-blue-500',
+  },
+  em_atendimento: {
+    label: 'Em atendimento',
+    variant: 'yellow',
+    icon: '⏳',
+    badgeClass: 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500 text-white shadow-sm',
+    borderColor: 'border-amber-400',
+  },
+  convertido: {
+    label: 'Convertido',
+    variant: 'green',
+    icon: '✓',
+    badgeClass: 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-600 text-white shadow-sm',
+    borderColor: 'border-green-500',
+  },
+  descartado: {
+    label: 'Descartado',
+    variant: 'gray',
+    icon: '✕',
+    badgeClass: 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-400 text-white shadow-sm',
+    borderColor: 'border-gray-400',
+  },
 };
 
 const STATUS_OPTIONS = [
@@ -131,9 +154,9 @@ export default function ContatosPage() {
           {contatos.map((contato) => {
             const statusConf = STATUS_CONFIG[contato.status] || STATUS_CONFIG.novo;
             return (
+              <div key={contato.id} className={`border-l-4 ${statusConf.borderColor} rounded-3xl`}>
               <Card
-                key={contato.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
+                className="cursor-pointer hover:shadow-md transition-all"
                 onClick={() => router.push(`/contatos/${contato.id}`)}
               >
                 <div className="flex items-center gap-4">
@@ -142,7 +165,9 @@ export default function ContatosPage() {
                       <span className="font-semibold text-gray-900 dark:text-gray-100">
                         {contato.nome}
                       </span>
-                      <Badge variant={statusConf.variant}>{statusConf.label}</Badge>
+                      <span className={statusConf.badgeClass}>
+                        {statusConf.icon} {statusConf.label}
+                      </span>
                     </div>
                     <div className="flex items-center gap-4 mt-1 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
                       {contato.empresa && (
@@ -172,6 +197,7 @@ export default function ContatosPage() {
                   <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
                 </div>
               </Card>
+              </div>
             );
           })}
         </div>

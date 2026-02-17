@@ -5,8 +5,63 @@
 /* =====================================================
    Sistema de Gestão de Pedidos - Laticínio Quatrelati
    Design System: Tema Light (Blue) / Dark
-   v1.4.0 - Limpeza de animações não utilizadas
+   v1.5.0 - Bureau IT footer disclosure + brand colors Quatrelati
    ===================================================== */
+
+/* =====================================================
+   Bureau IT - Footer Disclosure
+   Hover Animation + CLI-CK Sound | Timbre: digital | Pitch: +12
+   ===================================================== */
+
+/* Colors - Arrow */
+.footer__developed-by-link .bureau-arrow {
+  fill: #D4A017;
+}
+.footer__developed-by-link:hover .bureau-arrow {
+  fill: #F9E68A;
+}
+
+/* Colors - IT_ */
+.footer__developed-by-link {
+  color: #D4A017;
+}
+.footer__developed-by-link .bureau-logo path:not(.bureau-arrow),
+.footer__developed-by-link .bureau-logo polygon:not(.bureau-arrow),
+.footer__developed-by-link .bureau-logo rect {
+  fill: #D4A017;
+}
+.footer__developed-by-link:hover {
+  color: #F9E68A;
+}
+.footer__developed-by-link:hover .bureau-logo path:not(.bureau-arrow),
+.footer__developed-by-link:hover .bureau-logo polygon:not(.bureau-arrow),
+.footer__developed-by-link:hover .bureau-logo rect {
+  fill: #F9E68A;
+}
+
+/* Animations */
+@keyframes blink-underscore {
+  0%, 100% { opacity: 1; }
+  25% { opacity: 0; }
+  50% { opacity: 1; }
+  75% { opacity: 0; }
+}
+@keyframes arrow-click {
+  0% { transform: scale(1) translateY(0); }
+  40% { transform: scale(0.85) translateY(4px); }
+  70% { transform: scale(1.05) translateY(-2px); }
+  100% { transform: scale(1) translateY(0); }
+}
+.bureau-arrow {
+  transform-origin: center center;
+  transform-box: fill-box;
+}
+.bureau-underscore.animate-blink {
+  animation: blink-underscore 0.6s ease-in-out;
+}
+.bureau-arrow.animate-click {
+  animation: arrow-click 0.3s ease-out;
+}
 
 @layer base {
   :root {

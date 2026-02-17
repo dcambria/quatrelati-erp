@@ -2,7 +2,7 @@
 
 // =====================================================
 // Detalhe de Contato do Site
-// v1.0.0 - Visualização, atualização de status e conversão em cliente
+// v1.1.0 - WhatsApp button, timeline de histórico e modal de email
 // =====================================================
 
 import { useState, useEffect, useCallback } from 'react';
@@ -22,6 +22,8 @@ import {
   PlayCircle,
   UserPlus,
   ExternalLink,
+  Send,
+  MessageCircle,
 } from 'lucide-react';
 import api from '../../../lib/api';
 import Header from '../../../components/layout/Header';
@@ -41,6 +43,13 @@ const STATUS_CONFIG = {
   descartado: { label: 'Descartado', variant: 'gray' },
 };
 
+const ACAO_LABELS = {
+  atualizar: 'Status atualizado',
+  converter: 'Convertido em cliente',
+  email_enviado: 'Email enviado',
+  criar: 'Contato criado',
+};
+
 export default function ContatoDetalhePage() {
   const { id } = useParams();
   const router = useRouter();
@@ -49,15 +58,20 @@ export default function ContatoDetalhePage() {
   const [salvando, setSalvando] = useState(false);
   const [showConverterModal, setShowConverterModal] = useState(false);
   const [observacoes, setObservacoes] = useState('');
+  const [historico, setHistorico] = useState([]);
+  const [loadingHistorico, setLoadingHistorico] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [enviandoEmail, setEnviandoEmail] = useState(false);
+  const [emailForm, setEmailForm] = useState({ assunto: '', corpo: '' });
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
   const fetchContato = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await api.get(`/contatos/${id}`);
-      setContato(data);
-      setObservacoes(data.observacoes_internas || '');
+      const res = await api.get(`/contatos/${id}`);
+      setContato(res.data);
+      setObservacoes(res.data.observacoes_internas || '');
     } catch {
       toast.error('Contato não encontrado');
       router.push('/contatos');
@@ -66,9 +80,41 @@ export default function ContatoDetalhePage() {
     }
   }, [id, router]);
 
+  const fetchHistorico = useCallback(async () => {
+    try {
+      setLoadingHistorico(true);
+      const res = await api.get(`/contatos/${id}/historico`);
+      setHistorico(res.data.historico || []);
+    } catch {
+      // histórico é secundário, falha silenciosa
+    } finally {
+      setLoadingHistorico(false);
+    }
+  }, [id]);
+
+  const enviarEmail = async () => {
+    if (!emailForm.assunto.trim() || !emailForm.corpo.trim()) {
+      toast.error('Preencha assunto e mensagem');
+      return;
+    }
+    try {
+      setEnviandoEmail(true);
+      await api.post(`/contatos/${id}/email`, emailForm);
+      toast.success('Email enviado com sucesso!');
+      setShowEmailModal(false);
+      setEmailForm({ assunto: '', corpo: '' });
+      fetchHistorico();
+    } catch {
+      toast.error('Erro ao enviar email');
+    } finally {
+      setEnviandoEmail(false);
+    }
+  };
+
   useEffect(() => {
     fetchContato();
-  }, [fetchContato]);
+    fetchHistorico();
+  }, [fetchContato, fetchHistorico]);
 
   const atualizarStatus = async (novoStatus) => {
     try {
@@ -105,7 +151,7 @@ export default function ContatoDetalhePage() {
     try {
       setSalvando(true);
       const result = await api.post(`/contatos/${id}/converter`, formData);
-      toast.success(`Cliente "${result.cliente_nome}" criado com sucesso!`);
+      toast.success(`Cliente "${result.data.cliente_nome}" criado com sucesso!`);
       setShowConverterModal(false);
       fetchContato();
     } catch (error) {
@@ -221,6 +267,36 @@ export default function ContatoDetalhePage() {
             </div>
           </Card>
 
+          <Card title="Histórico">
+            {loadingHistorico ? (
+              <p className="text-sm text-gray-400">Carregando...</p>
+            ) : historico.length === 0 ? (
+              <p className="text-sm text-gray-400 dark:text-gray-500">Sem registros ainda.</p>
+            ) : (
+              <div className="relative">
+                <div className="absolute left-3 top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-700" />
+                <div className="space-y-4">
+                  {historico.map((entry) => (
+                    <div key={entry.id} className="flex gap-3 pl-8 relative">
+                      <div className="absolute left-1.5 top-1.5 w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-gray-800" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                          {ACAO_LABELS[entry.acao] || entry.acao}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {entry.usuario_nome} · {formatData(entry.created_at)}
+                        </p>
+                        {entry.detalhes?.assunto && (
+                          <p className="text-xs text-gray-400 mt-0.5">Assunto: {entry.detalhes.assunto}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+
           {contato.status === 'convertido' && contato.cliente_id && (
             <Card>
               <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
@@ -244,6 +320,30 @@ export default function ContatoDetalhePage() {
         <div className="space-y-4">
           <Card title="Ações">
             <div className="space-y-3">
+              {contato.telefone && (
+                <a
+                  href={`https://wa.me/55${contato.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${contato.nome}, tudo bem? Estou entrando em contato referente à sua mensagem enviada pelo nosso site.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-lg transition-colors"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  WhatsApp
+                </a>
+              )}
+              {contato.email && (
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  icon={<Send className="w-4 h-4" />}
+                  onClick={() => {
+                    setEmailForm({ assunto: `Re: Contato de ${contato.nome}`, corpo: '' });
+                    setShowEmailModal(true);
+                  }}
+                >
+                  Enviar email
+                </Button>
+              )}
               {contato.status === 'novo' && (
                 <Button
                   className="w-full"
@@ -348,6 +448,54 @@ export default function ContatoDetalhePage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        title="Enviar email para o contato"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Enviando para: <strong>{contato.email}</strong>
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Assunto *
+            </label>
+            <input
+              type="text"
+              value={emailForm.assunto}
+              onChange={(e) => setEmailForm(f => ({ ...f, assunto: e.target.value }))}
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Assunto do email"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Mensagem *
+            </label>
+            <textarea
+              value={emailForm.corpo}
+              onChange={(e) => setEmailForm(f => ({ ...f, corpo: e.target.value }))}
+              rows={6}
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              placeholder="Escreva sua mensagem..."
+            />
+          </div>
+          <div className="flex gap-3 justify-end pt-2">
+            <Button variant="outline" type="button" onClick={() => setShowEmailModal(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={enviarEmail}
+              loading={enviandoEmail}
+              icon={<Send className="w-4 h-4" />}
+            >
+              Enviar
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

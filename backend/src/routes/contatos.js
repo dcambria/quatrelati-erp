@@ -10,6 +10,8 @@ const { authMiddleware } = require('../middleware/auth');
 const { apiKeyMiddleware } = require('../middleware/apiKey');
 const { idValidation } = require('../middleware/validation');
 const { activityLogMiddleware } = require('../middleware/activityLog');
+const { sendReplyEmail } = require('../services/emailService');
+const { logActivity } = require('../middleware/activityLog');
 
 // Rate limiter para o endpoint público de recebimento de contatos
 const contatosLimiter = rateLimit({
@@ -217,6 +219,94 @@ router.patch('/:id/status', idValidation, activityLogMiddleware('atualizar', 'co
     } catch (error) {
         console.error('[CONTATOS] Erro ao atualizar status:', error.message);
         return res.status(500).json({ error: 'Erro interno' });
+    }
+});
+
+/**
+ * GET /api/contatos/:id/historico
+ * Histórico de ações registradas no activity_logs para este contato
+ */
+router.get('/:id/historico', idValidation, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const result = await req.db.query(
+            `SELECT
+                id,
+                user_nome   AS usuario_nome,
+                action      AS acao,
+                details     AS detalhes,
+                created_at
+             FROM activity_logs
+             WHERE entity = 'contato' AND entity_id = $1
+             ORDER BY created_at DESC
+             LIMIT 50`,
+            [id]
+        );
+
+        return res.json({ historico: result.rows });
+    } catch (error) {
+        console.error('[CONTATOS] Erro ao buscar histórico:', error.message);
+        return res.status(500).json({ error: 'Erro interno' });
+    }
+});
+
+/**
+ * POST /api/contatos/:id/email
+ * Envia email de resposta para o contato via SES
+ * Body: { assunto, corpo }
+ */
+router.post('/:id/email', idValidation, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { assunto, corpo } = req.body;
+
+        if (!assunto || !corpo) {
+            return res.status(400).json({ error: 'Campos assunto e corpo são obrigatórios' });
+        }
+
+        const contatoResult = await req.db.query(
+            `SELECT nome, email FROM contatos_site WHERE id = $1`,
+            [id]
+        );
+
+        if (contatoResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Contato não encontrado' });
+        }
+
+        const { nome, email } = contatoResult.rows[0];
+
+        if (!email) {
+            return res.status(400).json({ error: 'Este contato não possui email cadastrado' });
+        }
+
+        const remetenteResult = await req.db.query(
+            `SELECT nome FROM usuarios WHERE id = $1`,
+            [req.userId]
+        );
+        const remetenteNome = remetenteResult.rows[0]?.nome || 'Equipe Quatrelati';
+
+        await sendReplyEmail(email, nome, assunto, corpo, remetenteNome);
+
+        // Registrar no activity_log via helper (nomes de colunas corretos)
+        await logActivity(req.db, {
+            userId: req.userId,
+            userNome: remetenteNome,
+            userNivel: req.userNivel || 'desconhecido',
+            action: 'email_enviado',
+            entity: 'contato',
+            entityId: parseInt(id),
+            entityName: nome,
+            details: { assunto },
+            ipAddress: req.ip || null,
+            userAgent: req.get('User-Agent'),
+        });
+
+        console.log(`[CONTATOS] Email enviado para ${email} pelo usuário ${req.userId}`);
+        return res.json({ success: true });
+    } catch (error) {
+        console.error('[CONTATOS] Erro ao enviar email:', error.message);
+        return res.status(500).json({ error: 'Erro interno ao enviar email' });
     }
 });
 

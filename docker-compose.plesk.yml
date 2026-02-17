@@ -89,10 +89,7 @@ services:
       - quatrelati-network
 
   site:
-    build:
-      context: ./site
-      dockerfile: Dockerfile
-      target: production
+    image: ghcr.io/dcambria/quatrelati-site:latest
     container_name: quatrelati-site
     restart: always
     ports:

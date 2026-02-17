@@ -1,6 +1,6 @@
 # =====================================================
 # Docker Compose para Deploy em Plesk
-# v1.1.0 - Inclui serviço site (landing page)
+# v1.1.1 - Site service consome imagem do GHCR (quatrelati-site CI/CD)
 # =====================================================
 # Uso: docker compose -f docker-compose.plesk.yml up -d
 

@@ -36,22 +36,25 @@ const contatosLimiter = rateLimit({
  */
 router.post('/', contatosLimiter, apiKeyMiddleware, async (req, res) => {
     try {
-        const { nome, empresa, email, telefone, mensagem } = req.body;
+        const { nome, empresa, email, telefone, mensagem, tipo, token, status } = req.body;
 
         if (!nome || !mensagem) {
             return res.status(400).json({ error: 'Campos nome e mensagem são obrigatórios' });
         }
 
         const result = await req.db.query(
-            `INSERT INTO contatos_site (nome, empresa, email, telefone, mensagem)
-             VALUES ($1, $2, $3, $4, $5)
+            `INSERT INTO contatos_site (nome, empresa, email, telefone, mensagem, tipo, token, status)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
              RETURNING id, recebido_em`,
             [
                 nome.trim(),
                 empresa ? empresa.trim() : null,
                 email ? email.trim().toLowerCase() : null,
                 telefone ? telefone.trim() : null,
-                mensagem.trim()
+                mensagem.trim(),
+                tipo || 'contato',
+                token || null,
+                status || 'novo'
             ]
         );
 
@@ -78,7 +81,7 @@ router.use(authMiddleware);
  */
 router.get('/', async (req, res) => {
     try {
-        const { status, search, page = 1, limit = 50 } = req.query;
+        const { status, tipo, search, page = 1, limit = 50 } = req.query;
 
         let whereConditions = [];
         let params = [];
@@ -87,6 +90,12 @@ router.get('/', async (req, res) => {
         if (status) {
             whereConditions.push(`cs.status = $${paramIndex}`);
             params.push(status);
+            paramIndex++;
+        }
+
+        if (tipo) {
+            whereConditions.push(`cs.tipo = $${paramIndex}`);
+            params.push(tipo);
             paramIndex++;
         }
 
@@ -129,7 +138,7 @@ router.get('/', async (req, res) => {
 
         // Contagem de "novos" para badge no menu
         const novosResult = await req.db.query(
-            `SELECT COUNT(*) FROM contatos_site WHERE status = 'novo'`
+            `SELECT COUNT(*) FROM contatos_site WHERE status = 'novo' AND tipo = 'contato'`
         );
 
         return res.json({
@@ -152,7 +161,7 @@ router.get('/', async (req, res) => {
 router.get('/novos/count', async (req, res) => {
     try {
         const result = await req.db.query(
-            `SELECT COUNT(*) FROM contatos_site WHERE status = 'novo'`
+            `SELECT COUNT(*) FROM contatos_site WHERE status = 'novo' AND tipo = 'contato'`
         );
         return res.json({ count: parseInt(result.rows[0].count) });
     } catch (error) {
@@ -201,7 +210,7 @@ router.patch('/:id/status', idValidation, activityLogMiddleware('atualizar', 'co
         const { id } = req.params;
         const { status, observacoes_internas } = req.body;
 
-        const statusValidos = ['novo', 'em_atendimento', 'convertido', 'descartado'];
+        const statusValidos = ['pendente', 'novo', 'em_atendimento', 'convertido', 'descartado'];
         if (!statusValidos.includes(status)) {
             return res.status(400).json({ error: `Status inválido. Use: ${statusValidos.join(', ')}` });
         }

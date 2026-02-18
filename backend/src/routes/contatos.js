@@ -1,6 +1,6 @@
 // =====================================================
 // Rotas de Contatos do Site
-// v1.3.0 - DELETE /api/contatos/:id (superadmin only)
+// v1.4.0 - tipo/token/status para download leads
 // =====================================================
 
 const express = require('express');
@@ -37,6 +37,23 @@ const contatosLimiter = rateLimit({
 router.post('/', contatosLimiter, apiKeyMiddleware, async (req, res) => {
     try {
         const { nome, empresa, email, telefone, mensagem, tipo, token, status } = req.body;
+
+        // Validar token (deve ser UUID se fornecido)
+        const UUID_REGEX_POST = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (token && !UUID_REGEX_POST.test(token)) {
+            return res.status(400).json({ error: 'token deve ser um UUID válido' });
+        }
+
+        // Validar tipo e status (allowlists)
+        const tiposValidos = ['contato', 'download_lead'];
+        const statusCriacaoValidos = ['pendente', 'novo'];
+
+        if (tipo && !tiposValidos.includes(tipo)) {
+            return res.status(400).json({ error: `tipo inválido. Use: ${tiposValidos.join(', ')}` });
+        }
+        if (status && !statusCriacaoValidos.includes(status)) {
+            return res.status(400).json({ error: `status inválido para criação. Use: ${statusCriacaoValidos.join(', ')}` });
+        }
 
         if (!nome || !mensagem) {
             return res.status(400).json({ error: 'Campos nome e mensagem são obrigatórios' });

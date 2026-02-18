@@ -2,7 +2,7 @@
 
 // =====================================================
 // Detalhe de Contato do Site
-// v1.2.0 - Suporte a anexos no email
+// v1.3.0 - Apagar contato (superadmin only)
 // =====================================================
 
 import { useState, useEffect, useCallback } from 'react';
@@ -25,8 +25,10 @@ import {
   Send,
   MessageCircle,
   Paperclip,
+  Trash2,
 } from 'lucide-react';
 import api from '../../../lib/api';
+import { useAuth } from '../../../contexts/AuthContext';
 import Header from '../../../components/layout/Header';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
@@ -54,6 +56,7 @@ const ACAO_LABELS = {
 export default function ContatoDetalhePage() {
   const { id } = useParams();
   const router = useRouter();
+  const { isSuperAdmin } = useAuth();
   const [contato, setContato] = useState(null);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -115,6 +118,17 @@ export default function ContatoDetalhePage() {
       toast.error('Erro ao enviar email');
     } finally {
       setEnviandoEmail(false);
+    }
+  };
+
+  const apagarContato = async () => {
+    if (!confirm(`Apagar permanentemente o contato "${contato?.nome}"? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await api.delete(`/contatos/${id}`);
+      toast.success('Contato apagado');
+      router.push('/contatos');
+    } catch {
+      toast.error('Erro ao apagar contato');
     }
   };
 
@@ -393,6 +407,19 @@ export default function ContatoDetalhePage() {
               )}
             </div>
           </Card>
+
+          {isSuperAdmin && (
+            <Card>
+              <Button
+                className="w-full"
+                variant="danger"
+                icon={<Trash2 className="w-4 h-4" />}
+                onClick={apagarContato}
+              >
+                Apagar contato
+              </Button>
+            </Card>
+          )}
 
           {contato.atendido_por_nome && (
             <Card>

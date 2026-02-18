@@ -88,6 +88,82 @@ router.post('/', contatosLimiter, apiKeyMiddleware, async (req, res) => {
     }
 });
 
+// =====================================================
+// Helper: serve pixel 1x1 GIF transparente
+// =====================================================
+function servePx(res) {
+    const gif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+    res.set('Content-Type', 'image/gif');
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    return res.send(gif);
+}
+
+// UUID regex para validação (usada nos endpoints públicos)
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * GET /api/contatos/pixel/:token
+ * Pixel de rastreamento de abertura de email (público, sem auth)
+ * Confirma o lead quando o email é aberto
+ */
+router.get('/pixel/:token', async (req, res) => {
+    const { token } = req.params;
+
+    if (UUID_REGEX.test(token)) {
+        try {
+            await req.db.query(
+                `UPDATE contatos_site
+                 SET email_confirmado_em = NOW(),
+                     status = CASE WHEN status = 'pendente' THEN 'novo' ELSE status END,
+                     atualizado_em = NOW()
+                 WHERE token = $1 AND email_confirmado_em IS NULL`,
+                [token]
+            );
+        } catch (err) {
+            // silent — não expor erros ao cliente de email
+        }
+    }
+
+    return servePx(res);
+});
+
+/**
+ * GET /api/contatos/confirmar/:token
+ * Redirect rastreado para download do PDF (público, sem auth)
+ * Query: ?doc=ficha | ?doc=cadastro
+ * Confirma o lead quando o link é clicado
+ */
+router.get('/confirmar/:token', async (req, res) => {
+    const { token } = req.params;
+    const { doc } = req.query;
+
+    const SITE_URL = process.env.SITE_URL || 'https://laticinioquatrelati.com.br';
+    const PDF_URLS = {
+        ficha:    `${SITE_URL}/assets/fichas-tecnicas/Manteiga%20Extra%20Sem%20Sal%20Quatrelati.pdf`,
+        cadastro: `${SITE_URL}/assets/fichas-tecnicas/Cadastro%20Quatrelati.pdf`,
+    };
+
+    const redirectUrl = PDF_URLS[doc] || PDF_URLS.ficha;
+
+    if (UUID_REGEX.test(token)) {
+        try {
+            await req.db.query(
+                `UPDATE contatos_site
+                 SET email_confirmado_em = COALESCE(email_confirmado_em, NOW()),
+                     status = CASE WHEN status = 'pendente' THEN 'novo' ELSE status END,
+                     atualizado_em = NOW()
+                 WHERE token = $1`,
+                [token]
+            );
+        } catch (err) {
+            // silent
+        }
+    }
+
+    return res.redirect(302, redirectUrl);
+});
+
 // Todas as rotas abaixo requerem autenticação JWT
 router.use(authMiddleware);
 

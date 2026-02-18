@@ -1,6 +1,6 @@
 # =====================================================
 # Docker Compose para Deploy em Plesk
-# v1.2.0 - CI/CD via GHCR (backend + frontend imagens versionadas)
+# v1.2.1 - healthcheck usa 127.0.0.1 (IPv4) em vez de localhost
 # =====================================================
 # Uso: docker compose -f docker-compose.plesk.yml up -d
 
@@ -52,7 +52,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3001/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -72,7 +72,7 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -89,7 +89,7 @@ services:
     env_file:
       - ./site/.env.prod
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3100/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3100/health"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -50,7 +50,7 @@ export default function BureauFooter({ className = '', variant = 'dark', compact
             Bureau
           </span>
         </a>
-        <p className="text-[9px] text-gray-400 mt-1">v1.0.0</p>
+        <p className="text-[9px] text-gray-400 mt-1">v1.5.0</p>
       </div>
     );
   }
@@ -124,7 +124,7 @@ export default function BureauFooter({ className = '', variant = 'dark', compact
           Bureau de Tecnologia
         </span>
       </a>
-      <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-white/50'}`}>v1.0.0</p>
+      <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-white/50'}`}>v1.5.0</p>
     </div>
   );
 }

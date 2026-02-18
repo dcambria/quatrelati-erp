@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import {
   MessageSquare,
+  Download,
   Search,
   RefreshCw,
   ChevronRight,
@@ -56,6 +57,13 @@ const STATUS_CONFIG = {
     badgeClass: 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-400 text-white shadow-sm',
     borderColor: 'border-gray-400',
   },
+  pendente: {
+    label: 'Pendente',
+    variant: 'orange',
+    icon: '⏱',
+    badgeClass: 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-500 text-white shadow-sm',
+    borderColor: 'border-orange-400',
+  },
 };
 
 const STATUS_OPTIONS = [
@@ -73,6 +81,7 @@ export default function ContatosPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFiltro, setStatusFiltro] = useState('');
+  const [abaAtiva, setAbaAtiva] = useState('contatos'); // 'contatos' | 'leads'
 
   const fetchContatos = useCallback(async () => {
     try {
@@ -81,6 +90,11 @@ export default function ContatosPage() {
       if (search) params.set('search', search);
       if (statusFiltro) params.set('status', statusFiltro);
       params.set('limit', '100');
+      if (abaAtiva === 'leads') {
+        params.set('tipo', 'download_lead');
+      } else {
+        params.set('tipo', 'contato');
+      }
 
       const res = await api.get(`/contatos?${params.toString()}`);
       setContatos(res.data.contatos || []);
@@ -90,7 +104,7 @@ export default function ContatosPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFiltro]);
+  }, [search, statusFiltro, abaAtiva]);
 
   useEffect(() => {
     const timer = setTimeout(fetchContatos, 300);
@@ -112,6 +126,32 @@ export default function ContatosPage() {
         subtitle={`${total} contato${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`}
         icon={<MessageSquare className="w-6 h-6" />}
       />
+
+      {/* Abas */}
+      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-0">
+        <button
+          onClick={() => setAbaAtiva('contatos')}
+          className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors ${
+            abaAtiva === 'contatos'
+              ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+              : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+        >
+          <MessageSquare className="w-4 h-4 inline mr-1.5" />
+          Mensagens do Site
+        </button>
+        <button
+          onClick={() => setAbaAtiva('leads')}
+          className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors ${
+            abaAtiva === 'leads'
+              ? 'border-b-2 border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20'
+              : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+        >
+          <Download className="w-4 h-4 inline mr-1.5" />
+          Leads de Download
+        </button>
+      </div>
 
       {/* Filtros */}
       <Card>
@@ -193,6 +233,19 @@ export default function ContatosPage() {
                       <Clock className="w-3 h-3" />
                       {formatData(contato.recebido_em)}
                     </div>
+                    {abaAtiva === 'leads' && (
+                      <div className="mt-1 text-xs flex items-center gap-1">
+                        {contato.email_confirmado_em ? (
+                          <span className="text-green-600 dark:text-green-400">
+                            ✓ Email aberto em {formatData(contato.email_confirmado_em)}
+                          </span>
+                        ) : (
+                          <span className="text-orange-500 dark:text-orange-400">
+                            ⏱ Aguardando abertura do email
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
                 </div>

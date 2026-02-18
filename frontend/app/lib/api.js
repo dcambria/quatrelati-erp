@@ -1,4 +1,5 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+// URL relativa: Nginx roteia /api/* para o backend em prod; Next.js rewrite em dev
+const API_URL = '/api';
 
 class ApiClient {
   constructor() {
@@ -65,6 +66,16 @@ class ApiClient {
 
     if (contentType && contentType.includes('application/pdf')) {
       return response.blob();
+    }
+
+    // Se não for JSON, evitar crash com "Unexpected token '<'"
+    if (!contentType || !contentType.includes('application/json')) {
+      if (!response.ok) {
+        const error = new Error(`Erro ${response.status}: resposta inesperada do servidor`);
+        error.status = response.status;
+        throw error;
+      }
+      return { data: {}, status: response.status };
     }
 
     const data = await response.json();

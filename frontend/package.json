@@ -1,6 +1,6 @@
 {
   "name": "quatrelati-web",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Frontend do Sistema de Gestão de Pedidos - Laticínio Quatrelati",
   "scripts": {
     "dev": "next dev",

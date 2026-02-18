@@ -4,7 +4,7 @@
  * ===========================================
  * Quatrelati - Bureau Footer Component
  * Footer com logo do Bureau de Tecnologia
- * v1.5.1 - logo 34px + hover animation CLI-CK sound (login page)
+ * v1.5.1 - logo 34px + hover animation CLI-CK sound (login page); api.js URL relativa
  * ===========================================
  */
 
@@ -107,7 +107,7 @@ export default function BureauFooter({ className = '', variant = 'dark', compact
             />
           </svg>
         </a>
-        <p className="text-[9px] text-gray-400 mt-1">v1.5.0</p>
+        <p className="text-[9px] text-gray-400 mt-1">v1.5.1</p>
       </div>
     );
   }
@@ -182,7 +182,7 @@ export default function BureauFooter({ className = '', variant = 'dark', compact
           Bureau de Tecnologia
         </span>
       </a>
-      <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-white/50'}`}>v1.5.0</p>
+      <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-white/50'}`}>v1.5.1</p>
     </div>
   );
 }

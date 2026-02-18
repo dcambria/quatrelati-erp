@@ -304,7 +304,7 @@ router.post('/:id/email', idValidation, emailUpload.array('arquivos', 5), async 
             entity: 'contato',
             entityId: parseInt(id),
             entityName: nome,
-            details: { assunto },
+            details: { assunto, corpo, num_anexos: (req.files || []).length || undefined },
             ipAddress: req.ip || null,
             userAgent: req.get('User-Agent'),
         });

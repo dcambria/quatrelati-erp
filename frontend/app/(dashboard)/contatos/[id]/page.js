@@ -2,7 +2,7 @@
 
 // =====================================================
 // Detalhe de Contato do Site
-// v1.3.0 - Apagar contato (superadmin only)
+// v1.4.0 - Histórico expansível com corpo do email
 // =====================================================
 
 import { useState, useEffect, useCallback } from 'react';
@@ -26,6 +26,8 @@ import {
   MessageCircle,
   Paperclip,
   Trash2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import api from '../../../lib/api';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -64,6 +66,7 @@ export default function ContatoDetalhePage() {
   const [observacoes, setObservacoes] = useState('');
   const [historico, setHistorico] = useState([]);
   const [loadingHistorico, setLoadingHistorico] = useState(false);
+  const [expandedHistoricoId, setExpandedHistoricoId] = useState(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [enviandoEmail, setEnviandoEmail] = useState(false);
   const [emailForm, setEmailForm] = useState({ assunto: '', corpo: '' });
@@ -297,22 +300,65 @@ export default function ContatoDetalhePage() {
               <div className="relative">
                 <div className="absolute left-3 top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-700" />
                 <div className="space-y-4">
-                  {historico.map((entry) => (
-                    <div key={entry.id} className="flex gap-3 pl-8 relative">
-                      <div className="absolute left-1.5 top-1.5 w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-gray-800" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                          {ACAO_LABELS[entry.acao] || entry.acao}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {entry.usuario_nome} · {formatData(entry.created_at)}
-                        </p>
-                        {entry.detalhes?.assunto && (
-                          <p className="text-xs text-gray-400 mt-0.5">Assunto: {entry.detalhes.assunto}</p>
-                        )}
+                  {historico.map((entry) => {
+                    const temDetalhes = entry.detalhes && Object.keys(entry.detalhes).length > 0;
+                    const expandido = expandedHistoricoId === entry.id;
+                    return (
+                      <div key={entry.id} className="flex gap-3 pl-8 relative">
+                        <div className="absolute left-1.5 top-1.5 w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-gray-800" />
+                        <div className="flex-1 min-w-0">
+                          <button
+                            type="button"
+                            className={`w-full text-left ${temDetalhes ? 'cursor-pointer' : 'cursor-default'}`}
+                            onClick={() => temDetalhes && setExpandedHistoricoId(expandido ? null : entry.id)}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                {ACAO_LABELS[entry.acao] || entry.acao}
+                              </p>
+                              {temDetalhes && (
+                                expandido
+                                  ? <ChevronUp className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                  : <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {entry.usuario_nome} · {formatData(entry.created_at)}
+                            </p>
+                            {!expandido && entry.detalhes?.assunto && (
+                              <p className="text-xs text-gray-400 mt-0.5 truncate">
+                                Assunto: {entry.detalhes.assunto}
+                              </p>
+                            )}
+                          </button>
+                          {expandido && temDetalhes && (
+                            <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs space-y-2 border border-gray-100 dark:border-gray-700">
+                              {entry.detalhes.assunto && (
+                                <div>
+                                  <span className="font-medium text-gray-600 dark:text-gray-300">Assunto:</span>{' '}
+                                  <span className="text-gray-700 dark:text-gray-200">{entry.detalhes.assunto}</span>
+                                </div>
+                              )}
+                              {entry.detalhes.corpo && (
+                                <div>
+                                  <span className="font-medium text-gray-600 dark:text-gray-300 block mb-1">Mensagem:</span>
+                                  <p className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+                                    {entry.detalhes.corpo}
+                                  </p>
+                                </div>
+                              )}
+                              {entry.detalhes.num_anexos > 0 && (
+                                <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                                  <Paperclip className="w-3 h-3" />
+                                  <span>{entry.detalhes.num_anexos} anexo(s)</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

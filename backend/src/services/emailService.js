@@ -480,12 +480,14 @@ async function sendReplyEmail(to, toName, assunto, corpo, remetenteNome, attachm
 
     try {
         if (attachments.length > 0) {
-            // Com anexos: usar nodemailer SES transport (gera MIME raw com anexos)
-            const transporter = nodemailer.createTransport({
-                SES: { ses: sesClient, aws: { SendRawEmailCommand } },
+            // Com anexos: nodemailer gera MIME raw → SendRawEmailCommand via @aws-sdk/client-ses
+            const streamTransport = nodemailer.createTransport({
+                streamTransport: true,
+                newline: 'windows',
+                buffer: true,
             });
 
-            const info = await transporter.sendMail({
+            const info = await streamTransport.sendMail({
                 from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
                 to,
                 subject: assunto,
@@ -498,8 +500,13 @@ async function sendReplyEmail(to, toName, assunto, corpo, remetenteNome, attachm
                 })),
             });
 
-            console.log(`[EMAIL] Reply com ${attachments.length} anexo(s) enviado para: ${to}`);
-            return { messageId: info.messageId };
+            const command = new SendRawEmailCommand({
+                RawMessage: { Data: info.message },
+            });
+            const response = await sesClient.send(command);
+
+            console.log(`[EMAIL] Reply com ${attachments.length} anexo(s) enviado para: ${to} — MessageId: ${response.MessageId}`);
+            return { messageId: response.MessageId };
         }
 
         // Sem anexos: usar SendEmailCommand (mais simples)

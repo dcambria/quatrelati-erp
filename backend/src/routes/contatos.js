@@ -14,6 +14,9 @@ const { activityLogMiddleware } = require('../middleware/activityLog');
 const { sendReplyEmail } = require('../services/emailService');
 const { logActivity } = require('../middleware/activityLog');
 
+// UUID regex para validação (usada nos endpoints públicos e no POST)
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // Multer para upload de anexos de email (memória, sem gravar em disco)
 const emailUpload = multer({
     storage: multer.memoryStorage(),
@@ -39,8 +42,7 @@ router.post('/', contatosLimiter, apiKeyMiddleware, async (req, res) => {
         const { nome, empresa, email, telefone, mensagem, tipo, token, status } = req.body;
 
         // Validar token (deve ser UUID se fornecido)
-        const UUID_REGEX_POST = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (token && !UUID_REGEX_POST.test(token)) {
+        if (token && !UUID_REGEX.test(token)) {
             return res.status(400).json({ error: 'token deve ser um UUID válido' });
         }
 
@@ -99,15 +101,12 @@ function servePx(res) {
     return res.send(gif);
 }
 
-// UUID regex para validação (usada nos endpoints públicos)
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /**
  * GET /api/contatos/pixel/:token
  * Pixel de rastreamento de abertura de email (público, sem auth)
  * Confirma o lead quando o email é aberto
  */
-router.get('/pixel/:token', async (req, res) => {
+router.get('/pixel/:token', contatosLimiter, async (req, res) => {
     const { token } = req.params;
 
     if (UUID_REGEX.test(token)) {
@@ -134,7 +133,7 @@ router.get('/pixel/:token', async (req, res) => {
  * Query: ?doc=ficha | ?doc=cadastro
  * Confirma o lead quando o link é clicado
  */
-router.get('/confirmar/:token', async (req, res) => {
+router.get('/confirmar/:token', contatosLimiter, async (req, res) => {
     const { token } = req.params;
     const { doc } = req.query;
 
@@ -144,7 +143,8 @@ router.get('/confirmar/:token', async (req, res) => {
         cadastro: `${SITE_URL}/assets/fichas-tecnicas/Cadastro%20Quatrelati.pdf`,
     };
 
-    const redirectUrl = PDF_URLS[doc] || PDF_URLS.ficha;
+    const ALLOWED_DOCS = ['ficha', 'cadastro'];
+    const redirectUrl = ALLOWED_DOCS.includes(doc) ? PDF_URLS[doc] : PDF_URLS.ficha;
 
     if (UUID_REGEX.test(token)) {
         try {
